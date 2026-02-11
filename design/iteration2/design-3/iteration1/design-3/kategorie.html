@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Progress Dashboard - Obst &amp; Gem&uuml;se</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #121216;
+    --surface: rgba(255,255,255,0.04);
+    --teal: #4E9DA6;
+    --teal-glow: 0 0 15px rgba(78,157,166,0.4), 0 0 30px rgba(78,157,166,0.15);
+    --orange: #E8923A;
+    --orange-glow: 0 0 12px rgba(232,146,58,0.5);
+    --green: #6BBF6B;
+    --green-glow: 0 0 15px rgba(107,191,107,0.4), 0 0 30px rgba(107,191,107,0.15);
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255,255,255,0.5);
+    --text-dim: rgba(255,255,255,0.35);
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background: #0a0a0e;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: var(--text-primary);
+  }
+
+  .phone-frame {
+    width: 390px;
+    height: 844px;
+    background: var(--bg);
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 0 60px rgba(0,0,0,0.5), 0 0 120px rgba(78,157,166,0.05);
+  }
+
+  .screen {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 110px;
+    scrollbar-width: none;
+  }
+
+  .screen::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Status Bar */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 28px 8px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--bg);
+  }
+
+  .status-time {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .status-icons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .status-icons svg {
+    width: 16px;
+    height: 16px;
+    fill: white;
+  }
+
+  /* Header */
+  .header {
+    padding: 8px 20px 4px;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
+  }
+
+  .back-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    border: 1.5px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+
+  .back-btn:hover {
+    border-color: var(--green);
+    box-shadow: 0 0 12px rgba(107,191,107,0.3);
+    background: rgba(107,191,107,0.06);
+  }
+
+  .back-btn svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: var(--text-secondary);
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+
+  .header-text {
+    flex: 1;
+  }
+
+  .header-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--green);
+    text-shadow: 0 0 20px rgba(107,191,107,0.3);
+    letter-spacing: -0.3px;
+  }
+
+  .header-subtitle {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-dim);
+    margin-top: 1px;
+  }
+
+  /* Mini Progress Bar in Header */
+  .header-progress {
+    padding: 0 20px 0;
+    margin-bottom: 4px;
+  }
+
+  .header-progress-track {
+    width: 100%;
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+
+  .header-progress-fill {
+    height: 100%;
+    background: var(--green);
+    border-radius: 2px;
+    box-shadow: 0 0 8px rgba(107,191,107,0.4);
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .header-progress-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .header-progress-text {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-dim);
+  }
+
+  .header-progress-pct {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--green);
+  }
+
+  /* Search */
+  .search-wrapper {
+    padding: 12px 20px 12px;
+  }
+
+  .search-bar {
+    width: 100%;
+    background: rgba(255,255,255,0.05);
+    border: 1.5px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 12px 16px 12px 42px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: var(--text-primary);
+    outline: none;
+    transition: all 0.25s ease;
+  }
+
+  .search-bar::placeholder {
+    color: var(--text-dim);
+  }
+
+  .search-bar:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 15px rgba(78,157,166,0.2), 0 0 30px rgba(78,157,166,0.05);
+    background: rgba(78,157,166,0.04);
+  }
+
+  .search-container {
+    position: relative;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: var(--text-dim);
+    stroke-width: 2;
+    stroke-linecap: round;
+    pointer-events: none;
+  }
+
+  /* Product Grid */
+  .grid-wrapper {
+    padding: 0 20px;
+  }
+
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .product-tile {
+    aspect-ratio: 1 / 1;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.04);
+    border: 1.5px solid rgba(255,255,255,0.06);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .product-tile:active {
+    transform: scale(0.95);
+  }
+
+  .product-tile.selected {
+    border-color: var(--teal);
+    background: rgba(78,157,166,0.06);
+    box-shadow: 0 0 15px rgba(78,157,166,0.25), 0 0 30px rgba(78,157,166,0.1);
+  }
+
+  .product-emoji {
+    font-size: 28px;
+    line-height: 1;
+    transition: transform 0.3s ease;
+  }
+
+  .product-tile.selected .product-emoji {
+    transform: scale(1.05);
+  }
+
+  .product-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-align: center;
+    line-height: 1.2;
+    padding: 0 4px;
+  }
+
+  .product-unit {
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--text-dim);
+  }
+
+  /* Quantity badge */
+  .qty-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--teal);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 10px rgba(78,157,166,0.4);
+  }
+
+  .product-tile.selected .qty-badge {
+    display: flex;
+  }
+
+  /* Stepper */
+  .stepper {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    align-items: center;
+    gap: 0;
+    background: rgba(0,0,0,0.6);
+    border-radius: 14px;
+    border: 1px solid rgba(78,157,166,0.3);
+    overflow: hidden;
+  }
+
+  .product-tile.selected .stepper {
+    display: flex;
+  }
+
+  .stepper-btn {
+    width: 28px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--teal);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    transition: background 0.15s;
+    padding: 0;
+  }
+
+  .stepper-btn:hover {
+    background: rgba(78,157,166,0.15);
+  }
+
+  .stepper-btn:active {
+    background: rgba(78,157,166,0.25);
+  }
+
+  .stepper-val {
+    width: 22px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  /* Bottom Bar */
+  .bottom-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(18,18,22,0.9);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 14px 20px 36px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    z-index: 100;
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .bottom-bar.visible {
+    transform: translateY(0);
+  }
+
+  .bottom-ring-wrapper {
+    width: 28px;
+    height: 28px;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .bottom-ring-wrapper svg {
+    width: 28px;
+    height: 28px;
+    transform: rotate(-90deg);
+  }
+
+  .bottom-ring-track {
+    fill: none;
+    stroke: rgba(255,255,255,0.08);
+    stroke-width: 3;
+  }
+
+  .bottom-ring-fill {
+    fill: none;
+    stroke: var(--green);
+    stroke-width: 3;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .bottom-ring-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 7px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    line-height: 1;
+  }
+
+  .bottom-bar-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .bottom-bar-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .bottom-bar-text span {
+    color: var(--green);
+    font-weight: 700;
+  }
+
+  .fertig-btn {
+    background: var(--teal);
+    color: #fff;
+    border: none;
+    border-radius: 16px;
+    padding: 12px 28px;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    cursor: pointer;
+    box-shadow: 0 0 20px rgba(78,157,166,0.4), 0 0 40px rgba(78,157,166,0.15);
+    transition: all 0.25s ease;
+    flex-shrink: 0;
+  }
+
+  .fertig-btn:hover {
+    box-shadow: 0 0 25px rgba(78,157,166,0.5), 0 0 50px rgba(78,157,166,0.2);
+    transform: translateY(-1px);
+  }
+
+  .fertig-btn:active {
+    transform: scale(0.97);
+  }
+
+  /* Empty state for search */
+  .no-results {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-dim);
+    font-size: 14px;
+    font-weight: 500;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <div class="screen">
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-time">9:41</div>
+      <div class="status-icons">
+        <svg viewBox="0 0 16 16"><path d="M1.5 4.5C4 2 7.5 1 8 1s4 1 6.5 3.5l-1.2 1.2C11.2 3.6 9 2.5 8 2.5S4.8 3.6 2.7 5.7L1.5 4.5zM4 7.3C5.3 6 6.8 5.2 8 5.2s2.7.8 4 2.1L10.8 8.5C9.8 7.5 9 7 8 7s-1.8.5-2.8 1.5L4 7.3zM6.5 10c.8-.8 1.2-1 1.5-1s.7.2 1.5 1L8 11.5 6.5 10z"/></svg>
+        <svg viewBox="0 0 16 16"><path d="M1 4h2v8H1V4zm3.5 2h2v6h-2V6zM8 3h2v9H8V3zm3.5 1h2v8h-2V4z"/></svg>
+        <svg viewBox="0 0 24 14"><rect x="0.5" y="0.5" width="20" height="13" rx="2.5" stroke="white" stroke-opacity="0.35" fill="none"/><path opacity="0.4" d="M22 5v4a2 2 0 000-4z" fill="white"/><rect x="2" y="2" width="15" height="9" rx="1.5" fill="white"/></svg>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-top">
+        <a class="back-btn" href="index.html">
+          <svg viewBox="0 0 18 18"><path d="M11 4L6 9l5 5"/></svg>
+        </a>
+        <div class="header-text">
+          <h1 class="header-title">Obst &amp; Gem&uuml;se</h1>
+          <p class="header-subtitle" id="productCount">21 Produkte</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mini Progress Bar -->
+    <div class="header-progress">
+      <div class="header-progress-track">
+        <div class="header-progress-fill" id="headerProgressFill" style="width: 0%"></div>
+      </div>
+      <div class="header-progress-label">
+        <span class="header-progress-text" id="headerProgressText">0 von 21</span>
+        <span class="header-progress-pct" id="headerProgressPct">0%</span>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="search-wrapper">
+      <div class="search-container">
+        <svg class="search-icon" viewBox="0 0 18 18"><circle cx="7.5" cy="7.5" r="5.5"/><path d="M12 12l4 4"/></svg>
+        <input class="search-bar" type="text" placeholder="Produkt suchen..." id="searchInput">
+      </div>
+    </div>
+
+    <!-- Product Grid -->
+    <div class="grid-wrapper">
+      <div class="product-grid" id="productGrid"></div>
+      <div class="no-results" id="noResults">Kein Produkt gefunden</div>
+    </div>
+  </div>
+
+  <!-- Bottom Bar -->
+  <div class="bottom-bar" id="bottomBar">
+    <div class="bottom-bar-info">
+      <div class="bottom-ring-wrapper" id="bottomRing">
+        <svg viewBox="0 0 28 28">
+          <circle class="bottom-ring-track" cx="14" cy="14" r="10"/>
+          <circle class="bottom-ring-fill" cx="14" cy="14" r="10" stroke-dasharray="62.83" stroke-dashoffset="62.83"/>
+        </svg>
+        <span class="bottom-ring-text">0%</span>
+      </div>
+      <div class="bottom-bar-text"><span id="selectedCount">0</span>/21</div>
+    </div>
+    <button class="fertig-btn" id="fertigBtn">Fertig</button>
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY = 'shopzebra_items_v2';
+  const CATEGORY = 'obst-gemuese';
+  const TOTAL_PRODUCTS = 21;
+  const BOTTOM_RING_CIRCUMFERENCE = 2 * Math.PI * 10; // ~62.83
+
+  const ALL_PRODUCTS = [
+    { id: 'ananas',      emoji: '\u{1F34D}', name: 'Ananas',       unit: 'St' },
+    { id: 'aepfel',      emoji: '\u{1F34E}', name: 'Äpfel',        unit: 'kg' },
+    { id: 'avocado',     emoji: '\u{1F951}', name: 'Avocado',      unit: 'St' },
+    { id: 'bananen',     emoji: '\u{1F34C}', name: 'Bananen',      unit: 'St' },
+    { id: 'blaubeeren',  emoji: '\u{1FAD0}', name: 'Blaubeeren',   unit: 'Schale' },
+    { id: 'brokkoli',    emoji: '\u{1F966}', name: 'Brokkoli',     unit: 'St' },
+    { id: 'champignons', emoji: '\u{1F344}', name: 'Champignons',  unit: '200g' },
+    { id: 'erdbeeren',   emoji: '\u{1F353}', name: 'Erdbeeren',    unit: 'Schale' },
+    { id: 'gurke',       emoji: '\u{1F952}', name: 'Gurke',        unit: 'St' },
+    { id: 'ingwer',      emoji: '\u{1FADA}', name: 'Ingwer',       unit: 'St' },
+    { id: 'kartoffeln',  emoji: '\u{1F954}', name: 'Kartoffeln',   unit: 'kg' },
+    { id: 'knoblauch',   emoji: '\u{1F9C4}', name: 'Knoblauch',    unit: 'Knolle' },
+    { id: 'moehren',     emoji: '\u{1F955}', name: 'Möhren',       unit: 'kg' },
+    { id: 'paprika',     emoji: '\u{1FAD1}', name: 'Paprika',      unit: 'St' },
+    { id: 'salat',       emoji: '\u{1F96C}', name: 'Salat',        unit: 'Kopf' },
+    { id: 'spinat',      emoji: '\u{1F33F}', name: 'Spinat',       unit: 'Beutel' },
+    { id: 'tomaten',     emoji: '\u{1F345}', name: 'Tomaten',      unit: 'kg' },
+    { id: 'trauben',     emoji: '\u{1F347}', name: 'Trauben',      unit: 'kg' },
+    { id: 'zitronen',    emoji: '\u{1F34B}', name: 'Zitronen',     unit: 'St' },
+    { id: 'zucchini',    emoji: '\u{1F952}', name: 'Zucchini',     unit: 'St' },
+    { id: 'zwiebeln',    emoji: '\u{1F9C5}', name: 'Zwiebeln',     unit: 'Netz' }
+  ];
+
+  const DEFAULT_ITEMS = [
+    { id: 'aepfel', emoji: '\u{1F34E}', name: 'Äpfel', qty: 2, unit: 'kg', cat: 'obst-gemuese' },
+    { id: 'bananen', emoji: '\u{1F34C}', name: 'Bananen', qty: 6, unit: 'St', cat: 'obst-gemuese' },
+    { id: 'tomaten', emoji: '\u{1F345}', name: 'Tomaten', qty: 1, unit: 'kg', cat: 'obst-gemuese' },
+    { id: 'kartoffeln', emoji: '\u{1F954}', name: 'Kartoffeln', qty: 2, unit: 'kg', cat: 'obst-gemuese' },
+    { id: 'gurke', emoji: '\u{1F952}', name: 'Gurke', qty: 2, unit: 'St', cat: 'obst-gemuese' },
+    { id: 'paprika', emoji: '\u{1FAD1}', name: 'Paprika', qty: 3, unit: 'St', cat: 'obst-gemuese' },
+    { id: 'zwiebeln', emoji: '\u{1F9C5}', name: 'Zwiebeln', qty: 1, unit: 'Netz', cat: 'obst-gemuese' },
+    { id: 'salat', emoji: '\u{1F96C}', name: 'Salat', qty: 1, unit: 'Kopf', cat: 'obst-gemuese' },
+    { id: 'milch', emoji: '\u{1F95B}', name: 'Milch', qty: 2, unit: 'L', cat: 'milch-kaese' },
+    { id: 'gouda', emoji: '\u{1F9C0}', name: 'Gouda', qty: 1, unit: 'Pck', cat: 'milch-kaese' },
+    { id: 'jogurt', emoji: '\u{1F95B}', name: 'Joghurt', qty: 4, unit: 'St', cat: 'milch-kaese' },
+    { id: 'butter', emoji: '\u{1F9C8}', name: 'Butter', qty: 1, unit: 'St', cat: 'milch-kaese' },
+    { id: 'vollkornbrot', emoji: '\u{1F35E}', name: 'Vollkornbrot', qty: 1, unit: 'St', cat: 'brot-gebaeck' },
+    { id: 'broetchen', emoji: '\u{1F950}', name: 'Brötchen', qty: 6, unit: 'St', cat: 'brot-gebaeck' },
+    { id: 'hackfleisch', emoji: '\u{1F969}', name: 'Hackfleisch', qty: 1, unit: '500g', cat: 'fleisch-fisch' },
+    { id: 'haehnchen', emoji: '\u{1F357}', name: 'Hähnchenbrust', qty: 1, unit: '400g', cat: 'fleisch-fisch' },
+    { id: 'lachs', emoji: '\u{1F41F}', name: 'Lachs', qty: 1, unit: '200g', cat: 'fleisch-fisch' },
+    { id: 'nudeln', emoji: '\u{1F35D}', name: 'Nudeln', qty: 2, unit: 'Pck', cat: 'zutaten-gewuerze' },
+    { id: 'reis', emoji: '\u{1F35A}', name: 'Reis', qty: 1, unit: 'Pck', cat: 'zutaten-gewuerze' },
+    { id: 'olivenoel', emoji: '\u{1FAD2}', name: 'Olivenöl', qty: 1, unit: 'Fl', cat: 'zutaten-gewuerze' },
+    { id: 'passierte-tomaten', emoji: '\u{1F96B}', name: 'Passierte Tomaten', qty: 2, unit: 'Pck', cat: 'zutaten-gewuerze' },
+    { id: 'sojasauce', emoji: '\u{1F962}', name: 'Sojasauce', qty: 1, unit: 'Fl', cat: 'zutaten-gewuerze' }
+  ];
+
+  function loadItems() {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_ITEMS));
+      return [...DEFAULT_ITEMS];
+    }
+    const parsed = JSON.parse(stored);
+    return parsed.length > 0 ? parsed : [...DEFAULT_ITEMS];
+  }
+
+  function saveItems(items) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  }
+
+  function getCategoryItems(allItems) {
+    return allItems.filter(item => item.cat === CATEGORY);
+  }
+
+  function getSelectedQty(productId) {
+    const items = loadItems();
+    const found = items.find(item => item.id === productId && item.cat === CATEGORY);
+    return found ? found.qty : 0;
+  }
+
+  function setProductQty(productId, qty) {
+    const items = loadItems();
+    const existingIndex = items.findIndex(item => item.id === productId && item.cat === CATEGORY);
+    const product = ALL_PRODUCTS.find(p => p.id === productId);
+
+    if (qty <= 0) {
+      if (existingIndex !== -1) {
+        items.splice(existingIndex, 1);
+      }
+    } else {
+      if (existingIndex !== -1) {
+        items[existingIndex].qty = qty;
+      } else if (product) {
+        items.push({
+          id: product.id,
+          emoji: product.emoji,
+          name: product.name,
+          qty: qty,
+          unit: product.unit,
+          cat: CATEGORY
+        });
+      }
+    }
+    saveItems(items);
+  }
+
+  function updateHeaderProgress() {
+    const items = loadItems();
+    const catItems = getCategoryItems(items);
+    const selectedCount = catItems.length;
+    const ratio = selectedCount / TOTAL_PRODUCTS;
+    const percentage = Math.round(ratio * 100);
+
+    document.getElementById('headerProgressFill').style.width = `${percentage}%`;
+    document.getElementById('headerProgressText').textContent = `${selectedCount} von ${TOTAL_PRODUCTS}`;
+    document.getElementById('headerProgressPct').textContent = `${percentage}%`;
+  }
+
+  function updateBottomBar() {
+    const items = getCategoryItems(loadItems());
+    const bottomBar = document.getElementById('bottomBar');
+    const countEl = document.getElementById('selectedCount');
+    const selectedCount = items.length;
+
+    countEl.textContent = selectedCount;
+
+    // Update bottom ring
+    const ratio = selectedCount / TOTAL_PRODUCTS;
+    const offset = BOTTOM_RING_CIRCUMFERENCE - (BOTTOM_RING_CIRCUMFERENCE * ratio);
+    const percentage = Math.round(ratio * 100);
+
+    const fillCircle = document.querySelector('.bottom-ring-fill');
+    const ringText = document.querySelector('.bottom-ring-text');
+    fillCircle.style.strokeDashoffset = offset;
+    ringText.textContent = `${percentage}%`;
+
+    if (selectedCount > 0) {
+      bottomBar.classList.add('visible');
+    } else {
+      bottomBar.classList.remove('visible');
+    }
+  }
+
+  function updateProductCount(count) {
+    document.getElementById('productCount').textContent = `${count} Produkte`;
+  }
+
+  function renderGrid(filter = '') {
+    const grid = document.getElementById('productGrid');
+    const noResults = document.getElementById('noResults');
+    const normalizedFilter = filter.toLowerCase().trim();
+
+    const filtered = normalizedFilter
+      ? ALL_PRODUCTS.filter(p => p.name.toLowerCase().includes(normalizedFilter))
+      : ALL_PRODUCTS;
+
+    if (filtered.length === 0) {
+      grid.innerHTML = '';
+      noResults.style.display = 'block';
+      return;
+    }
+
+    noResults.style.display = 'none';
+
+    grid.innerHTML = filtered.map(product => {
+      const qty = getSelectedQty(product.id);
+      const isSelected = qty > 0;
+
+      return `
+        <div class="product-tile${isSelected ? ' selected' : ''}" data-id="${product.id}">
+          <div class="qty-badge">${qty}</div>
+          <span class="product-emoji">${product.emoji}</span>
+          <span class="product-name">${product.name}</span>
+          <span class="product-unit">${product.unit}</span>
+          <div class="stepper">
+            <button class="stepper-btn" data-action="minus" data-id="${product.id}">&minus;</button>
+            <span class="stepper-val">${qty}</span>
+            <button class="stepper-btn" data-action="plus" data-id="${product.id}">+</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    updateBottomBar();
+    updateHeaderProgress();
+    updateProductCount(filtered.length);
+  }
+
+  // Event delegation for grid
+  document.getElementById('productGrid').addEventListener('click', function(e) {
+    // Handle stepper buttons
+    const stepperBtn = e.target.closest('.stepper-btn');
+    if (stepperBtn) {
+      e.stopPropagation();
+      const productId = stepperBtn.dataset.id;
+      const action = stepperBtn.dataset.action;
+      const currentQty = getSelectedQty(productId);
+
+      if (action === 'plus') {
+        setProductQty(productId, currentQty + 1);
+      } else if (action === 'minus') {
+        setProductQty(productId, currentQty - 1);
+      }
+
+      const searchVal = document.getElementById('searchInput').value;
+      renderGrid(searchVal);
+      return;
+    }
+
+    // Handle tile click
+    const tile = e.target.closest('.product-tile');
+    if (tile) {
+      const productId = tile.dataset.id;
+      const currentQty = getSelectedQty(productId);
+
+      if (currentQty === 0) {
+        setProductQty(productId, 1);
+      } else {
+        setProductQty(productId, 0);
+      }
+
+      const searchVal = document.getElementById('searchInput').value;
+      renderGrid(searchVal);
+    }
+  });
+
+  // Search
+  document.getElementById('searchInput').addEventListener('input', function() {
+    renderGrid(this.value);
+  });
+
+  // Fertig button
+  document.getElementById('fertigBtn').addEventListener('click', function() {
+    window.location.href = 'index.html';
+  });
+
+  // Initialize
+  (function init() {
+    const items = loadItems();
+    renderGrid();
+  })();
+</script>
+
+</body>
+</html>

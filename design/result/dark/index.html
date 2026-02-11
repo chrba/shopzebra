@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neon Accent - Shopping List</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #121216;
+    --surface: rgba(255,255,255,0.04);
+    --teal: #4E9DA6;
+    --teal-glow: 0 0 15px rgba(78,157,166,0.4), 0 0 30px rgba(78,157,166,0.15);
+    --orange: #E8923A;
+    --orange-glow: 0 0 12px rgba(232,146,58,0.5);
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255,255,255,0.5);
+    --text-dim: rgba(255,255,255,0.35);
+    --green: #6BBF6B;
+    --blue: #5BA8D5;
+    --yellow: #E8C44A;
+    --red: #E07B7B;
+    --purple: #A07BCC;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background: #0a0a0e;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: var(--text-primary);
+  }
+
+  .phone-frame {
+    width: 390px;
+    height: 844px;
+    background: var(--bg);
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 0 60px rgba(0,0,0,0.5), 0 0 120px rgba(78,157,166,0.05);
+  }
+
+  .screen {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 100px;
+    scrollbar-width: none;
+  }
+
+  .screen::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Status Bar */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 28px 8px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--bg);
+  }
+
+  .status-time {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .status-icons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .status-icons svg {
+    width: 16px;
+    height: 16px;
+    fill: white;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    padding: 16px 24px 20px;
+  }
+
+  .logo-wrapper {
+    margin-bottom: 16px;
+  }
+
+  .logo-wrapper img {
+    height: 32px;
+    filter: drop-shadow(0 0 10px rgba(78,157,166,0.3));
+  }
+
+  .header-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    letter-spacing: -0.3px;
+  }
+
+  .header-subtitle {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-dim);
+  }
+
+  /* Warenkorb Card */
+  .warenkorb-section {
+    padding: 0 20px;
+    margin-bottom: 24px;
+  }
+
+  .warenkorb-card {
+    position: relative;
+    border-radius: 22px;
+    padding: 18px;
+    background: rgba(255,255,255,0.03);
+    overflow: hidden;
+  }
+
+  .warenkorb-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 22px;
+    padding: 1px;
+    background: linear-gradient(135deg, var(--teal), var(--orange));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .warenkorb-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .warenkorb-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .warenkorb-count {
+    background: var(--orange);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    box-shadow: var(--orange-glow);
+    animation: pulseOrange 2s ease-in-out infinite;
+  }
+
+  @keyframes pulseOrange {
+    0%, 100% {
+      box-shadow: 0 0 8px rgba(232,146,58,0.3);
+    }
+    50% {
+      box-shadow: 0 0 18px rgba(232,146,58,0.6), 0 0 30px rgba(232,146,58,0.2);
+    }
+  }
+
+  .warenkorb-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 7px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    transition: all 0.25s ease;
+    cursor: pointer;
+  }
+
+  .chip:hover {
+    background: rgba(255,255,255,0.1);
+    box-shadow: 0 0 10px rgba(78,157,166,0.15);
+  }
+
+  .chip-emoji {
+    font-size: 15px;
+  }
+
+  .chip-qty {
+    color: var(--teal);
+    font-weight: 700;
+    font-size: 12px;
+    margin-left: 2px;
+  }
+
+  .warenkorb-empty {
+    color: var(--text-dim);
+    font-size: 13px;
+    font-weight: 500;
+    text-align: center;
+    padding: 12px 0;
+  }
+
+  /* Category Cards */
+  .categories-section {
+    padding: 0 20px;
+  }
+
+  .categories-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-bottom: 14px;
+  }
+
+  .category-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .category-card {
+    display: flex;
+    align-items: center;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 22px;
+    padding: 18px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.25s ease;
+    cursor: pointer;
+  }
+
+  .category-card:hover {
+    background: rgba(255,255,255,0.06);
+    transform: translateY(-1px);
+  }
+
+  .category-card:active {
+    transform: scale(0.98);
+  }
+
+  .category-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+    margin-right: 16px;
+  }
+
+  .category-icon.green {
+    background: rgba(107,191,107,0.12);
+    box-shadow: 0 0 20px rgba(107,191,107,0.3);
+  }
+
+  .category-icon.blue {
+    background: rgba(91,168,213,0.12);
+    box-shadow: 0 0 20px rgba(91,168,213,0.3);
+  }
+
+  .category-icon.yellow {
+    background: rgba(232,196,74,0.12);
+    box-shadow: 0 0 20px rgba(232,196,74,0.3);
+  }
+
+  .category-icon.red {
+    background: rgba(224,123,123,0.12);
+    box-shadow: 0 0 20px rgba(224,123,123,0.3);
+  }
+
+  .category-icon.purple {
+    background: rgba(160,123,204,0.12);
+    box-shadow: 0 0 20px rgba(160,123,204,0.3);
+  }
+
+  .category-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .category-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+  }
+
+  .category-count {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-dim);
+  }
+
+  .category-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .category-badge {
+    background: rgba(78,157,166,0.15);
+    color: var(--teal);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 12px;
+    display: none;
+  }
+
+  .category-badge.visible {
+    display: block;
+  }
+
+  .category-chevron {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.4;
+  }
+
+  .category-chevron svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Bottom Nav */
+  .bottom-nav {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(18,18,22,0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-start;
+    padding: 12px 16px 32px;
+    z-index: 100;
+  }
+
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    text-decoration: none;
+    color: var(--text-dim);
+    font-size: 10px;
+    font-weight: 600;
+    position: relative;
+    cursor: pointer;
+    transition: color 0.2s;
+    min-width: 56px;
+  }
+
+  .nav-item.active {
+    color: var(--teal);
+  }
+
+  .nav-item.active::after {
+    content: '';
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 3px;
+    background: var(--teal);
+    border-radius: 2px;
+    box-shadow: var(--teal-glow);
+  }
+
+  .nav-item svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+  }
+
+  .nav-badge {
+    position: absolute;
+    top: -4px;
+    right: 4px;
+    width: 18px;
+    height: 18px;
+    background: var(--orange);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--orange-glow);
+    animation: pulseOrange 2s ease-in-out infinite;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <div class="screen">
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-time">9:41</div>
+      <div class="status-icons">
+        <svg viewBox="0 0 16 16"><path d="M1.5 4.5C4 2 7.5 1 8 1s4 1 6.5 3.5l-1.2 1.2C11.2 3.6 9 2.5 8 2.5S4.8 3.6 2.7 5.7L1.5 4.5zM4 7.3C5.3 6 6.8 5.2 8 5.2s2.7.8 4 2.1L10.8 8.5C9.8 7.5 9 7 8 7s-1.8.5-2.8 1.5L4 7.3zM6.5 10c.8-.8 1.2-1 1.5-1s.7.2 1.5 1L8 11.5 6.5 10z"/></svg>
+        <svg viewBox="0 0 16 16"><path d="M1 4h2v8H1V4zm3.5 2h2v6h-2V6zM8 3h2v9H8V3zm3.5 1h2v8h-2V4z"/></svg>
+        <svg viewBox="0 0 24 14"><rect x="0.5" y="0.5" width="20" height="13" rx="2.5" stroke="white" stroke-opacity="0.35" fill="none"/><path opacity="0.4" d="M22 5v4a2 2 0 000-4z" fill="white"/><rect x="2" y="2" width="15" height="9" rx="1.5" fill="white"/></svg>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+      <div class="logo-wrapper">
+        <img src="../../../shopzebra-logo.png" alt="ShopZebra">
+      </div>
+      <h1 class="header-title">REWE Wocheneinkauf</h1>
+      <p class="header-subtitle">Familien-Einkauf &middot; 3 Personen</p>
+    </div>
+
+    <!-- Warenkorb -->
+    <div class="warenkorb-section">
+      <div class="warenkorb-card">
+        <div class="warenkorb-header">
+          <span class="warenkorb-title">Warenkorb</span>
+          <span class="warenkorb-count" id="warenkorbCount">0</span>
+        </div>
+        <div class="warenkorb-chips" id="warenkorbChips">
+          <div class="warenkorb-empty">Noch keine Produkte ausgewählt</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Categories -->
+    <div class="categories-section">
+      <div class="categories-label">Kategorien</div>
+      <div class="category-list" id="categoryList">
+
+        <a class="category-card" href="kategorie.html" data-cat="obst-gemuese">
+          <div class="category-icon green">🍎</div>
+          <div class="category-info">
+            <div class="category-name">Obst & Gemüse</div>
+            <div class="category-count">21 Produkte</div>
+          </div>
+          <div class="category-right">
+            <span class="category-badge" data-cat-badge="obst-gemuese"></span>
+            <div class="category-chevron">
+              <svg viewBox="0 0 14 14" fill="none" stroke="#6BBF6B" stroke-width="2" stroke-linecap="round"><path d="M5 2l5 5-5 5"/></svg>
+            </div>
+          </div>
+        </a>
+
+        <a class="category-card" href="kategorie.html" data-cat="milch-kaese">
+          <div class="category-icon blue">🧀</div>
+          <div class="category-info">
+            <div class="category-name">Milch & Käse</div>
+            <div class="category-count">14 Produkte</div>
+          </div>
+          <div class="category-right">
+            <span class="category-badge" data-cat-badge="milch-kaese"></span>
+            <div class="category-chevron">
+              <svg viewBox="0 0 14 14" fill="none" stroke="#5BA8D5" stroke-width="2" stroke-linecap="round"><path d="M5 2l5 5-5 5"/></svg>
+            </div>
+          </div>
+        </a>
+
+        <a class="category-card" href="kategorie.html" data-cat="brot-gebaeck">
+          <div class="category-icon yellow">🍞</div>
+          <div class="category-info">
+            <div class="category-name">Brot & Gebäck</div>
+            <div class="category-count">9 Produkte</div>
+          </div>
+          <div class="category-right">
+            <span class="category-badge" data-cat-badge="brot-gebaeck"></span>
+            <div class="category-chevron">
+              <svg viewBox="0 0 14 14" fill="none" stroke="#E8C44A" stroke-width="2" stroke-linecap="round"><path d="M5 2l5 5-5 5"/></svg>
+            </div>
+          </div>
+        </a>
+
+        <a class="category-card" href="kategorie.html" data-cat="fleisch-fisch">
+          <div class="category-icon red">🥩</div>
+          <div class="category-info">
+            <div class="category-name">Fleisch & Fisch</div>
+            <div class="category-count">12 Produkte</div>
+          </div>
+          <div class="category-right">
+            <span class="category-badge" data-cat-badge="fleisch-fisch"></span>
+            <div class="category-chevron">
+              <svg viewBox="0 0 14 14" fill="none" stroke="#E07B7B" stroke-width="2" stroke-linecap="round"><path d="M5 2l5 5-5 5"/></svg>
+            </div>
+          </div>
+        </a>
+
+        <a class="category-card" href="kategorie.html" data-cat="zutaten-gewuerze">
+          <div class="category-icon purple">🧂</div>
+          <div class="category-info">
+            <div class="category-name">Zutaten & Gewürze</div>
+            <div class="category-count">18 Produkte</div>
+          </div>
+          <div class="category-right">
+            <span class="category-badge" data-cat-badge="zutaten-gewuerze"></span>
+            <div class="category-chevron">
+              <svg viewBox="0 0 14 14" fill="none" stroke="#A07BCC" stroke-width="2" stroke-linecap="round"><path d="M5 2l5 5-5 5"/></svg>
+            </div>
+          </div>
+        </a>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <a class="nav-item active" href="#">
+      <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+      <span>Listen</span>
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/></svg>
+      <span>Planen</span>
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24"><path d="M8.1 13.34l2.83-2.83L3.91 3.5a4.008 4.008 0 000 5.66l4.19 4.18zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3.7 19.87l1.41 1.41L12 14.41l6.88 6.88 1.41-1.41L13.41 13l1.47-1.47z"/></svg>
+      <span>Rezepte</span>
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
+      <span>Aktivität</span>
+      <div class="nav-badge">3</div>
+    </a>
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY = 'shopzebra_items_v2';
+
+  const DEFAULT_ITEMS = [
+    { id: 'aepfel', emoji: '🍎', name: 'Äpfel', qty: 2, unit: 'kg', cat: 'obst-gemuese' },
+    { id: 'milch', emoji: '🥛', name: 'Milch', qty: 1, unit: 'L', cat: 'milch-kaese' },
+    { id: 'hackfleisch', emoji: '🥩', name: 'Hackfleisch', qty: 1, unit: '400g', cat: 'fleisch-fisch' },
+    { id: 'nudeln', emoji: '🍝', name: 'Nudeln', qty: 2, unit: 'Pck', cat: 'zutaten-gewuerze' },
+    { id: 'vollkornbrot', emoji: '🍞', name: 'Vollkornbrot', qty: 1, unit: 'St', cat: 'brot-gebaeck' }
+  ];
+
+  function loadItems() {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_ITEMS));
+      return DEFAULT_ITEMS;
+    }
+    const parsed = JSON.parse(stored);
+    return parsed.length > 0 ? parsed : DEFAULT_ITEMS;
+  }
+
+  function formatQty(item) {
+    if (item.unit === '400g') return '400g';
+    if (item.qty === 1 && ['St', 'Kopf', 'Knolle', 'Netz', 'Beutel', 'L'].includes(item.unit)) return '1';
+    return `${item.qty}`;
+  }
+
+  function renderWarenkorb() {
+    const items = loadItems();
+    const chipsEl = document.getElementById('warenkorbChips');
+    const countEl = document.getElementById('warenkorbCount');
+
+    const totalCount = items.reduce((sum, item) => sum + item.qty, 0);
+    countEl.textContent = `${items.length} Artikel`;
+
+    if (items.length === 0) {
+      chipsEl.innerHTML = '<div class="warenkorb-empty">Noch keine Produkte ausgewählt</div>';
+    } else {
+      chipsEl.innerHTML = items.map(item => `
+        <div class="chip">
+          <span class="chip-emoji">${item.emoji}</span>
+          <span>${item.name}</span>
+          <span class="chip-qty">x${formatQty(item)}</span>
+        </div>
+      `).join('');
+    }
+
+    // Update category badges
+    const categories = ['obst-gemuese', 'milch-kaese', 'brot-gebaeck', 'fleisch-fisch', 'zutaten-gewuerze'];
+    categories.forEach(cat => {
+      const catItems = items.filter(item => item.cat === cat);
+      const badge = document.querySelector(`[data-cat-badge="${cat}"]`);
+      if (badge) {
+        if (catItems.length > 0) {
+          badge.textContent = `${catItems.length} gewählt`;
+          badge.classList.add('visible');
+        } else {
+          badge.classList.remove('visible');
+        }
+      }
+    });
+  }
+
+  renderWarenkorb();
+
+  // Re-render when returning from category page
+  window.addEventListener('focus', renderWarenkorb);
+  window.addEventListener('pageshow', renderWarenkorb);
+</script>
+
+</body>
+</html>

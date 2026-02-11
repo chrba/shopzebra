@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopZebra - Obst & Gemüse</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    background: #1a1a2e;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .phone-frame {
+    width: 390px;
+    height: 844px;
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow:
+      0 40px 80px rgba(0,0,0,0.6),
+      0 0 120px rgba(139,92,246,0.15),
+      0 0 80px rgba(236,72,153,0.1);
+  }
+
+  .screen {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    background: #0a0a12;
+    background-image:
+      radial-gradient(ellipse at 30% 70%, rgba(80, 160, 80, 0.3) 0%, transparent 60%),
+      radial-gradient(ellipse at 70% 30%, rgba(50, 120, 180, 0.25) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 90%, rgba(120, 50, 180, 0.15) 0%, transparent 60%);
+    background-attachment: fixed;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .screen::-webkit-scrollbar { display: none; }
+
+  /* Status Bar */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 28px 8px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .status-time {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.5px;
+  }
+  .status-icons {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .status-icons svg { width: 18px; height: 18px; fill: #fff; }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 20px 16px;
+  }
+  .back-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .back-btn:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.16);
+  }
+  .back-btn svg {
+    width: 20px;
+    height: 20px;
+    fill: rgba(255,255,255,0.9);
+  }
+  .header-info { flex: 1; }
+  .header-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #7BCF7B;
+    letter-spacing: -0.3px;
+  }
+  .header-subtitle {
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.3);
+    margin-top: 2px;
+  }
+
+  /* Search */
+  .search-wrap {
+    padding: 0 20px 16px;
+  }
+  .search-bar {
+    position: relative;
+    width: 100%;
+  }
+  .search-bar svg {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    fill: rgba(255,255,255,0.3);
+    pointer-events: none;
+    transition: fill 0.2s;
+  }
+  .search-input {
+    width: 100%;
+    height: 44px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 0 16px 0 42px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.9);
+    outline: none;
+    transition: all 0.2s;
+  }
+  .search-input::placeholder {
+    color: rgba(255,255,255,0.3);
+  }
+  .search-input:focus {
+    border-color: rgba(78,157,166,0.5);
+    box-shadow: 0 0 16px rgba(78,157,166,0.15);
+  }
+  .search-input:focus + svg,
+  .search-input:focus ~ svg {
+    fill: #4E9DA6;
+  }
+
+  /* Tile Grid */
+  .tile-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 0 20px 120px;
+  }
+
+  .tile {
+    aspect-ratio: 1 / 1;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tile:active {
+    transform: scale(0.96);
+  }
+  .tile.selected {
+    border-color: rgba(78,157,166,0.5);
+    background: rgba(78,157,166,0.1);
+    box-shadow: 0 0 20px rgba(78,157,166,0.12);
+  }
+
+  .tile-emoji {
+    font-size: 28px;
+    line-height: 1;
+    pointer-events: none;
+  }
+  .tile-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    text-align: center;
+    line-height: 1.2;
+    pointer-events: none;
+  }
+  .tile-unit {
+    font-size: 9px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.3);
+    pointer-events: none;
+  }
+
+  /* Qty Badge */
+  .qty-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #4E9DA6;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    box-shadow: 0 2px 8px rgba(78,157,166,0.4);
+  }
+
+  /* Stepper */
+  .stepper {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    overflow: hidden;
+    height: 26px;
+  }
+  .stepper-btn {
+    width: 30px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: #4E9DA6;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .stepper-btn:active {
+    background: rgba(78,157,166,0.15);
+  }
+  .stepper-count {
+    width: 24px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 800;
+    color: rgba(255,255,255,0.9);
+    pointer-events: none;
+  }
+
+  /* Bottom Bar */
+  .bottom-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(10,10,18,0.8);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 34px;
+    z-index: 200;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .bottom-bar.visible {
+    transform: translateY(0);
+  }
+  .bottom-bar-count {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.5);
+  }
+  .bottom-bar-count strong {
+    color: rgba(255,255,255,0.9);
+    font-weight: 800;
+  }
+  .bottom-bar-btn {
+    background: #4E9DA6;
+    color: #fff;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    border: none;
+    border-radius: 14px;
+    padding: 12px 28px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(78,157,166,0.3);
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bottom-bar-btn:hover {
+    background: #5ab0b9;
+    box-shadow: 0 4px 20px rgba(78,157,166,0.4);
+  }
+  .bottom-bar-btn:active {
+    transform: scale(0.97);
+  }
+
+  /* Selected Summary Bar */
+  .selected-summary {
+    position: sticky;
+    top: 42px;
+    z-index: 45;
+    background: rgba(10,10,18,0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 8px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    transition: opacity 0.25s ease, min-height 0.25s ease, padding 0.25s ease;
+  }
+  .selected-summary.hidden {
+    opacity: 0;
+    pointer-events: none;
+    min-height: 0;
+    padding: 0 20px;
+    border: none;
+  }
+  .summary-emojis {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .summary-emojis::-webkit-scrollbar { display: none; }
+  .summary-emoji-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(78,157,166,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+  }
+  .summary-count {
+    font-size: 12px;
+    font-weight: 700;
+    color: #4E9DA6;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .tile.hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <div class="screen">
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons">
+        <svg viewBox="0 0 24 24"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+      <a class="back-btn" href="index.html">
+        <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+      </a>
+      <div class="header-info">
+        <div class="header-title">Obst & Gem&uuml;se</div>
+        <div class="header-subtitle">21 Produkte</div>
+      </div>
+    </div>
+
+    <!-- Selected Summary -->
+    <div class="selected-summary hidden" id="selectedSummary">
+      <div class="summary-emojis" id="summaryEmojis"></div>
+      <div class="summary-count" id="summaryCount">0 von 21</div>
+    </div>
+
+    <!-- Search -->
+    <div class="search-wrap">
+      <div class="search-bar">
+        <input class="search-input" type="text" placeholder="Produkt suchen..." id="search-input">
+        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      </div>
+    </div>
+
+    <!-- Product Grid -->
+    <div class="tile-grid" id="tile-grid"></div>
+
+  </div>
+
+  <!-- Bottom Bar -->
+  <div class="bottom-bar" id="bottom-bar">
+    <div class="bottom-bar-count"><strong id="selected-count">0</strong> ausgew&auml;hlt</div>
+    <button class="bottom-bar-btn" id="done-btn">Fertig</button>
+  </div>
+</div>
+
+<script>
+const PRODUCTS = [
+  { id: 'ananas', emoji: '\u{1F34D}', name: 'Ananas', unit: 'St' },
+  { id: 'aepfel', emoji: '\u{1F34E}', name: '\u00C4pfel', unit: 'kg' },
+  { id: 'avocado', emoji: '\u{1F951}', name: 'Avocado', unit: 'St' },
+  { id: 'bananen', emoji: '\u{1F34C}', name: 'Bananen', unit: 'St' },
+  { id: 'blaubeeren', emoji: '\u{1FAD0}', name: 'Blaubeeren', unit: 'Schale' },
+  { id: 'brokkoli', emoji: '\u{1F966}', name: 'Brokkoli', unit: 'St' },
+  { id: 'champignons', emoji: '\u{1F344}', name: 'Champignons', unit: '200g' },
+  { id: 'erdbeeren', emoji: '\u{1F353}', name: 'Erdbeeren', unit: 'Schale' },
+  { id: 'gurke', emoji: '\u{1F952}', name: 'Gurke', unit: 'St' },
+  { id: 'ingwer', emoji: '\u{1FADA}', name: 'Ingwer', unit: 'St' },
+  { id: 'kartoffeln', emoji: '\u{1F954}', name: 'Kartoffeln', unit: 'kg' },
+  { id: 'knoblauch', emoji: '\u{1F9C4}', name: 'Knoblauch', unit: 'Knolle' },
+  { id: 'moehren', emoji: '\u{1F955}', name: 'M\u00F6hren', unit: 'kg' },
+  { id: 'paprika', emoji: '\u{1FAD1}', name: 'Paprika', unit: 'St' },
+  { id: 'salat', emoji: '\u{1F96C}', name: 'Salat', unit: 'Kopf' },
+  { id: 'spinat', emoji: '\u{1F33F}', name: 'Spinat', unit: 'Beutel' },
+  { id: 'tomaten', emoji: '\u{1F345}', name: 'Tomaten', unit: 'kg' },
+  { id: 'trauben', emoji: '\u{1F347}', name: 'Trauben', unit: 'kg' },
+  { id: 'zitronen', emoji: '\u{1F34B}', name: 'Zitronen', unit: 'St' },
+  { id: 'zucchini', emoji: '\u{1F952}', name: 'Zucchini', unit: 'St' },
+  { id: 'zwiebeln', emoji: '\u{1F9C5}', name: 'Zwiebeln', unit: 'Netz' }
+];
+
+const DEFAULT_ITEMS = [
+  { id: 'aepfel', emoji: '\u{1F34E}', name: '\u00C4pfel', qty: 2, unit: 'kg', cat: 'obst-gemuese' },
+  { id: 'bananen', emoji: '\u{1F34C}', name: 'Bananen', qty: 6, unit: 'St', cat: 'obst-gemuese' },
+  { id: 'tomaten', emoji: '\u{1F345}', name: 'Tomaten', qty: 1, unit: 'kg', cat: 'obst-gemuese' },
+  { id: 'kartoffeln', emoji: '\u{1F954}', name: 'Kartoffeln', qty: 2, unit: 'kg', cat: 'obst-gemuese' },
+  { id: 'gurke', emoji: '\u{1F952}', name: 'Gurke', qty: 2, unit: 'St', cat: 'obst-gemuese' },
+  { id: 'paprika', emoji: '\u{1FAD1}', name: 'Paprika', qty: 3, unit: 'St', cat: 'obst-gemuese' },
+  { id: 'zwiebeln', emoji: '\u{1F9C5}', name: 'Zwiebeln', qty: 1, unit: 'Netz', cat: 'obst-gemuese' },
+  { id: 'salat', emoji: '\u{1F96C}', name: 'Salat', qty: 1, unit: 'Kopf', cat: 'obst-gemuese' },
+  { id: 'milch', emoji: '\u{1F95B}', name: 'Milch', qty: 2, unit: 'L', cat: 'milch-kaese' },
+  { id: 'gouda', emoji: '\u{1F9C0}', name: 'Gouda', qty: 1, unit: 'Pck', cat: 'milch-kaese' },
+  { id: 'jogurt', emoji: '\u{1F95B}', name: 'Joghurt', qty: 4, unit: 'St', cat: 'milch-kaese' },
+  { id: 'butter', emoji: '\u{1F9C8}', name: 'Butter', qty: 1, unit: 'St', cat: 'milch-kaese' },
+  { id: 'vollkornbrot', emoji: '\u{1F35E}', name: 'Vollkornbrot', qty: 1, unit: 'St', cat: 'brot-gebaeck' },
+  { id: 'broetchen', emoji: '\u{1F950}', name: 'Br\u00F6tchen', qty: 6, unit: 'St', cat: 'brot-gebaeck' },
+  { id: 'hackfleisch', emoji: '\u{1F969}', name: 'Hackfleisch', qty: 1, unit: '500g', cat: 'fleisch-fisch' },
+  { id: 'haehnchen', emoji: '\u{1F357}', name: 'H\u00E4hnchenbrust', qty: 1, unit: '400g', cat: 'fleisch-fisch' },
+  { id: 'lachs', emoji: '\u{1F41F}', name: 'Lachs', qty: 1, unit: '200g', cat: 'fleisch-fisch' },
+  { id: 'nudeln', emoji: '\u{1F35D}', name: 'Nudeln', qty: 2, unit: 'Pck', cat: 'zutaten-gewuerze' },
+  { id: 'reis', emoji: '\u{1F35A}', name: 'Reis', qty: 1, unit: 'Pck', cat: 'zutaten-gewuerze' },
+  { id: 'olivenoel', emoji: '\u{1FAD2}', name: 'Oliven\u00F6l', qty: 1, unit: 'Fl', cat: 'zutaten-gewuerze' },
+  { id: 'passierte-tomaten', emoji: '\u{1F96B}', name: 'Passierte Tomaten', qty: 2, unit: 'Pck', cat: 'zutaten-gewuerze' },
+  { id: 'sojasauce', emoji: '\u{1F962}', name: 'Sojasauce', qty: 1, unit: 'Fl', cat: 'zutaten-gewuerze' }
+];
+
+const STORAGE_KEY = 'shopzebra_items_v2';
+
+function loadItems() {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) {
+    try { return JSON.parse(stored); } catch(e) { /* fall through */ }
+  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_ITEMS));
+  return [...DEFAULT_ITEMS];
+}
+
+function saveItems(items) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+}
+
+function getSelections(items) {
+  const map = {};
+  items.filter(i => i.cat === 'obst-gemuese').forEach(i => { map[i.id] = i.qty; });
+  return map;
+}
+
+let allItems = loadItems();
+let selections = getSelections(allItems);
+
+function getTotalSelected() {
+  let count = 0;
+  for (const id in selections) { if (selections[id] > 0) count++; }
+  return count;
+}
+
+function renderGrid() {
+  const grid = document.getElementById('tile-grid');
+  const query = document.getElementById('search-input').value.toLowerCase().trim();
+
+  grid.innerHTML = PRODUCTS.map(p => {
+    const qty = selections[p.id] || 0;
+    const isSelected = qty > 0;
+    const matchesSearch = !query || p.name.toLowerCase().includes(query);
+
+    return `<div class="tile ${isSelected ? 'selected' : ''} ${!matchesSearch ? 'hidden' : ''}" data-id="${p.id}" onclick="toggleTile('${p.id}')">
+      <span class="tile-emoji">${p.emoji}</span>
+      <span class="tile-name">${p.name}</span>
+      <span class="tile-unit">${p.unit}</span>
+      ${isSelected ? `<div class="qty-badge">${qty}</div>` : ''}
+      ${isSelected ? `<div class="stepper">
+        <button class="stepper-btn" onclick="event.stopPropagation(); adjustQty('${p.id}', -1)">&minus;</button>
+        <span class="stepper-count">${qty}</span>
+        <button class="stepper-btn" onclick="event.stopPropagation(); adjustQty('${p.id}', 1)">+</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+
+  updateBottomBar();
+  renderSummaryBar();
+}
+
+const TOTAL_PRODUCTS = PRODUCTS.length;
+
+function renderSummaryBar() {
+  const summaryEl = document.getElementById('selectedSummary');
+  const emojisEl = document.getElementById('summaryEmojis');
+  const countEl = document.getElementById('summaryCount');
+  const selectedProducts = PRODUCTS.filter(p => selections[p.id] && selections[p.id] > 0);
+  if (selectedProducts.length === 0) {
+    summaryEl.classList.add('hidden');
+    return;
+  }
+  summaryEl.classList.remove('hidden');
+  countEl.textContent = selectedProducts.length + ' von ' + TOTAL_PRODUCTS;
+  emojisEl.innerHTML = selectedProducts.map(function(p) {
+    return '<div class="summary-emoji-circle">' + p.emoji + '</div>';
+  }).join('');
+}
+
+function toggleTile(id) {
+  if (selections[id] && selections[id] > 0) {
+    return;
+  }
+  selections[id] = 1;
+  syncToStorage();
+  renderGrid();
+}
+
+function adjustQty(id, delta) {
+  const newQty = (selections[id] || 0) + delta;
+  if (newQty <= 0) {
+    delete selections[id];
+  } else {
+    selections[id] = newQty;
+  }
+  syncToStorage();
+  renderGrid();
+}
+
+function syncToStorage() {
+  allItems = allItems.filter(i => i.cat !== 'obst-gemuese');
+
+  for (const id in selections) {
+    if (selections[id] > 0) {
+      const product = PRODUCTS.find(p => p.id === id);
+      if (product) {
+        allItems.push({
+          id: product.id,
+          emoji: product.emoji,
+          name: product.name,
+          qty: selections[id],
+          unit: product.unit,
+          cat: 'obst-gemuese'
+        });
+      }
+    }
+  }
+  saveItems(allItems);
+}
+
+function updateBottomBar() {
+  const total = getTotalSelected();
+  const bar = document.getElementById('bottom-bar');
+  const countEl = document.getElementById('selected-count');
+  countEl.textContent = total;
+
+  if (total > 0) {
+    bar.classList.add('visible');
+  } else {
+    bar.classList.remove('visible');
+  }
+}
+
+document.getElementById('search-input').addEventListener('input', renderGrid);
+
+document.getElementById('done-btn').addEventListener('click', function() {
+  window.location.href = 'index.html';
+});
+
+renderGrid();
+</script>
+
+</body>
+</html>
