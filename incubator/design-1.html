@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopZebra - Design 1: Bold Cards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ========================================
+     DESIGN 1: "Bold Cards"
+     Große, plakative Karten mit Farbstreifen,
+     Fortschrittsbalken, Member-Avatare.
+     Visuell stark differenziert pro Liste.
+     ======================================== */
+
+  /* ===== Theme: Dark ===== */
+  [data-theme="dark"] {
+    --body-bg: #07070b;
+    --screen-bg: #0e0e14;
+    --text-primary: #f0f0f5;
+    --text-secondary: rgba(255,255,255,0.55);
+    --text-dim: rgba(255,255,255,0.3);
+    --card-bg: rgba(255,255,255,0.035);
+    --card-border: rgba(255,255,255,0.06);
+    --card-hover: rgba(255,255,255,0.06);
+    --accent-1: #3B9B6D;
+    --accent-2: #4A8FD6;
+    --accent-3: #D4785C;
+    --progress-track: rgba(255,255,255,0.06);
+    --fab-bg: linear-gradient(135deg, #4E9DA6, #3B9B6D);
+    --fab-shadow: 0 4px 20px rgba(78,157,166,0.4);
+    --nav-bg: rgba(14,14,20,0.88);
+    --nav-border: rgba(255,255,255,0.05);
+    --nav-blur: blur(20px);
+    --teal: #4E9DA6;
+    --orange: #E8923A;
+    --divider: rgba(255,255,255,0.04);
+    --header-bg: transparent;
+    --avatar-border: rgba(255,255,255,0.15);
+    --badge-new-bg: rgba(232,146,58,0.15);
+    --badge-new-color: #E8923A;
+    --badge-new-border: 1px solid rgba(232,146,58,0.25);
+    --frame-shadow: 0 0 60px rgba(0,0,0,0.5), 0 0 100px rgba(78,157,166,0.04);
+    --frame-border: 1px solid rgba(255,255,255,0.08);
+    --stripe-opacity: 0.9;
+    --time-badge-bg: rgba(255,255,255,0.06);
+  }
+
+  /* ===== Theme: Light ===== */
+  [data-theme="light"] {
+    --body-bg: #f2efe8;
+    --screen-bg: #faf8f3;
+    --text-primary: #1a1a1f;
+    --text-secondary: rgba(0,0,0,0.5);
+    --text-dim: rgba(0,0,0,0.35);
+    --card-bg: #ffffff;
+    --card-border: rgba(0,0,0,0.07);
+    --card-hover: rgba(0,0,0,0.02);
+    --accent-1: #2D8A5B;
+    --accent-2: #3A7BC4;
+    --accent-3: #C46A4A;
+    --progress-track: rgba(0,0,0,0.06);
+    --fab-bg: linear-gradient(135deg, #2D8A5B, #3A7BC4);
+    --fab-shadow: 0 4px 20px rgba(45,138,91,0.3);
+    --nav-bg: rgba(250,248,243,0.92);
+    --nav-border: rgba(0,0,0,0.06);
+    --nav-blur: blur(20px);
+    --teal: #2D8A5B;
+    --orange: #C46A4A;
+    --divider: rgba(0,0,0,0.05);
+    --header-bg: transparent;
+    --avatar-border: rgba(0,0,0,0.1);
+    --badge-new-bg: rgba(196,106,74,0.1);
+    --badge-new-color: #C46A4A;
+    --badge-new-border: 1px solid rgba(196,106,74,0.2);
+    --frame-shadow: 0 4px 40px rgba(0,0,0,0.08), 0 0 80px rgba(0,0,0,0.04);
+    --frame-border: 1px solid rgba(0,0,0,0.08);
+    --stripe-opacity: 1;
+    --time-badge-bg: rgba(0,0,0,0.04);
+  }
+
+  /* ===== Reset ===== */
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  /* ===== Transitions ===== */
+  body, .phone-frame, .screen, .list-card, .bottom-nav, .fab-btn {
+    transition: background 0.4s ease, background-color 0.4s ease, border-color 0.3s ease, box-shadow 0.4s ease, color 0.3s ease;
+  }
+
+  body {
+    background: var(--body-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    color: var(--text-primary);
+  }
+
+  .phone-frame {
+    width: 390px;
+    height: 844px;
+    background: var(--screen-bg);
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    border: var(--frame-border);
+    box-shadow: var(--frame-shadow);
+  }
+
+  .screen {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 100px;
+    scrollbar-width: none;
+    background: var(--screen-bg);
+  }
+  .screen::-webkit-scrollbar { display: none; }
+
+  /* ===== Status Bar ===== */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 28px 8px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--screen-bg);
+  }
+  .status-time {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--text-primary);
+  }
+  .status-icons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .status-icons svg {
+    width: 16px;
+    height: 16px;
+    fill: var(--text-primary);
+  }
+
+  /* ===== Theme Toggle ===== */
+  .theme-toggle {
+    width: 20px;
+    height: 20px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+    padding: 0;
+    margin: 0 6px;
+  }
+  .theme-toggle:hover { opacity: 0.85; }
+  .theme-toggle svg { width: 16px; height: 16px; fill: var(--text-primary); }
+
+  /* ===== Header ===== */
+  .header {
+    padding: 20px 24px 8px;
+  }
+  .header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .header-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+  }
+  .header-subtitle {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-dim);
+  }
+  .profile-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--card-bg);
+    border: 1.5px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .profile-btn svg {
+    width: 18px;
+    height: 18px;
+    fill: var(--text-secondary);
+  }
+
+  /* ===== Lists Section ===== */
+  .lists-section {
+    padding: 16px 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* ===== List Card ===== */
+  .list-card {
+    position: relative;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 20px;
+    padding-left: 28px;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.25s ease;
+  }
+  .list-card:hover {
+    background: var(--card-hover);
+    transform: translateY(-1px);
+  }
+  .list-card:active {
+    transform: scale(0.98);
+  }
+
+  /* Color stripe on left */
+  .list-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    opacity: var(--stripe-opacity);
+  }
+  .list-card[data-accent="1"]::before { background: var(--accent-1); }
+  .list-card[data-accent="2"]::before { background: var(--accent-2); }
+  .list-card[data-accent="3"]::before { background: var(--accent-3); }
+
+  .list-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .list-card-title-group {
+    flex: 1;
+    min-width: 0;
+  }
+  .list-card-store {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+  }
+  .list-card[data-accent="1"] .list-card-store { color: var(--accent-1); }
+  .list-card[data-accent="2"] .list-card-store { color: var(--accent-2); }
+  .list-card[data-accent="3"] .list-card-store { color: var(--accent-3); }
+
+  .list-card-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.2px;
+  }
+
+  .list-badge-new {
+    background: var(--badge-new-bg);
+    color: var(--badge-new-color);
+    border: var(--badge-new-border);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+
+  /* Progress */
+  .list-progress {
+    margin-bottom: 14px;
+  }
+  .progress-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .progress-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  .progress-pct {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+  .progress-track {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--progress-track);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+  }
+  .list-card[data-accent="1"] .progress-fill { background: var(--accent-1); }
+  .list-card[data-accent="2"] .progress-fill { background: var(--accent-2); }
+  .list-card[data-accent="3"] .progress-fill { background: var(--accent-3); }
+
+  /* Card footer */
+  .list-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .list-members {
+    display: flex;
+    align-items: center;
+  }
+  .member-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    border: 2px solid var(--screen-bg);
+    margin-left: -8px;
+    position: relative;
+  }
+  .member-avatar:first-child { margin-left: 0; }
+
+  .list-activity {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .activity-time {
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--time-badge-bg);
+    padding: 3px 8px;
+    border-radius: 8px;
+  }
+  .activity-text {
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  /* ===== Pinned Section ===== */
+  .section-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    padding: 24px 24px 0;
+  }
+
+  /* ===== FAB ===== */
+  .fab-btn {
+    position: absolute;
+    bottom: 90px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+    background: var(--fab-bg);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--fab-shadow);
+    z-index: 90;
+    transition: all 0.25s ease;
+  }
+  .fab-btn:hover { transform: scale(1.05); }
+  .fab-btn:active { transform: scale(0.95); }
+  .fab-btn svg {
+    width: 28px;
+    height: 28px;
+    fill: #fff;
+  }
+
+  /* ===== Bottom Nav ===== */
+  .bottom-nav {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--nav-bg);
+    backdrop-filter: var(--nav-blur);
+    -webkit-backdrop-filter: var(--nav-blur);
+    border-top: 1px solid var(--nav-border);
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-start;
+    padding: 12px 16px 32px;
+    z-index: 100;
+  }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    text-decoration: none;
+    color: var(--text-dim);
+    font-size: 10px;
+    font-weight: 600;
+    position: relative;
+    cursor: pointer;
+    transition: color 0.2s;
+    min-width: 56px;
+  }
+  .nav-item.active { color: var(--teal); }
+  .nav-item.active::after {
+    content: '';
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 3px;
+    background: var(--teal);
+    border-radius: 2px;
+  }
+  .nav-item svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+  }
+  .nav-badge {
+    position: absolute;
+    top: -4px;
+    right: 4px;
+    width: 18px;
+    height: 18px;
+    background: var(--orange);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <div class="screen">
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-time">9:41</div>
+      <div class="status-icons">
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle theme"></button>
+        <svg viewBox="0 0 16 16"><path d="M1.5 4.5C4 2 7.5 1 8 1s4 1 6.5 3.5l-1.2 1.2C11.2 3.6 9 2.5 8 2.5S4.8 3.6 2.7 5.7L1.5 4.5zM4 7.3C5.3 6 6.8 5.2 8 5.2s2.7.8 4 2.1L10.8 8.5C9.8 7.5 9 7 8 7s-1.8.5-2.8 1.5L4 7.3zM6.5 10c.8-.8 1.2-1 1.5-1s.7.2 1.5 1L8 11.5 6.5 10z"/></svg>
+        <svg viewBox="0 0 16 16"><path d="M1 4h2v8H1V4zm3.5 2h2v6h-2V6zM8 3h2v9H8V3zm3.5 1h2v8h-2V4z"/></svg>
+        <svg viewBox="0 0 24 14"><rect x="0.5" y="0.5" width="20" height="13" rx="2.5" stroke="currentColor" stroke-opacity="0.35" fill="none"/><path opacity="0.4" d="M22 5v4a2 2 0 000-4z" fill="currentColor"/><rect x="2" y="2" width="15" height="9" rx="1.5" fill="currentColor"/></svg>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-row">
+        <h1 class="header-title">Meine Listen</h1>
+        <div class="profile-btn">
+          <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+        </div>
+      </div>
+      <p class="header-subtitle">3 Listen &middot; Familie Weber</p>
+    </div>
+
+    <!-- Pinned -->
+    <div class="section-label">Angepinnt</div>
+
+    <!-- Lists -->
+    <div class="lists-section">
+      <!-- List 1: REWE -->
+      <div class="list-card" data-accent="1">
+        <div class="list-card-header">
+          <div class="list-card-title-group">
+            <div class="list-card-store">REWE</div>
+            <div class="list-card-name">Wocheneinkauf</div>
+          </div>
+          <div class="list-badge-new">+3 neu</div>
+        </div>
+        <div class="list-progress">
+          <div class="progress-row">
+            <span class="progress-label">8 von 15 Items</span>
+            <span class="progress-pct">53%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" style="width: 53%"></div>
+          </div>
+        </div>
+        <div class="list-card-footer">
+          <div class="list-members">
+            <div class="member-avatar" style="background: #3B9B6D;">M</div>
+            <div class="member-avatar" style="background: #4A8FD6;">P</div>
+            <div class="member-avatar" style="background: #D4785C;">L</div>
+          </div>
+          <div class="list-activity">
+            <span class="activity-time">14:02</span>
+            <span class="activity-text">Mama +Milch</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- List 2: dm -->
+      <div class="list-card" data-accent="2">
+        <div class="list-card-header">
+          <div class="list-card-title-group">
+            <div class="list-card-store">dm Drogerie</div>
+            <div class="list-card-name">Drogerie</div>
+          </div>
+        </div>
+        <div class="list-progress">
+          <div class="progress-row">
+            <span class="progress-label">0 von 4 Items</span>
+            <span class="progress-pct">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" style="width: 0%"></div>
+          </div>
+        </div>
+        <div class="list-card-footer">
+          <div class="list-members">
+            <div class="member-avatar" style="background: #4A8FD6;">P</div>
+          </div>
+          <div class="list-activity">
+            <span class="activity-time">gestern</span>
+            <span class="activity-text">Papa erstellt</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Other lists -->
+      <div class="section-label" style="padding: 8px 0 0;">Weitere Listen</div>
+
+      <!-- List 3: Party -->
+      <div class="list-card" data-accent="3">
+        <div class="list-card-header">
+          <div class="list-card-title-group">
+            <div class="list-card-store">Sonstiges</div>
+            <div class="list-card-name">Geburtstagsparty Lena</div>
+          </div>
+          <div class="list-badge-new">5 offen</div>
+        </div>
+        <div class="list-progress">
+          <div class="progress-row">
+            <span class="progress-label">17 von 22 Items</span>
+            <span class="progress-pct">77%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" style="width: 77%"></div>
+          </div>
+        </div>
+        <div class="list-card-footer">
+          <div class="list-members">
+            <div class="member-avatar" style="background: #3B9B6D;">M</div>
+            <div class="member-avatar" style="background: #4A8FD6;">P</div>
+            <div class="member-avatar" style="background: #D4785C;">L</div>
+            <div class="member-avatar" style="background: #9B6DB3;">O</div>
+          </div>
+          <div class="list-activity">
+            <span class="activity-time">Mo</span>
+            <span class="activity-text">Familie</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FAB -->
+  <button class="fab-btn" aria-label="Neue Liste">
+    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+  </button>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <a class="nav-item active" href="#">
+      <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+      <span>Listen</span>
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/></svg>
+      <span>Planen</span>
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24"><path d="M8.1 13.34l2.83-2.83L3.91 3.5a4.008 4.008 0 000 5.66l4.19 4.18zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3.7 19.87l1.41 1.41L12 14.41l6.88 6.88 1.41-1.41L13.41 13l1.47-1.47z"/></svg>
+      <span>Rezepte</span>
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
+      <span>Aktivit&auml;t</span>
+      <div class="nav-badge">3</div>
+    </a>
+  </div>
+</div>
+
+<script>
+  const MOON_SVG = '<svg viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>';
+  const SUN_SVG = '<svg viewBox="0 0 24 24"><path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79 1.42-1.41zM4 10.5H1v2h3v-2zm9-9.95h-2V3.5h2V.55zm7.45 3.91l-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zm-3.21 13.7l1.79 1.8 1.41-1.41-1.8-1.79-1.4 1.4zM20 10.5v2h3v-2h-3zm-8-5c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm-1 16.95h2V19.5h-2v2.95zm-7.45-3.91l1.41 1.41 1.79-1.8-1.41-1.41-1.79 1.8z"/></svg>';
+
+  function getTheme() {
+    return localStorage.getItem('shopzebra_design1_theme') || 'dark';
+  }
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('shopzebra_design1_theme', theme);
+    const btn = document.getElementById('themeToggle');
+    if (btn) btn.innerHTML = theme === 'dark' ? MOON_SVG : SUN_SVG;
+  }
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+  }
+  applyTheme(getTheme());
+</script>
+
+</body>
+</html>

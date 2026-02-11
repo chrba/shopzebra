@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopZebra - Design 2: Compact Grid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ========================================
+     DESIGN 2: "Compact Grid"
+     2-Spalten-Grid mit SVG-Fortschrittsringen,
+     kompakt, informationsdicht, Dashboard-Charakter.
+     Klare Typografie, schnelle Erfassung.
+     ======================================== */
+
+  /* ===== Theme: Dark ===== */
+  [data-theme="dark"] {
+    --body-bg: #0b0c10;
+    --screen-bg: #12131a;
+    --text-primary: #e8e8ee;
+    --text-secondary: rgba(255,255,255,0.5);
+    --text-dim: rgba(255,255,255,0.28);
+    --card-bg: rgba(255,255,255,0.04);
+    --card-border: rgba(255,255,255,0.07);
+    --card-hover: rgba(255,255,255,0.07);
+    --accent: #00BFA5;
+    --accent-soft: rgba(0,191,165,0.12);
+    --accent-secondary: #7C4DFF;
+    --accent-warm: #FF8A65;
+    --ring-track: rgba(255,255,255,0.07);
+    --search-bg: rgba(255,255,255,0.05);
+    --search-border: rgba(255,255,255,0.07);
+    --nav-bg: rgba(18,19,26,0.9);
+    --nav-border: rgba(255,255,255,0.05);
+    --nav-blur: blur(20px);
+    --teal: #00BFA5;
+    --orange: #FF8A65;
+    --hero-bg: linear-gradient(135deg, rgba(0,191,165,0.08) 0%, rgba(124,77,255,0.06) 100%);
+    --hero-border: rgba(0,191,165,0.12);
+    --tag-bg: rgba(255,255,255,0.06);
+    --frame-shadow: 0 0 60px rgba(0,0,0,0.5), 0 0 100px rgba(0,191,165,0.04);
+    --frame-border: 1px solid rgba(255,255,255,0.08);
+    --member-text: rgba(255,255,255,0.4);
+    --count-badge-bg: rgba(0,191,165,0.12);
+    --count-badge-color: #00BFA5;
+  }
+
+  /* ===== Theme: Light ===== */
+  [data-theme="light"] {
+    --body-bg: #eef1f5;
+    --screen-bg: #f7f8fc;
+    --text-primary: #1b1d28;
+    --text-secondary: rgba(0,0,0,0.5);
+    --text-dim: rgba(0,0,0,0.3);
+    --card-bg: #ffffff;
+    --card-border: rgba(0,0,0,0.06);
+    --card-hover: rgba(0,0,0,0.02);
+    --accent: #009688;
+    --accent-soft: rgba(0,150,136,0.08);
+    --accent-secondary: #5C3FBF;
+    --accent-warm: #E07050;
+    --ring-track: rgba(0,0,0,0.06);
+    --search-bg: #ffffff;
+    --search-border: rgba(0,0,0,0.08);
+    --nav-bg: rgba(247,248,252,0.92);
+    --nav-border: rgba(0,0,0,0.06);
+    --nav-blur: blur(20px);
+    --teal: #009688;
+    --orange: #E07050;
+    --hero-bg: linear-gradient(135deg, rgba(0,150,136,0.06) 0%, rgba(92,63,191,0.04) 100%);
+    --hero-border: rgba(0,150,136,0.12);
+    --tag-bg: rgba(0,0,0,0.04);
+    --frame-shadow: 0 4px 40px rgba(0,0,0,0.08);
+    --frame-border: 1px solid rgba(0,0,0,0.06);
+    --member-text: rgba(0,0,0,0.35);
+    --count-badge-bg: rgba(0,150,136,0.1);
+    --count-badge-color: #009688;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body, .phone-frame, .screen, .grid-card, .bottom-nav, .hero-card {
+    transition: background 0.4s ease, background-color 0.4s ease, border-color 0.3s ease, box-shadow 0.4s ease, color 0.3s ease;
+  }
+
+  body {
+    background: var(--body-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: var(--text-primary);
+  }
+
+  .phone-frame {
+    width: 390px;
+    height: 844px;
+    background: var(--screen-bg);
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    border: var(--frame-border);
+    box-shadow: var(--frame-shadow);
+  }
+
+  .screen {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 100px;
+    scrollbar-width: none;
+    background: var(--screen-bg);
+  }
+  .screen::-webkit-scrollbar { display: none; }
+
+  /* ===== Status Bar ===== */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 28px 8px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--screen-bg);
+  }
+  .status-time {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .status-icons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .status-icons svg { width: 16px; height: 16px; fill: var(--text-primary); }
+
+  .theme-toggle {
+    width: 20px; height: 20px; background: transparent; border: none;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    opacity: 0.5; padding: 0; margin: 0 6px;
+    transition: opacity 0.2s;
+  }
+  .theme-toggle:hover { opacity: 0.85; }
+  .theme-toggle svg { width: 16px; height: 16px; fill: var(--text-primary); }
+
+  /* ===== Header ===== */
+  .header {
+    padding: 16px 24px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header-left {}
+  .header-greeting {
+    font-size: 13px;
+    color: var(--text-dim);
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+  .header-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+  }
+  .header-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    background: var(--accent-soft);
+    border: 1.5px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    cursor: pointer;
+  }
+
+  /* ===== Search ===== */
+  .search-section {
+    padding: 0 20px 14px;
+  }
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    border-radius: 14px;
+    background: var(--search-bg);
+    border: 1.5px solid var(--search-border);
+  }
+  .search-bar svg { width: 16px; height: 16px; fill: var(--text-dim); flex-shrink: 0; }
+  .search-bar input {
+    flex: 1; background: none; border: none; outline: none;
+    color: var(--text-primary); font-size: 14px; font-family: inherit;
+  }
+  .search-bar input::placeholder { color: var(--text-dim); }
+
+  /* ===== Hero Card (aktuellste Liste) ===== */
+  .hero-section {
+    padding: 0 20px 16px;
+  }
+  .hero-card {
+    background: var(--hero-bg);
+    border: 1px solid var(--hero-border);
+    border-radius: 20px;
+    padding: 18px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+  }
+  .hero-card:hover { transform: translateY(-1px); }
+  .hero-card:active { transform: scale(0.98); }
+  .hero-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .hero-title-group { flex: 1; }
+  .hero-tag {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .hero-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .hero-ring-container {
+    position: relative;
+    width: 52px;
+    height: 52px;
+    flex-shrink: 0;
+  }
+  .hero-ring-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--accent);
+  }
+  .hero-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .hero-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .hero-activity {
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .hero-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ===== Grid Section ===== */
+  .grid-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    padding: 0 24px 10px;
+  }
+
+  .grid-section {
+    padding: 0 20px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  /* ===== Grid Card ===== */
+  .grid-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .grid-card:hover {
+    background: var(--card-hover);
+    transform: translateY(-1px);
+  }
+  .grid-card:active { transform: scale(0.97); }
+
+  .grid-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+  .grid-card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+  .grid-card-icon.purple { background: rgba(124,77,255,0.12); }
+  .grid-card-icon.warm { background: rgba(255,138,101,0.12); }
+  .grid-card-icon.teal { background: rgba(0,191,165,0.12); }
+
+  .grid-ring-container {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+  }
+  .grid-ring-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--text-secondary);
+  }
+
+  .grid-card-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.2px;
+    line-height: 1.2;
+  }
+
+  .grid-card-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .grid-card-items {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+  .grid-card-members {
+    font-size: 11px;
+    color: var(--member-text);
+    font-weight: 500;
+  }
+
+  /* ===== Suggested ===== */
+  .suggested-section {
+    padding: 20px 20px 0;
+  }
+  .suggested-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+  .suggested-row {
+    display: flex;
+    gap: 8px;
+  }
+  .suggested-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 12px;
+    background: var(--tag-bg);
+    border: 1px solid var(--card-border);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .suggested-chip:hover { background: var(--card-hover); }
+  .suggested-chip-icon { font-size: 14px; }
+  .suggested-chip-plus {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* ===== Bottom Nav ===== */
+  .bottom-nav {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: var(--nav-bg);
+    backdrop-filter: var(--nav-blur);
+    -webkit-backdrop-filter: var(--nav-blur);
+    border-top: 1px solid var(--nav-border);
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-start;
+    padding: 12px 16px 32px;
+    z-index: 100;
+  }
+  .nav-item {
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    text-decoration: none; color: var(--text-dim); font-size: 10px; font-weight: 600;
+    position: relative; cursor: pointer; min-width: 56px;
+    transition: color 0.2s;
+  }
+  .nav-item.active { color: var(--teal); }
+  .nav-item.active::after {
+    content: ''; position: absolute; top: -12px; left: 50%;
+    transform: translateX(-50%); width: 24px; height: 3px;
+    background: var(--teal); border-radius: 2px;
+  }
+  .nav-item svg { width: 24px; height: 24px; fill: currentColor; }
+  .nav-badge {
+    position: absolute; top: -4px; right: 4px;
+    width: 18px; height: 18px; background: var(--orange);
+    color: #fff; font-size: 10px; font-weight: 700;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <div class="screen">
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-time">9:41</div>
+      <div class="status-icons">
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle theme"></button>
+        <svg viewBox="0 0 16 16"><path d="M1.5 4.5C4 2 7.5 1 8 1s4 1 6.5 3.5l-1.2 1.2C11.2 3.6 9 2.5 8 2.5S4.8 3.6 2.7 5.7L1.5 4.5zM4 7.3C5.3 6 6.8 5.2 8 5.2s2.7.8 4 2.1L10.8 8.5C9.8 7.5 9 7 8 7s-1.8.5-2.8 1.5L4 7.3zM6.5 10c.8-.8 1.2-1 1.5-1s.7.2 1.5 1L8 11.5 6.5 10z"/></svg>
+        <svg viewBox="0 0 16 16"><path d="M1 4h2v8H1V4zm3.5 2h2v6h-2V6zM8 3h2v9H8V3zm3.5 1h2v8h-2V4z"/></svg>
+        <svg viewBox="0 0 24 14"><rect x="0.5" y="0.5" width="20" height="13" rx="2.5" stroke="currentColor" stroke-opacity="0.35" fill="none"/><path opacity="0.4" d="M22 5v4a2 2 0 000-4z" fill="currentColor"/><rect x="2" y="2" width="15" height="9" rx="1.5" fill="currentColor"/></svg>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-left">
+        <div class="header-greeting">Hallo, Familie Weber</div>
+        <h1 class="header-title">Einkaufslisten</h1>
+      </div>
+      <div class="header-avatar">&#x1F426;</div>
+    </div>
+
+    <!-- Search -->
+    <div class="search-section">
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <input type="text" placeholder="Liste suchen...">
+      </div>
+    </div>
+
+    <!-- Hero Card (current / most active list) -->
+    <div class="hero-section">
+      <div class="hero-card">
+        <div class="hero-top">
+          <div class="hero-title-group">
+            <div class="hero-tag">Gerade aktiv</div>
+            <div class="hero-name">REWE Wocheneinkauf</div>
+          </div>
+          <div class="hero-ring-container">
+            <svg viewBox="0 0 36 36" width="52" height="52">
+              <circle cx="18" cy="18" r="15" fill="none" stroke="var(--ring-track)" stroke-width="3"/>
+              <circle cx="18" cy="18" r="15" fill="none" stroke="var(--accent)" stroke-width="3"
+                stroke-dasharray="94.25" stroke-dashoffset="44.3" stroke-linecap="round"
+                transform="rotate(-90 18 18)"/>
+            </svg>
+            <div class="hero-ring-text">53%</div>
+          </div>
+        </div>
+        <div class="hero-bottom">
+          <span class="hero-meta">8 / 15 Items &middot; 3 Personen</span>
+          <span class="hero-activity">
+            <span class="hero-dot"></span>
+            Mama vor 5 Min
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grid -->
+    <div class="grid-label">Alle Listen</div>
+    <div class="grid-section">
+      <!-- dm -->
+      <div class="grid-card">
+        <div class="grid-card-top">
+          <div class="grid-card-icon purple">&#x1F9F4;</div>
+          <div class="grid-ring-container">
+            <svg viewBox="0 0 36 36" width="36" height="36">
+              <circle cx="18" cy="18" r="14" fill="none" stroke="var(--ring-track)" stroke-width="2.5"/>
+              <circle cx="18" cy="18" r="14" fill="none" stroke="var(--accent-secondary)" stroke-width="2.5"
+                stroke-dasharray="87.96" stroke-dashoffset="87.96" stroke-linecap="round"
+                transform="rotate(-90 18 18)"/>
+            </svg>
+            <div class="grid-ring-text">0%</div>
+          </div>
+        </div>
+        <div class="grid-card-name">dm Drogerie</div>
+        <div class="grid-card-bottom">
+          <span class="grid-card-items">4 Items</span>
+          <span class="grid-card-members">Papa</span>
+        </div>
+      </div>
+
+      <!-- Party -->
+      <div class="grid-card">
+        <div class="grid-card-top">
+          <div class="grid-card-icon warm">&#x1F389;</div>
+          <div class="grid-ring-container">
+            <svg viewBox="0 0 36 36" width="36" height="36">
+              <circle cx="18" cy="18" r="14" fill="none" stroke="var(--ring-track)" stroke-width="2.5"/>
+              <circle cx="18" cy="18" r="14" fill="none" stroke="var(--accent-warm)" stroke-width="2.5"
+                stroke-dasharray="87.96" stroke-dashoffset="20.23" stroke-linecap="round"
+                transform="rotate(-90 18 18)"/>
+            </svg>
+            <div class="grid-ring-text">77%</div>
+          </div>
+        </div>
+        <div class="grid-card-name">Geburtstags&shy;party Lena</div>
+        <div class="grid-card-bottom">
+          <span class="grid-card-items">17 / 22</span>
+          <span class="grid-card-members">Familie</span>
+        </div>
+      </div>
+
+      <!-- ALDI -->
+      <div class="grid-card">
+        <div class="grid-card-top">
+          <div class="grid-card-icon teal">&#x1F6D2;</div>
+          <div class="grid-ring-container">
+            <svg viewBox="0 0 36 36" width="36" height="36">
+              <circle cx="18" cy="18" r="14" fill="none" stroke="var(--ring-track)" stroke-width="2.5"/>
+              <circle cx="18" cy="18" r="14" fill="none" stroke="var(--accent)" stroke-width="2.5"
+                stroke-dasharray="87.96" stroke-dashoffset="0" stroke-linecap="round"
+                transform="rotate(-90 18 18)"/>
+            </svg>
+            <div class="grid-ring-text">&#x2713;</div>
+          </div>
+        </div>
+        <div class="grid-card-name">ALDI Vorr&auml;te</div>
+        <div class="grid-card-bottom">
+          <span class="grid-card-items">6 / 6</span>
+          <span class="grid-card-members">Mama</span>
+        </div>
+      </div>
+
+      <!-- Neue Liste -->
+      <div class="grid-card" style="border-style: dashed; justify-content: center; align-items: center;">
+        <div style="text-align: center;">
+          <div style="font-size: 28px; margin-bottom: 4px; color: var(--accent);">+</div>
+          <div style="font-size: 13px; font-weight: 600; color: var(--text-dim);">Neue Liste</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Suggestions -->
+    <div class="suggested-section">
+      <div class="suggested-label">Schnell erstellen</div>
+      <div class="suggested-row">
+        <div class="suggested-chip">
+          <span class="suggested-chip-icon">&#x1F6D2;</span>
+          Wocheneinkauf
+          <span class="suggested-chip-plus">+</span>
+        </div>
+        <div class="suggested-chip">
+          <span class="suggested-chip-icon">&#x1F9F4;</span>
+          Drogerie
+          <span class="suggested-chip-plus">+</span>
+        </div>
+        <div class="suggested-chip">
+          <span class="suggested-chip-icon">&#x1F389;</span>
+          Party
+          <span class="suggested-chip-plus">+</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <a class="nav-item active" href="#">
+      <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+      <span>Listen</span>
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/></svg>
+      <span>Planen</span>
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24"><path d="M8.1 13.34l2.83-2.83L3.91 3.5a4.008 4.008 0 000 5.66l4.19 4.18zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3.7 19.87l1.41 1.41L12 14.41l6.88 6.88 1.41-1.41L13.41 13l1.47-1.47z"/></svg>
+      <span>Rezepte</span>
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
+      <span>Aktivit&auml;t</span>
+      <div class="nav-badge">3</div>
+    </a>
+  </div>
+</div>
+
+<script>
+  const MOON_SVG = '<svg viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>';
+  const SUN_SVG = '<svg viewBox="0 0 24 24"><path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79 1.42-1.41zM4 10.5H1v2h3v-2zm9-9.95h-2V3.5h2V.55zm7.45 3.91l-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zm-3.21 13.7l1.79 1.8 1.41-1.41-1.8-1.79-1.4 1.4zM20 10.5v2h3v-2h-3zm-8-5c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm-1 16.95h2V19.5h-2v2.95zm-7.45-3.91l1.41 1.41 1.79-1.8-1.41-1.41-1.79 1.8z"/></svg>';
+
+  function getTheme() { return localStorage.getItem('shopzebra_design2_theme') || 'dark'; }
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('shopzebra_design2_theme', theme);
+    const btn = document.getElementById('themeToggle');
+    if (btn) btn.innerHTML = theme === 'dark' ? MOON_SVG : SUN_SVG;
+  }
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+  }
+  applyTheme(getTheme());
+</script>
+
+</body>
+</html>
