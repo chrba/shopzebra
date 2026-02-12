@@ -3,20 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ShopZebra - Design 2: Compact Tiles</title>
+<title>ShopZebra - Listen&uuml;bersicht</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   /* ========================================
-     DESIGN 2: "Compact Tiles"
+     Listen-Übersicht: Compact Tiles
      2-Spalten-Grid mit Emoji-zentrierten Kacheln.
      Jede Liste ist eine kompakte Kachel mit großem
      Emoji, Name, Item-Count, Mitglieder-Anzahl.
      Informationsdicht aber übersichtlich.
      ======================================== */
 
-  /* ===== Theme: Dark (identisch mit index.html) ===== */
+  /* ===== Theme: Dark ===== */
   [data-theme="dark"] {
     --body-bg: #0a0a0e;
     --screen-bg: #121216;
@@ -57,7 +57,7 @@
     --add-tile-border: dashed;
   }
 
-  /* ===== Theme: Glass (identisch mit index.html) ===== */
+  /* ===== Theme: Glass ===== */
   [data-theme="glass"] {
     --body-bg: #1a1a2e;
     --screen-bg: #0a0a12;
@@ -531,12 +531,12 @@
       </div>
 
       <!-- Neue Liste -->
-      <div class="tile tile-add">
+      <a class="tile tile-add" href="neue-liste.html">
         <div class="tile-add-icon">
           <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
         </div>
         <span class="tile-add-label">Neue Liste</span>
-      </div>
+      </a>
     </div>
 
   </div>

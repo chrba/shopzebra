@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopZebra - Neue Liste: Design 1 &bdquo;Fullscreen Form&ldquo;</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ========================================
+     NEUE LISTE – Design 1: "Fullscreen Form"
+     Eigene Seite mit kompaktem Formular.
+     Großer Emoji-Picker oben, Name-Input,
+     Farbwahl, Mitglieder-Einladung.
+     ======================================== */
+
+  [data-theme="dark"] {
+    --body-bg: #0a0a0e;
+    --screen-bg: #121216;
+    --screen-gradient: none;
+    --surface: rgba(255,255,255,0.04);
+    --surface-hover: rgba(255,255,255,0.06);
+    --surface-border: rgba(255,255,255,0.06);
+    --teal: #4E9DA6;
+    --orange: #E8923A;
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255,255,255,0.5);
+    --text-dim: rgba(255,255,255,0.35);
+    --card-bg: rgba(255,255,255,0.03);
+    --card-border: rgba(255,255,255,0.06);
+    --card-blur: 0px;
+    --input-bg: rgba(255,255,255,0.04);
+    --input-border: rgba(255,255,255,0.08);
+    --input-focus: rgba(78,157,166,0.3);
+    --frame-shadow: 0 0 60px rgba(0,0,0,0.5), 0 0 120px rgba(78,157,166,0.05);
+    --frame-border: 1px solid rgba(255,255,255,0.08);
+    --icon-radius: 50%;
+    --cat-card-before-opacity: 0;
+    --green-bg: rgba(107,191,107,0.12);
+    --blue-bg: rgba(91,168,213,0.12);
+    --red-bg: rgba(224,123,123,0.12);
+    --purple-bg: rgba(160,123,204,0.12);
+    --yellow-bg: rgba(232,196,74,0.12);
+  }
+
+  [data-theme="glass"] {
+    --body-bg: #1a1a2e;
+    --screen-bg: #0a0a12;
+    --screen-gradient:
+      radial-gradient(ellipse at 20% 80%, rgba(120, 50, 180, 0.35) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(50, 120, 180, 0.3) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 50%, rgba(180, 50, 120, 0.2) 0%, transparent 60%);
+    --surface: rgba(255,255,255,0.06);
+    --surface-hover: rgba(255,255,255,0.09);
+    --surface-border: rgba(255,255,255,0.1);
+    --teal: #4E9DA6;
+    --orange: #E8923A;
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255,255,255,0.5);
+    --text-dim: rgba(255,255,255,0.35);
+    --card-bg: rgba(255,255,255,0.06);
+    --card-border: rgba(255,255,255,0.1);
+    --card-blur: blur(20px);
+    --input-bg: rgba(255,255,255,0.06);
+    --input-border: rgba(255,255,255,0.1);
+    --input-focus: rgba(78,157,166,0.4);
+    --frame-shadow: 0 0 0 2px rgba(255,255,255,0.08), 0 40px 80px rgba(0,0,0,0.6), 0 0 120px rgba(139,92,246,0.15);
+    --frame-border: none;
+    --icon-radius: 14px;
+    --cat-card-before-opacity: 1;
+    --green-bg: rgba(80,180,80,0.15);
+    --blue-bg: rgba(59,130,246,0.15);
+    --red-bg: rgba(236,72,153,0.15);
+    --purple-bg: rgba(139,92,246,0.15);
+    --yellow-bg: rgba(220,180,60,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--body-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    color: var(--text-primary);
+    transition: background 0.4s ease;
+  }
+
+  .phone-frame {
+    width: 390px;
+    height: 844px;
+    background: var(--screen-bg);
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    border: var(--frame-border);
+    box-shadow: var(--frame-shadow);
+    transition: background 0.4s ease, border-color 0.3s ease, box-shadow 0.4s ease;
+  }
+
+  .screen {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 40px;
+    scrollbar-width: none;
+    background-color: var(--screen-bg);
+    background-image: var(--screen-gradient);
+    transition: background 0.4s ease;
+  }
+  .screen::-webkit-scrollbar { display: none; }
+
+  /* ===== Status Bar ===== */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 28px 8px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--screen-bg);
+  }
+  .status-time { font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
+  .status-icons { display: flex; align-items: center; gap: 6px; }
+  .status-icons svg { width: 16px; height: 16px; fill: white; }
+  .theme-toggle {
+    width: 20px; height: 20px; background: transparent; border: none;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    opacity: 0.5; padding: 0; margin: 0 6px; transition: opacity 0.2s ease;
+  }
+  .theme-toggle:hover { opacity: 0.85; }
+  .theme-toggle svg { width: 16px; height: 16px; fill: white; }
+
+  /* ===== Nav Header ===== */
+  .nav-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 24px 16px;
+  }
+  .nav-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: var(--teal);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .nav-back svg { width: 20px; height: 20px; fill: var(--teal); }
+  .nav-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .nav-spacer { width: 70px; }
+
+  /* ===== Emoji Picker ===== */
+  .emoji-section {
+    text-align: center;
+    padding: 16px 24px 24px;
+  }
+  .emoji-preview {
+    width: 96px;
+    height: 96px;
+    border-radius: var(--icon-radius);
+    background: var(--green-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    font-size: 48px;
+    transition: background 0.3s ease, border-radius 0.3s ease;
+    cursor: pointer;
+    position: relative;
+  }
+  .emoji-preview::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid var(--screen-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='rgba(255,255,255,0.5)'%3E%3Cpath d='M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z'/%3E%3C/svg%3E");
+    background-size: 14px;
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+  .emoji-hint {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+
+  .emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+    padding: 12px 24px 0;
+  }
+  .emoji-option {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 14px;
+    background: var(--surface);
+    border: 2px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .emoji-option:hover { background: var(--surface-hover); }
+  .emoji-option.selected {
+    border-color: var(--teal);
+    background: rgba(78,157,166,0.12);
+  }
+
+  /* ===== Form Fields ===== */
+  .form-section {
+    padding: 24px 24px 0;
+  }
+  .form-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .form-input {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: 16px;
+    padding: 16px 18px;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .form-input::placeholder { color: var(--text-dim); font-weight: 500; }
+  .form-input:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px var(--input-focus);
+  }
+
+  /* ===== Color Picker ===== */
+  .color-section {
+    padding: 24px 24px 0;
+  }
+  .color-row {
+    display: flex;
+    gap: 12px;
+  }
+  .color-option {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+  }
+  .color-option::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+  }
+  .color-option.green { background: #6BBF6B; }
+  .color-option.blue { background: #5BA8D5; }
+  .color-option.red { background: #E07B7B; }
+  .color-option.purple { background: #A07BCC; }
+  .color-option.yellow { background: #E8C44A; }
+  .color-option.selected {
+    border-color: var(--text-primary);
+    transform: scale(1.1);
+  }
+  .color-option.selected::after {
+    border: 2px solid var(--screen-bg);
+  }
+
+  /* ===== Members ===== */
+  .members-section {
+    padding: 24px 24px 0;
+  }
+  .member-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .member-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: white;
+    position: relative;
+  }
+  .member-avatar .check {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--teal);
+    border: 2px solid var(--screen-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .member-avatar .check svg { width: 10px; height: 10px; fill: white; }
+  .member-avatar.unselected { opacity: 0.35; }
+  .member-add {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px dashed var(--surface-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .member-add svg { width: 20px; height: 20px; fill: var(--text-dim); }
+
+  /* ===== Store Type ===== */
+  .store-section {
+    padding: 24px 24px 0;
+  }
+  .store-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .store-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 20px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .store-chip:hover { background: var(--surface-hover); }
+  .store-chip.selected {
+    border-color: var(--teal);
+    background: rgba(78,157,166,0.1);
+    color: var(--teal);
+  }
+
+  /* ===== CTA Button ===== */
+  .cta-section {
+    padding: 32px 24px;
+  }
+  .cta-button {
+    width: 100%;
+    padding: 18px;
+    border-radius: 20px;
+    border: none;
+    background: linear-gradient(135deg, var(--teal), #3A8A92);
+    color: white;
+    font-size: 17px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 20px rgba(78,157,166,0.3);
+  }
+  .cta-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 28px rgba(78,157,166,0.4);
+  }
+  .cta-button:active { transform: scale(0.98); }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <div class="screen">
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-time">9:41</div>
+      <div class="status-icons">
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle theme"></button>
+        <svg viewBox="0 0 16 16"><path d="M1.5 4.5C4 2 7.5 1 8 1s4 1 6.5 3.5l-1.2 1.2C11.2 3.6 9 2.5 8 2.5S4.8 3.6 2.7 5.7L1.5 4.5zM4 7.3C5.3 6 6.8 5.2 8 5.2s2.7.8 4 2.1L10.8 8.5C9.8 7.5 9 7 8 7s-1.8.5-2.8 1.5L4 7.3zM6.5 10c.8-.8 1.2-1 1.5-1s.7.2 1.5 1L8 11.5 6.5 10z"/></svg>
+        <svg viewBox="0 0 16 16"><path d="M1 4h2v8H1V4zm3.5 2h2v6h-2V6zM8 3h2v9H8V3zm3.5 1h2v8h-2V4z"/></svg>
+        <svg viewBox="0 0 24 14"><rect x="0.5" y="0.5" width="20" height="13" rx="2.5" stroke="white" stroke-opacity="0.35" fill="none"/><path opacity="0.4" d="M22 5v4a2 2 0 000-4z" fill="white"/><rect x="2" y="2" width="15" height="9" rx="1.5" fill="white"/></svg>
+      </div>
+    </div>
+
+    <!-- Nav Header -->
+    <div class="nav-header">
+      <button class="nav-back">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        Listen
+      </button>
+      <div class="nav-title">Neue Liste</div>
+      <div class="nav-spacer"></div>
+    </div>
+
+    <!-- Emoji Preview & Picker -->
+    <div class="emoji-section">
+      <div class="emoji-preview" id="emojiPreview">&#x1F6D2;</div>
+      <div class="emoji-hint">Tippe zum &Auml;ndern</div>
+    </div>
+
+    <div class="emoji-grid">
+      <div class="emoji-option selected">&#x1F6D2;</div>
+      <div class="emoji-option">&#x1F9F4;</div>
+      <div class="emoji-option">&#x1F389;</div>
+      <div class="emoji-option">&#x1F34E;</div>
+      <div class="emoji-option">&#x1F527;</div>
+      <div class="emoji-option">&#x1F9C0;</div>
+      <div class="emoji-option">&#x1F3E0;</div>
+      <div class="emoji-option">&#x1F381;</div>
+      <div class="emoji-option">&#x1F4DA;</div>
+      <div class="emoji-option">&#x1F3D5;</div>
+      <div class="emoji-option">&#x1F37D;</div>
+      <div class="emoji-option">&#x2708;</div>
+    </div>
+
+    <!-- Name Input -->
+    <div class="form-section">
+      <div class="form-label">Listenname</div>
+      <input class="form-input" type="text" placeholder="z.B. REWE Wocheneinkauf" autofocus>
+    </div>
+
+    <!-- Color Picker -->
+    <div class="color-section">
+      <div class="form-label">Farbe</div>
+      <div class="color-row">
+        <div class="color-option green selected"></div>
+        <div class="color-option blue"></div>
+        <div class="color-option red"></div>
+        <div class="color-option purple"></div>
+        <div class="color-option yellow"></div>
+      </div>
+    </div>
+
+    <!-- Store Type -->
+    <div class="store-section">
+      <div class="form-label">Laden (optional)</div>
+      <div class="store-chips">
+        <div class="store-chip selected">&#x1F6D2; Supermarkt</div>
+        <div class="store-chip">&#x1F9F4; Drogerie</div>
+        <div class="store-chip">&#x1F527; Baumarkt</div>
+        <div class="store-chip">&#x1F3EC; Sonstiges</div>
+      </div>
+    </div>
+
+    <!-- Members -->
+    <div class="members-section">
+      <div class="form-label">Teilen mit</div>
+      <div class="member-row">
+        <div class="member-avatar" style="background: #6BBF6B;">
+          M
+          <div class="check"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+        </div>
+        <div class="member-avatar" style="background: #5BA8D5;">
+          P
+          <div class="check"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+        </div>
+        <div class="member-avatar unselected" style="background: #E07B7B;">L</div>
+        <div class="member-avatar unselected" style="background: #A07BCC;">O</div>
+        <div class="member-add">
+          <svg viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-section">
+      <button class="cta-button">Liste erstellen</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const MOON_SVG = '<svg viewBox="0 0 24 24" fill="white"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>';
+  const SUN_SVG = '<svg viewBox="0 0 24 24" fill="white"><path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79 1.42-1.41zM4 10.5H1v2h3v-2zm9-9.95h-2V3.5h2V.55zm7.45 3.91l-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zm-3.21 13.7l1.79 1.8 1.41-1.41-1.8-1.79-1.4 1.4zM20 10.5v2h3v-2h-3zm-8-5c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm-1 16.95h2V19.5h-2v2.95zm-7.45-3.91l1.41 1.41 1.79-1.8-1.41-1.41-1.79 1.8z"/></svg>';
+  function getTheme() { return localStorage.getItem('shopzebra_theme') || 'dark'; }
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('shopzebra_theme', theme);
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? MOON_SVG : SUN_SVG;
+  }
+  function toggleTheme() {
+    applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'glass' : 'dark');
+  }
+  applyTheme(getTheme());
+</script>
+
+</body>
+</html>
