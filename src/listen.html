@@ -543,7 +543,7 @@
     var actWhen = list.activity ? escapeHtml(list.activity.when) : '';
     var activityText = actWho ? '<strong>' + actWho + '</strong> ' + actWhat + ' &middot; ' + actWhen : '';
 
-    return '<div class="tile" data-color="' + escapeHtml(list.color) + '">' +
+    return '<a class="tile" data-color="' + escapeHtml(list.color) + '" href="liste.html?id=' + encodeURIComponent(list.id) + '">' +
       badgeHtml +
       '<div class="tile-icon-bg ' + escapeHtml(list.color) + '">' +
         '<span class="tile-emoji">' + list.emoji + '</span>' +
@@ -555,7 +555,7 @@
         '<span class="tile-members">' + escapeHtml(formatMembers(list.members)) + '</span>' +
       '</div>' +
       '<div class="tile-activity">' + activityText + '</div>' +
-    '</div>';
+    '</a>';
   }
 
   function renderAddTile() {
