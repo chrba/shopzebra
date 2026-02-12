@@ -450,6 +450,128 @@
   }
   .done-btn:hover { filter: brightness(1.1); transform: scale(1.02); }
   .done-btn:active { transform: scale(0.98); }
+
+  /* Variant indicator on tile */
+  .variant-hint {
+    font-size: 8px;
+    color: var(--teal);
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    opacity: 0.7;
+  }
+
+  /* Bottom Sheet Overlay */
+  .sheet-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .sheet-backdrop.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--screen-bg);
+    border-radius: 20px 20px 0 0;
+    z-index: 210;
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    max-height: 70%;
+    display: flex;
+    flex-direction: column;
+  }
+  .sheet-backdrop.visible .sheet {
+    transform: translateY(0);
+  }
+  .sheet-handle {
+    width: 36px;
+    height: 4px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 2px;
+    margin: 10px auto 0;
+    flex-shrink: 0;
+  }
+  .sheet-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px 12px;
+    flex-shrink: 0;
+  }
+  .sheet-emoji {
+    font-size: 32px;
+    line-height: 1;
+  }
+  .sheet-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .sheet-subtitle {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+  .sheet-list {
+    padding: 0 16px 34px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .sheet-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: var(--surface);
+    border: 1.5px solid var(--surface-border);
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .sheet-item:active {
+    transform: scale(0.98);
+  }
+  .sheet-item.selected {
+    border-color: var(--teal);
+    background: var(--surface-selected);
+  }
+  .sheet-item-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  .sheet-item-check {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--surface-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .sheet-item.selected .sheet-item-check {
+    background: var(--teal);
+    border-color: var(--teal);
+  }
+  .sheet-item-check svg {
+    width: 14px;
+    height: 14px;
+    fill: #fff;
+    opacity: 0;
+  }
+  .sheet-item.selected .sheet-item-check svg {
+    opacity: 1;
+  }
 </style>
 </head>
 <body>
@@ -476,7 +598,7 @@
         </a>
         <div class="header-title">Obst & Gem&uuml;se</div>
       </div>
-      <div class="header-subtitle" id="subtitle">71 Produkte</div>
+      <div class="header-subtitle" id="subtitle">40 Produkte</div>
     </div>
 
     <!-- Selected Summary -->
@@ -507,6 +629,21 @@
 
   </div>
 
+  <!-- Variant Bottom Sheet -->
+  <div class="sheet-backdrop" id="sheetBackdrop" onclick="closeSheet()">
+    <div class="sheet" onclick="event.stopPropagation()">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div class="sheet-emoji" id="sheetEmoji"></div>
+        <div>
+          <div class="sheet-title" id="sheetTitle"></div>
+          <div class="sheet-subtitle">Variante w&auml;hlen</div>
+        </div>
+      </div>
+      <div class="sheet-list" id="sheetList"></div>
+    </div>
+  </div>
+
   <!-- Bottom Bar -->
   <div class="bottom-bar">
     <div class="bottom-info">
@@ -521,78 +658,89 @@
 const ALL_PRODUCTS = [
   // === Obst ===
   { id: 'ananas', emoji: '\u{1F34D}', name: 'Ananas', unit: 'St' },
-  { id: 'aepfel', emoji: '\u{1F34E}', name: '\u00C4pfel', unit: 'kg' },
-  { id: 'aprikosen', emoji: '\u{1F351}', name: 'Aprikosen', unit: 'Schale' },
+  { id: 'aepfel', emoji: '\u{1F34E}', name: '\u00C4pfel', unit: 'kg', variants: [
+    'Elstar', 'Braeburn', 'Gala', 'Granny Smith', 'Pink Lady', 'Golden Delicious', 'Jonagold'
+  ]},
   { id: 'avocado', emoji: '\u{1F951}', name: 'Avocado', unit: 'St' },
   { id: 'bananen', emoji: '\u{1F34C}', name: 'Bananen', unit: 'St' },
-  { id: 'birnen', emoji: '\u{1F350}', name: 'Birnen', unit: 'kg' },
-  { id: 'blaubeeren', emoji: '\u{1FAD0}', name: 'Blaubeeren', unit: 'Schale' },
-  { id: 'erdbeeren', emoji: '\u{1F353}', name: 'Erdbeeren', unit: 'Schale' },
+  { id: 'beeren', emoji: '\u{1F353}', name: 'Beeren', unit: 'Schale', variants: [
+    'Erdbeeren', 'Blaubeeren', 'Himbeeren', 'Brombeeren', 'Johannisbeeren', 'Stachelbeeren'
+  ]},
+  { id: 'birnen', emoji: '\u{1F350}', name: 'Birnen', unit: 'kg', variants: [
+    'Conference', 'Williams', 'Abate'
+  ]},
   { id: 'granatapfel', emoji: '\u{1F34E}', name: 'Granatapfel', unit: 'St' },
-  { id: 'grapefruit', emoji: '\u{1F34A}', name: 'Grapefruit', unit: 'St' },
-  { id: 'himbeeren', emoji: '\u{1FAD0}', name: 'Himbeeren', unit: 'Schale' },
-  { id: 'honigmelone', emoji: '\u{1F348}', name: 'Honigmelone', unit: 'St' },
   { id: 'kirschen', emoji: '\u{1F352}', name: 'Kirschen', unit: 'Schale' },
   { id: 'kiwi', emoji: '\u{1F95D}', name: 'Kiwi', unit: 'St' },
   { id: 'kokosnuss', emoji: '\u{1F965}', name: 'Kokosnuss', unit: 'St' },
-  { id: 'limetten', emoji: '\u{1F34B}', name: 'Limetten', unit: 'St' },
-  { id: 'mandarinen', emoji: '\u{1F34A}', name: 'Mandarinen', unit: 'Netz' },
   { id: 'mango', emoji: '\u{1F96D}', name: 'Mango', unit: 'St' },
-  { id: 'nektarinen', emoji: '\u{1F351}', name: 'Nektarinen', unit: 'kg' },
-  { id: 'orangen', emoji: '\u{1F34A}', name: 'Orangen', unit: 'kg' },
-  { id: 'pfirsiche', emoji: '\u{1F351}', name: 'Pfirsiche', unit: 'kg' },
-  { id: 'pflaumen', emoji: '\u{1F351}', name: 'Pflaumen', unit: 'kg' },
-  { id: 'trauben', emoji: '\u{1F347}', name: 'Trauben', unit: 'kg' },
-  { id: 'wassermelone', emoji: '\u{1F349}', name: 'Wassermelone', unit: 'St' },
-  { id: 'zitronen', emoji: '\u{1F34B}', name: 'Zitronen', unit: 'St' },
+  { id: 'melone', emoji: '\u{1F348}', name: 'Melone', unit: 'St', variants: [
+    'Wassermelone', 'Honigmelone', 'Galiamelone', 'Cantaloupemelone'
+  ]},
+  { id: 'steinobst', emoji: '\u{1F351}', name: 'Steinobst', unit: 'kg', variants: [
+    'Pfirsiche', 'Nektarinen', 'Aprikosen', 'Pflaumen', 'Mirabellen'
+  ]},
+  { id: 'trauben', emoji: '\u{1F347}', name: 'Trauben', unit: 'kg', variants: [
+    'Wei\u00DFe kernlos', 'Rote kernlos', 'Wei\u00DFe', 'Rote'
+  ]},
+  { id: 'zitrusfruechte', emoji: '\u{1F34A}', name: 'Zitrusfr\u00FCchte', unit: 'St', variants: [
+    'Orangen', 'Zitronen', 'Limetten', 'Mandarinen', 'Clementinen', 'Grapefruit', 'Blutorangen'
+  ]},
   // === Gem\u00FCse ===
   { id: 'aubergine', emoji: '\u{1F346}', name: 'Aubergine', unit: 'St' },
-  { id: 'blumenkohl', emoji: '\u{1F966}', name: 'Blumenkohl', unit: 'St' },
-  { id: 'bohnen', emoji: '\u{1FAD8}', name: 'Bohnen', unit: '250g' },
+  { id: 'bohnen', emoji: '\u{1FAD8}', name: 'Bohnen', unit: '250g', variants: [
+    'Gr\u00FCne Bohnen', 'Kidney-Bohnen', 'Wei\u00DFe Bohnen'
+  ]},
   { id: 'brokkoli', emoji: '\u{1F966}', name: 'Brokkoli', unit: 'St' },
-  { id: 'champignons', emoji: '\u{1F344}', name: 'Champignons', unit: '200g' },
-  { id: 'chinakohl', emoji: '\u{1F96C}', name: 'Chinakohl', unit: 'St' },
-  { id: 'erbsen', emoji: '\u{1FAD1}', name: 'Erbsen', unit: '250g' },
+  { id: 'erbsen', emoji: '\u{1FAD1}', name: 'Erbsen', unit: '250g', variants: [
+    'Zuckererbsen', 'Erbsen TK', 'Erbsen frisch'
+  ]},
   { id: 'fenchel', emoji: '\u{1F96C}', name: 'Fenchel', unit: 'St' },
-  { id: 'fruehlingszwiebeln', emoji: '\u{1F9C5}', name: 'Fr\u00FChlingszwiebeln', unit: 'Bund' },
-  { id: 'gurke', emoji: '\u{1F952}', name: 'Gurke', unit: 'St' },
+  { id: 'gurke', emoji: '\u{1F952}', name: 'Gurke', unit: 'St', variants: [
+    'Salatgurke', 'Minigurken', 'Schmorgurke'
+  ]},
   { id: 'ingwer', emoji: '\u{1FADA}', name: 'Ingwer', unit: 'St' },
-  { id: 'kartoffeln', emoji: '\u{1F954}', name: 'Kartoffeln', unit: 'kg' },
+  { id: 'kartoffeln', emoji: '\u{1F954}', name: 'Kartoffeln', unit: 'kg', variants: [
+    'Festkochend', 'Mehligkochend', 'Vorwiegend festkochend', 'Drillinge', 'S\u00FC\u00DFkartoffeln'
+  ]},
   { id: 'knoblauch', emoji: '\u{1F9C4}', name: 'Knoblauch', unit: 'Knolle' },
-  { id: 'kohlrabi', emoji: '\u{1F96C}', name: 'Kohlrabi', unit: 'St' },
-  { id: 'kuerbis', emoji: '\u{1F383}', name: 'K\u00FCrbis', unit: 'St' },
-  { id: 'lauch', emoji: '\u{1F9C5}', name: 'Lauch', unit: 'St' },
+  { id: 'kohl', emoji: '\u{1F96C}', name: 'Kohl', unit: 'St', variants: [
+    'Rotkohl', 'Wei\u00DFkohl', 'Spitzkohl', 'Chinakohl', 'Wirsing', 'Rosenkohl', 'Blumenkohl', 'Kohlrabi', 'Gr\u00FCnkohl'
+  ]},
+  { id: 'kuerbis', emoji: '\u{1F383}', name: 'K\u00FCrbis', unit: 'St', variants: [
+    'Hokkaido', 'Butternut', 'Muskatk\u00FCrbis', 'Spaghettikürbis'
+  ]},
   { id: 'mais', emoji: '\u{1F33D}', name: 'Mais', unit: 'St' },
   { id: 'moehren', emoji: '\u{1F955}', name: 'M\u00F6hren', unit: 'kg' },
-  { id: 'paprika', emoji: '\u{1FAD1}', name: 'Paprika', unit: 'St' },
+  { id: 'paprika', emoji: '\u{1FAD1}', name: 'Paprika', unit: 'St', variants: [
+    'Rot', 'Gelb', 'Gr\u00FCn', 'Orange', 'Spitzpaprika'
+  ]},
+  { id: 'pilze', emoji: '\u{1F344}', name: 'Pilze', unit: '200g', variants: [
+    'Champignons', 'Kr\u00E4uterseitlinge', 'Austernpilze', 'Shiitake', 'Pfifferlinge'
+  ]},
   { id: 'radieschen', emoji: '\u{1F955}', name: 'Radieschen', unit: 'Bund' },
-  { id: 'rosenkohl', emoji: '\u{1F96C}', name: 'Rosenkohl', unit: '500g' },
   { id: 'rote-beete', emoji: '\u{1F96C}', name: 'Rote Beete', unit: 'Bund' },
-  { id: 'rotkohl', emoji: '\u{1F96C}', name: 'Rotkohl', unit: 'St' },
-  { id: 'salat', emoji: '\u{1F96C}', name: 'Kopfsalat', unit: 'Kopf' },
-  { id: 'rucola', emoji: '\u{1F96C}', name: 'Rucola', unit: 'Beutel' },
-  { id: 'eisbergsalat', emoji: '\u{1F96C}', name: 'Eisbergsalat', unit: 'St' },
-  { id: 'feldsalat', emoji: '\u{1F96C}', name: 'Feldsalat', unit: 'Beutel' },
-  { id: 'sellerie', emoji: '\u{1F96C}', name: 'Sellerie', unit: 'St' },
-  { id: 'spargel', emoji: '\u{1F96C}', name: 'Spargel', unit: 'Bund' },
+  { id: 'salat', emoji: '\u{1F96C}', name: 'Salat', unit: 'St', variants: [
+    'Kopfsalat', 'Eisbergsalat', 'Feldsalat', 'Rucola', 'Romana', 'Lollo Rosso', 'Batavia'
+  ]},
+  { id: 'sellerie', emoji: '\u{1F96C}', name: 'Sellerie', unit: 'St', variants: [
+    'Knollensellerie', 'Staudensellerie'
+  ]},
+  { id: 'spargel', emoji: '\u{1F96C}', name: 'Spargel', unit: 'Bund', variants: [
+    'Wei\u00DFer Spargel', 'Gr\u00FCner Spargel'
+  ]},
   { id: 'spinat', emoji: '\u{1F33F}', name: 'Spinat', unit: 'Beutel' },
-  { id: 'spitzkohl', emoji: '\u{1F96C}', name: 'Spitzkohl', unit: 'St' },
-  { id: 'staudensellerie', emoji: '\u{1F96C}', name: 'Staudensellerie', unit: 'St' },
-  { id: 'suesskartoffeln', emoji: '\u{1F360}', name: 'S\u00FC\u00DFkartoffeln', unit: 'kg' },
-  { id: 'tomaten', emoji: '\u{1F345}', name: 'Tomaten', unit: 'kg' },
-  { id: 'cherrytomaten', emoji: '\u{1F345}', name: 'Cherrytomaten', unit: 'Schale' },
-  { id: 'weisskohl', emoji: '\u{1F96C}', name: 'Wei\u00DFkohl', unit: 'St' },
+  { id: 'tomaten', emoji: '\u{1F345}', name: 'Tomaten', unit: 'kg', variants: [
+    'Rispentomaten', 'Cherrytomaten', 'Roma', 'Fleischtomaten', 'Cocktailtomaten'
+  ]},
   { id: 'zucchini', emoji: '\u{1F952}', name: 'Zucchini', unit: 'St' },
-  { id: 'zwiebeln', emoji: '\u{1F9C5}', name: 'Zwiebeln', unit: 'Netz' },
+  { id: 'zwiebeln', emoji: '\u{1F9C5}', name: 'Zwiebeln', unit: 'Netz', variants: [
+    'Gelbe Zwiebeln', 'Rote Zwiebeln', 'Schalotten', 'Fr\u00FChlingszwiebeln'
+  ]},
   // === Kr\u00E4uter ===
-  { id: 'basilikum', emoji: '\u{1F33F}', name: 'Basilikum', unit: 'Topf' },
-  { id: 'dill', emoji: '\u{1F33F}', name: 'Dill', unit: 'Bund' },
-  { id: 'koriander', emoji: '\u{1F33F}', name: 'Koriander', unit: 'Bund' },
-  { id: 'minze', emoji: '\u{1F33F}', name: 'Minze', unit: 'Topf' },
-  { id: 'petersilie', emoji: '\u{1F33F}', name: 'Petersilie', unit: 'Bund' },
-  { id: 'rosmarin', emoji: '\u{1F33F}', name: 'Rosmarin', unit: 'Topf' },
-  { id: 'schnittlauch', emoji: '\u{1F33F}', name: 'Schnittlauch', unit: 'Topf' },
-  { id: 'thymian', emoji: '\u{1F33F}', name: 'Thymian', unit: 'Topf' }
+  { id: 'kraeuter', emoji: '\u{1F33F}', name: 'Kr\u00E4uter', unit: 'Bund', variants: [
+    'Basilikum', 'Petersilie', 'Schnittlauch', 'Dill', 'Koriander', 'Minze', 'Rosmarin', 'Thymian', 'Oregano', 'Salbei'
+  ]}
 ];
 
 const DEFAULT_ITEMS = [
@@ -674,12 +822,86 @@ function setProductQty(productId, qty) {
 }
 
 function toggleProduct(productId) {
+  const product = ALL_PRODUCTS.find(p => p.id === productId);
+  if (!product) return;
   const currentQty = getSelectedQty(productId);
   if (currentQty > 0) {
     setProductQty(productId, 0);
+    // clear chosen variant
+    localStorage.removeItem('shopzebra_variant_' + productId);
   } else {
     setProductQty(productId, 1);
   }
+  renderGrid();
+  renderSummaryBar();
+  updateBottomBar();
+}
+
+/* === Long-Press + Bottom Sheet === */
+let longPressTimer = null;
+let longPressFired = false;
+
+function handlePointerDown(productId, e) {
+  const product = ALL_PRODUCTS.find(p => p.id === productId);
+  if (!product || !product.variants) return;
+  longPressFired = false;
+  longPressTimer = setTimeout(function() {
+    longPressFired = true;
+    openSheet(productId);
+  }, 500);
+}
+
+function handlePointerUp() {
+  clearTimeout(longPressTimer);
+}
+
+function handlePointerLeave() {
+  clearTimeout(longPressTimer);
+}
+
+function tileClick(productId, e) {
+  if (longPressFired) {
+    longPressFired = false;
+    return;
+  }
+  toggleProduct(productId);
+}
+
+let currentSheetProductId = null;
+
+function openSheet(productId) {
+  const product = ALL_PRODUCTS.find(p => p.id === productId);
+  if (!product || !product.variants) return;
+  currentSheetProductId = productId;
+
+  document.getElementById('sheetEmoji').textContent = product.emoji;
+  document.getElementById('sheetTitle').textContent = product.name;
+
+  const chosenVariant = localStorage.getItem('shopzebra_variant_' + productId) || '';
+  const list = document.getElementById('sheetList');
+  list.innerHTML = product.variants.map(function(v) {
+    const sel = v === chosenVariant ? ' selected' : '';
+    return '<div class="sheet-item' + sel + '" onclick="selectVariant(\'' + productId + '\', \'' + v.replace(/'/g, "\\'") + '\')">' +
+      '<span class="sheet-item-name">' + v + '</span>' +
+      '<div class="sheet-item-check"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>' +
+    '</div>';
+  }).join('');
+
+  document.getElementById('sheetBackdrop').classList.add('visible');
+}
+
+function closeSheet() {
+  document.getElementById('sheetBackdrop').classList.remove('visible');
+  currentSheetProductId = null;
+}
+
+function selectVariant(productId, variantName) {
+  localStorage.setItem('shopzebra_variant_' + productId, variantName);
+  // also select the product if not already
+  if (getSelectedQty(productId) === 0) {
+    setProductQty(productId, 1);
+  }
+  closeSheet();
   renderGrid();
   renderSummaryBar();
   updateBottomBar();
@@ -699,31 +921,36 @@ function renderGrid() {
   const grid = document.getElementById('productGrid');
   const query = document.getElementById('searchInput').value.toLowerCase().trim();
   const filtered = query
-    ? ALL_PRODUCTS.filter(p => p.name.toLowerCase().includes(query))
+    ? ALL_PRODUCTS.filter(function(p) {
+        if (p.name.toLowerCase().includes(query)) return true;
+        if (p.variants && p.variants.some(function(v) { return v.toLowerCase().includes(query); })) return true;
+        return false;
+      })
     : ALL_PRODUCTS;
 
   document.getElementById('noResults').classList.toggle('visible', filtered.length === 0);
 
-  grid.innerHTML = filtered.map(p => {
-    const qty = getSelectedQty(p.id);
-    const selected = qty > 0;
-    return `
-      <div class="product-tile ${selected ? 'selected' : ''}" onclick="toggleProduct('${p.id}')">
-        <div class="check-badge">
-          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-        </div>
-        <div class="product-emoji">${p.emoji}</div>
-        <div class="product-name">${p.name}</div>
-        <div class="product-unit">${p.unit}</div>
-        ${selected ? `
-          <div class="stepper" style="display:flex">
-            <button class="stepper-btn" onclick="adjustQty('${p.id}', -1, event)">&minus;</button>
-            <div class="stepper-qty">${qty} ${p.unit}</div>
-            <button class="stepper-btn" onclick="adjustQty('${p.id}', 1, event)">+</button>
-          </div>
-        ` : ''}
-      </div>
-    `;
+  grid.innerHTML = filtered.map(function(p) {
+    var qty = getSelectedQty(p.id);
+    var selected = qty > 0;
+    var hasVariants = p.variants && p.variants.length > 0;
+    var chosenVariant = localStorage.getItem('shopzebra_variant_' + p.id) || '';
+    var displayName = selected && chosenVariant ? chosenVariant : p.name;
+    var longPressAttrs = hasVariants
+      ? ' onpointerdown="handlePointerDown(\'' + p.id + '\', event)" onpointerup="handlePointerUp()" onpointerleave="handlePointerLeave()"'
+      : '';
+
+    return '<div class="product-tile' + (selected ? ' selected' : '') + '" onclick="tileClick(\'' + p.id + '\')"' + longPressAttrs + '>' +
+      '<div class="check-badge"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>' +
+      '<div class="product-emoji">' + p.emoji + '</div>' +
+      '<div class="product-name">' + displayName + '</div>' +
+      (hasVariants ? '<div class="variant-hint">gedr\u00FCckt halten</div>' : '<div class="product-unit">' + p.unit + '</div>') +
+      (selected ? '<div class="stepper" style="display:flex">' +
+        '<button class="stepper-btn" onclick="adjustQty(\'' + p.id + '\', -1, event)">&minus;</button>' +
+        '<div class="stepper-qty">' + qty + ' ' + p.unit + '</div>' +
+        '<button class="stepper-btn" onclick="adjustQty(\'' + p.id + '\', 1, event)">+</button>' +
+      '</div>' : '') +
+    '</div>';
   }).join('');
 }
 
