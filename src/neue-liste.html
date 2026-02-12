@@ -3,16 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ShopZebra - Neue Liste: Design 1 &bdquo;Fullscreen Form&ldquo;</title>
+<title>ShopZebra - Neue Liste</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   /* ========================================
-     NEUE LISTE – Design 1: "Fullscreen Form"
-     Eigene Seite mit kompaktem Formular.
-     Großer Emoji-Picker oben, Name-Input,
-     Farbwahl, Mitglieder-Einladung.
+     Neue Liste erstellen: Fullscreen Form
      ======================================== */
 
   [data-theme="dark"] {
@@ -153,6 +150,7 @@
     font-weight: 600;
     cursor: pointer;
     font-family: inherit;
+    text-decoration: none;
   }
   .nav-back svg { width: 20px; height: 20px; fill: var(--teal); }
   .nav-title {
@@ -171,7 +169,6 @@
     width: 96px;
     height: 96px;
     border-radius: var(--icon-radius);
-    background: var(--green-bg);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -191,9 +188,6 @@
     border-radius: 50%;
     background: var(--surface);
     border: 2px solid var(--screen-bg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='rgba(255,255,255,0.5)'%3E%3Cpath d='M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z'/%3E%3C/svg%3E");
     background-size: 14px;
     background-repeat: no-repeat;
@@ -317,7 +311,10 @@
     font-weight: 700;
     color: white;
     position: relative;
+    cursor: pointer;
+    transition: opacity 0.2s ease, transform 0.2s ease;
   }
+  .member-avatar:active { transform: scale(0.9); }
   .member-avatar .check {
     position: absolute;
     bottom: -2px;
@@ -333,18 +330,7 @@
   }
   .member-avatar .check svg { width: 10px; height: 10px; fill: white; }
   .member-avatar.unselected { opacity: 0.35; }
-  .member-add {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: var(--surface);
-    border: 1px dashed var(--surface-border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-  }
-  .member-add svg { width: 20px; height: 20px; fill: var(--text-dim); }
+  .member-avatar.unselected .check { display: none; }
 
   /* ===== Store Type ===== */
   .store-section {
@@ -399,6 +385,20 @@
     box-shadow: 0 6px 28px rgba(78,157,166,0.4);
   }
   .cta-button:active { transform: scale(0.98); }
+  .cta-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  .cta-error {
+    text-align: center;
+    font-size: 12px;
+    color: #E07B7B;
+    font-weight: 500;
+    margin-top: 8px;
+    min-height: 18px;
+  }
 </style>
 </head>
 <body>
@@ -418,105 +418,226 @@
 
     <!-- Nav Header -->
     <div class="nav-header">
-      <button class="nav-back">
+      <a class="nav-back" href="listen.html">
         <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
         Listen
-      </button>
+      </a>
       <div class="nav-title">Neue Liste</div>
       <div class="nav-spacer"></div>
     </div>
 
-    <!-- Emoji Preview & Picker -->
+    <!-- Emoji Preview -->
     <div class="emoji-section">
       <div class="emoji-preview" id="emojiPreview">&#x1F6D2;</div>
-      <div class="emoji-hint">Tippe zum &Auml;ndern</div>
+      <div class="emoji-hint">Emoji w&auml;hlen</div>
     </div>
 
-    <div class="emoji-grid">
-      <div class="emoji-option selected">&#x1F6D2;</div>
-      <div class="emoji-option">&#x1F9F4;</div>
-      <div class="emoji-option">&#x1F389;</div>
-      <div class="emoji-option">&#x1F34E;</div>
-      <div class="emoji-option">&#x1F527;</div>
-      <div class="emoji-option">&#x1F9C0;</div>
-      <div class="emoji-option">&#x1F3E0;</div>
-      <div class="emoji-option">&#x1F381;</div>
-      <div class="emoji-option">&#x1F4DA;</div>
-      <div class="emoji-option">&#x1F3D5;</div>
-      <div class="emoji-option">&#x1F37D;</div>
-      <div class="emoji-option">&#x2708;</div>
+    <!-- Emoji Grid -->
+    <div class="emoji-grid" id="emojiGrid">
+      <div class="emoji-option selected" data-emoji="&#x1F6D2;">&#x1F6D2;</div>
+      <div class="emoji-option" data-emoji="&#x1F9F4;">&#x1F9F4;</div>
+      <div class="emoji-option" data-emoji="&#x1F389;">&#x1F389;</div>
+      <div class="emoji-option" data-emoji="&#x1F34E;">&#x1F34E;</div>
+      <div class="emoji-option" data-emoji="&#x1F527;">&#x1F527;</div>
+      <div class="emoji-option" data-emoji="&#x1F9C0;">&#x1F9C0;</div>
+      <div class="emoji-option" data-emoji="&#x1F3E0;">&#x1F3E0;</div>
+      <div class="emoji-option" data-emoji="&#x1F381;">&#x1F381;</div>
+      <div class="emoji-option" data-emoji="&#x1F4DA;">&#x1F4DA;</div>
+      <div class="emoji-option" data-emoji="&#x1F3D5;">&#x1F3D5;</div>
+      <div class="emoji-option" data-emoji="&#x1F37D;">&#x1F37D;</div>
+      <div class="emoji-option" data-emoji="&#x2708;">&#x2708;</div>
     </div>
 
     <!-- Name Input -->
     <div class="form-section">
       <div class="form-label">Listenname</div>
-      <input class="form-input" type="text" placeholder="z.B. REWE Wocheneinkauf" autofocus>
+      <input class="form-input" id="nameInput" type="text" placeholder="z.B. REWE Wocheneinkauf">
     </div>
 
     <!-- Color Picker -->
     <div class="color-section">
       <div class="form-label">Farbe</div>
-      <div class="color-row">
-        <div class="color-option green selected"></div>
-        <div class="color-option blue"></div>
-        <div class="color-option red"></div>
-        <div class="color-option purple"></div>
-        <div class="color-option yellow"></div>
+      <div class="color-row" id="colorRow">
+        <div class="color-option green selected" data-color="green"></div>
+        <div class="color-option blue" data-color="blue"></div>
+        <div class="color-option red" data-color="red"></div>
+        <div class="color-option purple" data-color="purple"></div>
+        <div class="color-option yellow" data-color="yellow"></div>
       </div>
     </div>
 
     <!-- Store Type -->
     <div class="store-section">
       <div class="form-label">Laden (optional)</div>
-      <div class="store-chips">
-        <div class="store-chip selected">&#x1F6D2; Supermarkt</div>
-        <div class="store-chip">&#x1F9F4; Drogerie</div>
-        <div class="store-chip">&#x1F527; Baumarkt</div>
-        <div class="store-chip">&#x1F3EC; Sonstiges</div>
+      <div class="store-chips" id="storeChips">
+        <div class="store-chip" data-store="Supermarkt">&#x1F6D2; Supermarkt</div>
+        <div class="store-chip" data-store="Drogerie">&#x1F9F4; Drogerie</div>
+        <div class="store-chip" data-store="Baumarkt">&#x1F527; Baumarkt</div>
+        <div class="store-chip" data-store="Sonstiges">&#x1F3EC; Sonstiges</div>
       </div>
     </div>
 
     <!-- Members -->
     <div class="members-section">
       <div class="form-label">Teilen mit</div>
-      <div class="member-row">
-        <div class="member-avatar" style="background: #6BBF6B;">
+      <div class="member-row" id="memberRow">
+        <div class="member-avatar" data-member="M" data-name="Mama" style="background: #6BBF6B;">
           M
           <div class="check"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
         </div>
-        <div class="member-avatar" style="background: #5BA8D5;">
+        <div class="member-avatar" data-member="P" data-name="Papa" style="background: #5BA8D5;">
           P
           <div class="check"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
         </div>
-        <div class="member-avatar unselected" style="background: #E07B7B;">L</div>
-        <div class="member-avatar unselected" style="background: #A07BCC;">O</div>
-        <div class="member-add">
-          <svg viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+        <div class="member-avatar unselected" data-member="L" data-name="Lena" style="background: #E07B7B;">
+          L
+          <div class="check"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+        </div>
+        <div class="member-avatar unselected" data-member="O" data-name="Opa" style="background: #A07BCC;">
+          O
+          <div class="check"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
         </div>
       </div>
     </div>
 
     <!-- CTA -->
     <div class="cta-section">
-      <button class="cta-button">Liste erstellen</button>
+      <button class="cta-button" id="ctaButton" onclick="createList()">Liste erstellen</button>
+      <div class="cta-error" id="ctaError"></div>
     </div>
 
   </div>
 </div>
 
 <script>
-  const MOON_SVG = '<svg viewBox="0 0 24 24" fill="white"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>';
-  const SUN_SVG = '<svg viewBox="0 0 24 24" fill="white"><path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79 1.42-1.41zM4 10.5H1v2h3v-2zm9-9.95h-2V3.5h2V.55zm7.45 3.91l-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zm-3.21 13.7l1.79 1.8 1.41-1.41-1.8-1.79-1.4 1.4zM20 10.5v2h3v-2h-3zm-8-5c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm-1 16.95h2V19.5h-2v2.95zm-7.45-3.91l1.41 1.41 1.79-1.8-1.41-1.41-1.79 1.8z"/></svg>';
+  // ===== Theme =====
+  var MOON_SVG = '<svg viewBox="0 0 24 24" fill="white"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>';
+  var SUN_SVG = '<svg viewBox="0 0 24 24" fill="white"><path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79 1.42-1.41zM4 10.5H1v2h3v-2zm9-9.95h-2V3.5h2V.55zm7.45 3.91l-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zm-3.21 13.7l1.79 1.8 1.41-1.41-1.8-1.79-1.4 1.4zM20 10.5v2h3v-2h-3zm-8-5c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm-1 16.95h2V19.5h-2v2.95zm-7.45-3.91l1.41 1.41 1.79-1.8-1.41-1.41-1.79 1.8z"/></svg>';
   function getTheme() { return localStorage.getItem('shopzebra_theme') || 'dark'; }
-  function applyTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('shopzebra_theme', theme);
-    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? MOON_SVG : SUN_SVG;
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('shopzebra_theme', t);
+    document.getElementById('themeToggle').innerHTML = t === 'dark' ? MOON_SVG : SUN_SVG;
   }
-  function toggleTheme() {
-    applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'glass' : 'dark');
-  }
+  function toggleTheme() { applyTheme(getTheme() === 'dark' ? 'glass' : 'dark'); }
   applyTheme(getTheme());
+
+  // ===== State =====
+  var COLOR_BG_MAP = {
+    green: 'var(--green-bg)', blue: 'var(--blue-bg)',
+    red: 'var(--red-bg)', purple: 'var(--purple-bg)', yellow: 'var(--yellow-bg)'
+  };
+
+  var state = {
+    emoji: document.querySelector('.emoji-option.selected').textContent.trim(),
+    color: 'green',
+    store: '',
+    members: ['M', 'P']
+  };
+
+  // ===== Emoji Picker =====
+  document.getElementById('emojiGrid').addEventListener('click', function(e) {
+    var opt = e.target.closest('.emoji-option');
+    if (!opt) return;
+    document.querySelectorAll('.emoji-option').forEach(function(el) { el.classList.remove('selected'); });
+    opt.classList.add('selected');
+    state.emoji = opt.textContent.trim();
+    document.getElementById('emojiPreview').textContent = state.emoji;
+  });
+
+  // Update preview background color when color changes
+  function updatePreviewBg() {
+    document.getElementById('emojiPreview').style.background = COLOR_BG_MAP[state.color];
+  }
+  updatePreviewBg();
+
+  // ===== Color Picker =====
+  document.getElementById('colorRow').addEventListener('click', function(e) {
+    var opt = e.target.closest('.color-option');
+    if (!opt) return;
+    document.querySelectorAll('.color-option').forEach(function(el) { el.classList.remove('selected'); });
+    opt.classList.add('selected');
+    state.color = opt.getAttribute('data-color');
+    updatePreviewBg();
+  });
+
+  // ===== Store Chips =====
+  document.getElementById('storeChips').addEventListener('click', function(e) {
+    var chip = e.target.closest('.store-chip');
+    if (!chip) return;
+    var wasSelected = chip.classList.contains('selected');
+    document.querySelectorAll('.store-chip').forEach(function(el) { el.classList.remove('selected'); });
+    if (!wasSelected) {
+      chip.classList.add('selected');
+      state.store = chip.getAttribute('data-store');
+    } else {
+      state.store = '';
+    }
+  });
+
+  // ===== Member Toggle =====
+  document.getElementById('memberRow').addEventListener('click', function(e) {
+    var avatar = e.target.closest('.member-avatar');
+    if (!avatar) return;
+    var member = avatar.getAttribute('data-member');
+    var isSelected = !avatar.classList.contains('unselected');
+    if (isSelected) {
+      avatar.classList.add('unselected');
+      state.members = state.members.filter(function(m) { return m !== member; });
+    } else {
+      avatar.classList.remove('unselected');
+      state.members.push(member);
+    }
+  });
+
+  // ===== Create List =====
+  var LISTS_KEY = 'shopzebra_listen';
+
+  function loadLists() {
+    try {
+      var data = JSON.parse(localStorage.getItem(LISTS_KEY));
+      return Array.isArray(data) ? data : null;
+    } catch(e) { return null; }
+  }
+
+  function createList() {
+    var name = document.getElementById('nameInput').value.trim();
+    if (!name) {
+      document.getElementById('ctaError').textContent = 'Bitte einen Namen eingeben';
+      document.getElementById('nameInput').focus();
+      return;
+    }
+    document.getElementById('ctaError').textContent = '';
+
+    var memberColorMap = { M: '#6BBF6B', P: '#5BA8D5', L: '#E07B7B', O: '#A07BCC' };
+    var memberNameMap = { M: 'Mama', P: 'Papa', L: 'Lena', O: 'Opa' };
+
+    var newList = {
+      id: 'list-' + Date.now(),
+      name: name,
+      emoji: state.emoji,
+      color: state.color,
+      items: 0,
+      store: state.store,
+      members: state.members.map(function(m) {
+        return { letter: m, color: memberColorMap[m], name: memberNameMap[m] };
+      }),
+      activity: { who: 'Du', what: 'erstellt', when: 'gerade' },
+      badge: null,
+      createdAt: new Date().toISOString()
+    };
+
+    var lists = loadLists() || [];
+    lists.push(newList);
+    localStorage.setItem(LISTS_KEY, JSON.stringify(lists));
+
+    window.location.href = 'listen.html';
+  }
+
+  // Clear error on input
+  document.getElementById('nameInput').addEventListener('input', function() {
+    document.getElementById('ctaError').textContent = '';
+  });
 </script>
 
 </body>

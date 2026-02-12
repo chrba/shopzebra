@@ -10,10 +10,6 @@
 <style>
   /* ========================================
      Listen-Übersicht: Compact Tiles
-     2-Spalten-Grid mit Emoji-zentrierten Kacheln.
-     Jede Liste ist eine kompakte Kachel mit großem
-     Emoji, Name, Item-Count, Mitglieder-Anzahl.
-     Informationsdicht aber übersichtlich.
      ======================================== */
 
   /* ===== Theme: Dark ===== */
@@ -54,6 +50,8 @@
     --red-glow: 0 0 20px rgba(224,123,123,0.3);
     --purple-bg: rgba(160,123,204,0.12);
     --purple-glow: 0 0 20px rgba(160,123,204,0.3);
+    --yellow-bg: rgba(232,196,74,0.12);
+    --yellow-glow: 0 0 20px rgba(232,196,74,0.3);
     --add-tile-border: dashed;
   }
 
@@ -100,6 +98,8 @@
     --red-glow: 0 0 20px rgba(236,72,153,0.2);
     --purple-bg: rgba(139,92,246,0.15);
     --purple-glow: 0 0 20px rgba(139,92,246,0.2);
+    --yellow-bg: rgba(220,180,60,0.15);
+    --yellow-glow: 0 0 20px rgba(220,180,60,0.2);
     --add-tile-border: dashed;
   }
 
@@ -230,6 +230,8 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+    text-decoration: none;
+    color: inherit;
   }
   .tile:hover {
     background: var(--surface-hover);
@@ -254,6 +256,8 @@
   .tile[data-color="green"]::before { background: radial-gradient(circle, rgba(80,180,80,0.15) 0%, transparent 70%); }
   .tile[data-color="blue"]::before { background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%); }
   .tile[data-color="red"]::before { background: radial-gradient(circle, rgba(236,72,153,0.15) 0%, transparent 70%); }
+  .tile[data-color="purple"]::before { background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%); }
+  .tile[data-color="yellow"]::before { background: radial-gradient(circle, rgba(220,180,60,0.15) 0%, transparent 70%); }
 
   .tile-emoji {
     font-size: 36px;
@@ -276,6 +280,8 @@
   .tile-icon-bg.green { background: var(--green-bg); box-shadow: var(--green-glow); }
   .tile-icon-bg.blue { background: var(--blue-bg); box-shadow: var(--blue-glow); }
   .tile-icon-bg.red { background: var(--red-bg); box-shadow: var(--red-glow); }
+  .tile-icon-bg.purple { background: var(--purple-bg); box-shadow: var(--purple-glow); }
+  .tile-icon-bg.yellow { background: var(--yellow-bg); box-shadow: var(--yellow-glow); }
 
   .tile-name {
     font-size: 15px;
@@ -432,112 +438,18 @@
     <!-- Summary -->
     <div class="summary-row">
       <div class="summary-chip">
-        <span class="summary-chip-num">6</span> Listen
+        <span class="summary-chip-num" id="sumListen">0</span> Listen
       </div>
       <div class="summary-chip">
-        <span class="summary-chip-num">66</span> Items
+        <span class="summary-chip-num" id="sumItems">0</span> Items
       </div>
       <div class="summary-chip">
-        <span class="summary-chip-num">4</span> Mitglieder
+        <span class="summary-chip-num" id="sumMitglieder">4</span> Mitglieder
       </div>
     </div>
 
-    <!-- Tile Grid -->
-    <div class="tile-grid">
-      <!-- REWE -->
-      <div class="tile" data-color="green">
-        <div class="tile-badge">3 neu</div>
-        <div class="tile-icon-bg green">
-          <span class="tile-emoji">&#x1F6D2;</span>
-        </div>
-        <div class="tile-name">REWE Wocheneinkauf</div>
-        <div class="tile-meta">
-          <span class="tile-items">15 Items</span>
-          <span class="tile-dot"></span>
-          <span class="tile-members">3 Pers.</span>
-        </div>
-        <div class="tile-activity"><strong>Mama</strong> +Milch &middot; 14:02</div>
-      </div>
-
-      <!-- dm -->
-      <div class="tile" data-color="blue">
-        <div class="tile-icon-bg blue">
-          <span class="tile-emoji">&#x1F9F4;</span>
-        </div>
-        <div class="tile-name">dm Drogerie</div>
-        <div class="tile-meta">
-          <span class="tile-items">4 Items</span>
-          <span class="tile-dot"></span>
-          <span class="tile-members">Papa</span>
-        </div>
-        <div class="tile-activity"><strong>Papa</strong> erstellt &middot; gestern</div>
-      </div>
-
-      <!-- Party -->
-      <div class="tile" data-color="red">
-        <div class="tile-icon-bg red">
-          <span class="tile-emoji">&#x1F389;</span>
-        </div>
-        <div class="tile-name">Geburtstags&shy;party Lena</div>
-        <div class="tile-meta">
-          <span class="tile-items">22 Items</span>
-          <span class="tile-dot"></span>
-          <span class="tile-members">Familie</span>
-        </div>
-        <div class="tile-activity"><strong>Lena</strong> +Schokopudding &middot; Mo</div>
-      </div>
-
-      <!-- ALDI -->
-      <div class="tile" data-color="green">
-        <div class="tile-icon-bg green">
-          <span class="tile-emoji">&#x1F34E;</span>
-        </div>
-        <div class="tile-name">ALDI Vorr&auml;te</div>
-        <div class="tile-meta">
-          <span class="tile-items">8 Items</span>
-          <span class="tile-dot"></span>
-          <span class="tile-members">Mama</span>
-        </div>
-        <div class="tile-activity"><strong>Mama</strong> erstellt &middot; Di</div>
-      </div>
-
-      <!-- Baumarkt -->
-      <div class="tile" data-color="blue">
-        <div class="tile-badge">2 neu</div>
-        <div class="tile-icon-bg blue">
-          <span class="tile-emoji">&#x1F527;</span>
-        </div>
-        <div class="tile-name">Baumarkt Garten</div>
-        <div class="tile-meta">
-          <span class="tile-items">6 Items</span>
-          <span class="tile-dot"></span>
-          <span class="tile-members">2 Pers.</span>
-        </div>
-        <div class="tile-activity"><strong>Papa</strong> +Erde &middot; So</div>
-      </div>
-
-      <!-- Wochenmarkt -->
-      <div class="tile" data-color="red">
-        <div class="tile-icon-bg red">
-          <span class="tile-emoji">&#x1F9C0;</span>
-        </div>
-        <div class="tile-name">Wochenmarkt Samstag</div>
-        <div class="tile-meta">
-          <span class="tile-items">11 Items</span>
-          <span class="tile-dot"></span>
-          <span class="tile-members">2 Pers.</span>
-        </div>
-        <div class="tile-activity"><strong>Mama</strong> +K&auml;se &middot; letzte Wo</div>
-      </div>
-
-      <!-- Neue Liste -->
-      <a class="tile tile-add" href="neue-liste.html">
-        <div class="tile-add-icon">
-          <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-        </div>
-        <span class="tile-add-label">Neue Liste</span>
-      </a>
-    </div>
+    <!-- Tile Grid (rendered by JS) -->
+    <div class="tile-grid" id="tileGrid"></div>
 
   </div>
 
@@ -564,19 +476,118 @@
 </div>
 
 <script>
-  const MOON_SVG = '<svg viewBox="0 0 24 24" fill="white"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>';
-  const SUN_SVG = '<svg viewBox="0 0 24 24" fill="white"><path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79 1.42-1.41zM4 10.5H1v2h3v-2zm9-9.95h-2V3.5h2V.55zm7.45 3.91l-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zm-3.21 13.7l1.79 1.8 1.41-1.41-1.8-1.79-1.4 1.4zM20 10.5v2h3v-2h-3zm-8-5c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm-1 16.95h2V19.5h-2v2.95zm-7.45-3.91l1.41 1.41 1.79-1.8-1.41-1.41-1.79 1.8z"/></svg>';
-
+  // ===== Theme =====
+  var MOON_SVG = '<svg viewBox="0 0 24 24" fill="white"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>';
+  var SUN_SVG = '<svg viewBox="0 0 24 24" fill="white"><path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79 1.42-1.41zM4 10.5H1v2h3v-2zm9-9.95h-2V3.5h2V.55zm7.45 3.91l-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zm-3.21 13.7l1.79 1.8 1.41-1.41-1.8-1.79-1.4 1.4zM20 10.5v2h3v-2h-3zm-8-5c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm-1 16.95h2V19.5h-2v2.95zm-7.45-3.91l1.41 1.41 1.79-1.8-1.41-1.41-1.79 1.8z"/></svg>';
   function getTheme() { return localStorage.getItem('shopzebra_theme') || 'dark'; }
-  function applyTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('shopzebra_theme', theme);
-    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? MOON_SVG : SUN_SVG;
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('shopzebra_theme', t);
+    document.getElementById('themeToggle').innerHTML = t === 'dark' ? MOON_SVG : SUN_SVG;
   }
-  function toggleTheme() {
-    applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'glass' : 'dark');
-  }
+  function toggleTheme() { applyTheme(getTheme() === 'dark' ? 'glass' : 'dark'); }
   applyTheme(getTheme());
+
+  // ===== Data =====
+  var LISTS_KEY = 'shopzebra_listen';
+
+  var DEFAULT_LISTS = [
+    { id: 'rewe', name: 'REWE Wocheneinkauf', emoji: '\u{1F6D2}', color: 'green', items: 15,
+      members: [{letter:'M',color:'#6BBF6B'},{letter:'P',color:'#5BA8D5'},{letter:'L',color:'#E07B7B'}],
+      activity: {who:'Mama',what:'+Milch',when:'14:02'}, badge: '3 neu' },
+    { id: 'dm', name: 'dm Drogerie', emoji: '\u{1F9F4}', color: 'blue', items: 4,
+      members: [{letter:'P',color:'#5BA8D5'}],
+      activity: {who:'Papa',what:'erstellt',when:'gestern'}, badge: null },
+    { id: 'party', name: 'Geburtstagsparty Lena', emoji: '\u{1F389}', color: 'red', items: 22,
+      members: [{letter:'M',color:'#6BBF6B'},{letter:'P',color:'#5BA8D5'},{letter:'L',color:'#E07B7B'},{letter:'O',color:'#A07BCC'}],
+      activity: {who:'Lena',what:'+Schokopudding',when:'Mo'}, badge: null },
+    { id: 'aldi', name: 'ALDI Vorr\u00e4te', emoji: '\u{1F34E}', color: 'green', items: 8,
+      members: [{letter:'M',color:'#6BBF6B'}],
+      activity: {who:'Mama',what:'erstellt',when:'Di'}, badge: null },
+    { id: 'baumarkt', name: 'Baumarkt Garten', emoji: '\u{1F527}', color: 'blue', items: 6,
+      members: [{letter:'P',color:'#5BA8D5'},{letter:'O',color:'#A07BCC'}],
+      activity: {who:'Papa',what:'+Erde',when:'So'}, badge: '2 neu' },
+    { id: 'wochenmarkt', name: 'Wochenmarkt Samstag', emoji: '\u{1F9C0}', color: 'red', items: 11,
+      members: [{letter:'M',color:'#6BBF6B'},{letter:'L',color:'#E07B7B'}],
+      activity: {who:'Mama',what:'+K\u00e4se',when:'letzte Wo'}, badge: null }
+  ];
+
+  function loadLists() {
+    try {
+      var data = JSON.parse(localStorage.getItem(LISTS_KEY));
+      return Array.isArray(data) ? data : [];
+    } catch(e) { return []; }
+  }
+
+  function getAllLists() {
+    var userLists = loadLists();
+    return DEFAULT_LISTS.concat(userLists);
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function formatMembers(members) {
+    if (!members || members.length === 0) return 'Privat';
+    if (members.length === 1) return members[0].name || members[0].letter;
+    return members.length + ' Pers.';
+  }
+
+  function renderTile(list) {
+    var badgeHtml = list.badge ? '<div class="tile-badge">' + escapeHtml(list.badge) + '</div>' : '';
+    var actWho = list.activity ? escapeHtml(list.activity.who) : '';
+    var actWhat = list.activity ? escapeHtml(list.activity.what) : '';
+    var actWhen = list.activity ? escapeHtml(list.activity.when) : '';
+    var activityText = actWho ? '<strong>' + actWho + '</strong> ' + actWhat + ' &middot; ' + actWhen : '';
+
+    return '<div class="tile" data-color="' + escapeHtml(list.color) + '">' +
+      badgeHtml +
+      '<div class="tile-icon-bg ' + escapeHtml(list.color) + '">' +
+        '<span class="tile-emoji">' + list.emoji + '</span>' +
+      '</div>' +
+      '<div class="tile-name">' + escapeHtml(list.name) + '</div>' +
+      '<div class="tile-meta">' +
+        '<span class="tile-items">' + list.items + ' Items</span>' +
+        '<span class="tile-dot"></span>' +
+        '<span class="tile-members">' + escapeHtml(formatMembers(list.members)) + '</span>' +
+      '</div>' +
+      '<div class="tile-activity">' + activityText + '</div>' +
+    '</div>';
+  }
+
+  function renderAddTile() {
+    return '<a class="tile tile-add" href="neue-liste.html">' +
+      '<div class="tile-add-icon">' +
+        '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>' +
+      '</div>' +
+      '<span class="tile-add-label">Neue Liste</span>' +
+    '</a>';
+  }
+
+  function render() {
+    var lists = getAllLists();
+    var grid = document.getElementById('tileGrid');
+    var totalItems = 0;
+
+    var html = '';
+    lists.forEach(function(list) {
+      html += renderTile(list);
+      totalItems += (list.items || 0);
+    });
+    html += renderAddTile();
+    grid.innerHTML = html;
+
+    document.getElementById('sumListen').textContent = lists.length;
+    document.getElementById('sumItems').textContent = totalItems;
+  }
+
+  render();
+
+  // Re-render when returning from neue-liste
+  window.addEventListener('pageshow', render);
 </script>
 
 </body>
