@@ -147,7 +147,6 @@
   .category-icon,
   .chip,
   .warenkorb-tile,
-  .bottom-nav,
   .status-bar,
   .warenkorb-count {
     transition: background 0.4s ease, background-color 0.4s ease, border-color 0.3s ease, box-shadow 0.4s ease, border-radius 0.3s ease;
@@ -181,7 +180,7 @@
     height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
-    padding-bottom: 100px;
+    padding-bottom: 24px;
     scrollbar-width: none;
     background-color: var(--screen-bg);
     background-image: var(--screen-gradient);
@@ -242,8 +241,7 @@
 
   /* ===== Header ===== */
   .header {
-    text-align: center;
-    padding: 16px 24px 20px;
+    padding: 8px 24px 20px;
   }
   .header-title {
     font-size: 24px;
@@ -589,71 +587,25 @@
     height: 14px;
   }
 
-  /* ===== Bottom Nav ===== */
-  .bottom-nav {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: var(--nav-bg);
-    backdrop-filter: var(--nav-blur);
-    -webkit-backdrop-filter: var(--nav-blur);
-    border-top: 1px solid var(--nav-border);
+  /* ===== Back Button ===== */
+  .back-btn {
     display: flex;
-    justify-content: space-around;
-    align-items: flex-start;
-    padding: 12px 16px 32px;
-    z-index: 100;
-  }
-  .nav-item {
-    display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     text-decoration: none;
-    color: var(--text-dim);
-    font-size: 10px;
-    font-weight: 600;
-    position: relative;
-    cursor: pointer;
-    transition: color 0.2s;
-    min-width: 56px;
-  }
-  .nav-item.active {
     color: var(--teal);
+    font-size: 15px;
+    font-weight: 600;
+    padding: 4px 0;
+    transition: opacity 0.2s;
   }
-  .nav-item.active::after {
-    content: '';
-    position: absolute;
-    top: -12px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 24px;
-    height: 3px;
-    background: var(--teal);
-    border-radius: 2px;
-    box-shadow: 0 0 15px rgba(78,157,166,0.4), 0 0 30px rgba(78,157,166,0.15);
+  .back-btn:active {
+    opacity: 0.6;
   }
-  .nav-item svg {
-    width: 24px;
-    height: 24px;
+  .back-btn svg {
+    width: 20px;
+    height: 20px;
     fill: currentColor;
-  }
-  .nav-badge {
-    position: absolute;
-    top: -4px;
-    right: 4px;
-    width: 18px;
-    height: 18px;
-    background: var(--orange);
-    color: #fff;
-    font-size: 10px;
-    font-weight: 700;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 12px rgba(232,146,58,0.5);
   }
 </style>
 </head>
@@ -674,6 +626,10 @@
 
     <!-- Header -->
     <div class="header">
+      <a class="back-btn" href="listen.html">
+        <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+        Listen
+      </a>
       <h1 class="header-title">REWE Wocheneinkauf</h1>
       <p class="header-subtitle">Familien-Einkauf &middot; 3 Personen</p>
     </div>
@@ -698,26 +654,6 @@
     </div>
   </div>
 
-  <!-- Bottom Nav -->
-  <div class="bottom-nav">
-    <a class="nav-item active" href="listen.html">
-      <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
-      <span>Listen</span>
-    </a>
-    <a class="nav-item" href="#">
-      <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/></svg>
-      <span>Planen</span>
-    </a>
-    <a class="nav-item" href="#">
-      <svg viewBox="0 0 24 24"><path d="M8.1 13.34l2.83-2.83L3.91 3.5a4.008 4.008 0 000 5.66l4.19 4.18zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3.7 19.87l1.41 1.41L12 14.41l6.88 6.88 1.41-1.41L13.41 13l1.47-1.47z"/></svg>
-      <span>Rezepte</span>
-    </a>
-    <a class="nav-item" href="#">
-      <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
-      <span>Aktivität</span>
-      <div class="nav-badge">3</div>
-    </a>
-  </div>
 </div>
 
 <script>
