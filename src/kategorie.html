@@ -459,6 +459,14 @@
     letter-spacing: 0.3px;
     opacity: 0.7;
   }
+  .tile-variant-info {
+    font-size: 9px;
+    color: var(--teal);
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.2;
+    padding: 0 4px;
+  }
 
   /* Bottom Sheet Overlay */
   .sheet-backdrop {
@@ -534,11 +542,8 @@
     background: var(--surface);
     border: 1.5px solid var(--surface-border);
     margin-bottom: 8px;
-    cursor: pointer;
     transition: all 0.2s;
-  }
-  .sheet-item:active {
-    transform: scale(0.98);
+    min-height: 52px;
   }
   .sheet-item.selected {
     border-color: var(--teal);
@@ -548,29 +553,57 @@
     font-size: 15px;
     font-weight: 500;
     color: var(--text-primary);
+    flex: 1;
   }
-  .sheet-item-check {
-    width: 22px;
-    height: 22px;
+  .sheet-item-add {
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    border: 2px solid var(--surface-border);
+    border: none;
+    background: var(--teal);
+    color: #fff;
+    font-size: 20px;
+    font-weight: 600;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
   }
-  .sheet-item.selected .sheet-item-check {
-    background: var(--teal);
-    border-color: var(--teal);
+  .sheet-item-add:active { transform: scale(0.9); }
+  .sheet-stepper {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--stepper-bg);
+    border: 1px solid var(--stepper-border);
+    border-radius: 14px;
+    padding: 2px;
+    flex-shrink: 0;
   }
-  .sheet-item-check svg {
-    width: 14px;
-    height: 14px;
-    fill: #fff;
-    opacity: 0;
+  .sheet-stepper-btn {
+    width: 34px;
+    height: 32px;
+    border: none;
+    background: none;
+    color: var(--teal);
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    transition: background 0.15s;
   }
-  .sheet-item.selected .sheet-item-check svg {
-    opacity: 1;
+  .sheet-stepper-btn:hover { background: rgba(78,157,166,0.15); }
+  .sheet-stepper-qty {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--teal);
+    min-width: 40px;
+    text-align: center;
   }
 </style>
 </head>
@@ -771,12 +804,16 @@ const DEFAULT_ITEMS = [
 const CATEGORY = 'obst-gemuese';
 const STORAGE_KEY = 'shopzebra_items';
 
+// === Data Layer ===
+// Items use compound IDs for variants: "salat--Kopfsalat", "salat--Feldsalat"
+// Simple products (no variants) use plain IDs: "bananen", "avocado"
+
 function loadItems() {
-  const stored = localStorage.getItem(STORAGE_KEY);
+  var stored = localStorage.getItem(STORAGE_KEY);
   if (stored) {
     try { return JSON.parse(stored); } catch(e) { /* ignore */ }
   }
-  const items = DEFAULT_ITEMS.map(i => ({...i}));
+  var items = DEFAULT_ITEMS.map(function(i) { return Object.assign({}, i); });
   saveItems(items);
   return items;
 }
@@ -786,22 +823,21 @@ function saveItems(items) {
 }
 
 function getCategoryItems() {
-  const items = loadItems();
-  return items.filter(i => i.cat === CATEGORY);
+  return loadItems().filter(function(i) { return i.cat === CATEGORY; });
 }
 
-function getSelectedQty(productId) {
-  const items = loadItems();
-  const found = items.find(i => i.id === productId);
+function makeVariantId(productId, variantName) {
+  return productId + '--' + variantName;
+}
+
+function getItemQty(itemId) {
+  var found = loadItems().find(function(i) { return i.id === itemId; });
   return found ? found.qty : 0;
 }
 
-function setProductQty(productId, qty) {
-  const items = loadItems();
-  const product = ALL_PRODUCTS.find(p => p.id === productId);
-  if (!product) return;
-
-  const idx = items.findIndex(i => i.id === productId);
+function setItemQty(itemId, qty, product, displayName) {
+  var items = loadItems();
+  var idx = items.findIndex(function(i) { return i.id === itemId; });
   if (qty <= 0) {
     if (idx !== -1) items.splice(idx, 1);
   } else {
@@ -809,121 +845,156 @@ function setProductQty(productId, qty) {
       items[idx].qty = qty;
     } else {
       items.push({
-        id: product.id,
+        id: itemId,
         emoji: product.emoji,
-        name: product.name,
+        name: displayName || product.name,
         qty: qty,
         unit: product.unit,
-        cat: CATEGORY
+        cat: CATEGORY,
+        parentId: product.id
       });
     }
   }
   saveItems(items);
 }
 
-function toggleProduct(productId) {
-  const product = ALL_PRODUCTS.find(p => p.id === productId);
+// Get total qty across all variants + generic for a product
+function getProductTotal(productId) {
+  var items = loadItems();
+  var total = 0;
+  var count = 0;
+  var names = [];
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].id === productId || items[i].parentId === productId) {
+      total += items[i].qty;
+      count++;
+      names.push(items[i].name);
+    }
+  }
+  return { total: total, count: count, names: names };
+}
+
+// Remove all items for a product (generic + all variants)
+function removeAllForProduct(productId) {
+  var items = loadItems().filter(function(i) {
+    return i.id !== productId && i.parentId !== productId;
+  });
+  saveItems(items);
+}
+
+// === Tile interactions ===
+
+function tileClick(productId) {
+  var product = ALL_PRODUCTS.find(function(p) { return p.id === productId; });
   if (!product) return;
-  const currentQty = getSelectedQty(productId);
-  if (currentQty > 0) {
-    setProductQty(productId, 0);
-    // clear chosen variant
-    localStorage.removeItem('shopzebra_variant_' + productId);
-  } else {
-    setProductQty(productId, 1);
-  }
-  renderGrid();
-  renderSummaryBar();
-  updateBottomBar();
-}
 
-/* === Long-Press + Bottom Sheet === */
-let longPressTimer = null;
-let longPressFired = false;
-
-function handlePointerDown(productId, e) {
-  const product = ALL_PRODUCTS.find(p => p.id === productId);
-  if (!product || !product.variants) return;
-  longPressFired = false;
-  longPressTimer = setTimeout(function() {
-    longPressFired = true;
+  if (product.variants) {
+    // Has variants → always open sheet
     openSheet(productId);
-  }, 500);
-}
-
-function handlePointerUp() {
-  clearTimeout(longPressTimer);
-}
-
-function handlePointerLeave() {
-  clearTimeout(longPressTimer);
-}
-
-function tileClick(productId, e) {
-  if (longPressFired) {
-    longPressFired = false;
-    return;
+  } else {
+    // Simple product → toggle
+    var qty = getItemQty(productId);
+    if (qty > 0) {
+      setItemQty(productId, 0, product);
+    } else {
+      setItemQty(productId, 1, product);
+    }
+    renderAll();
   }
-  toggleProduct(productId);
 }
 
-let currentSheetProductId = null;
+function adjustSimpleQty(productId, delta, event) {
+  event.stopPropagation();
+  var product = ALL_PRODUCTS.find(function(p) { return p.id === productId; });
+  if (!product) return;
+  var newQty = Math.max(0, getItemQty(productId) + delta);
+  setItemQty(productId, newQty, product);
+  renderAll();
+}
+
+// === Bottom Sheet ===
+
+var currentSheetProductId = null;
 
 function openSheet(productId) {
-  const product = ALL_PRODUCTS.find(p => p.id === productId);
+  var product = ALL_PRODUCTS.find(function(p) { return p.id === productId; });
   if (!product || !product.variants) return;
   currentSheetProductId = productId;
 
   document.getElementById('sheetEmoji').textContent = product.emoji;
   document.getElementById('sheetTitle').textContent = product.name;
-
-  const chosenVariant = localStorage.getItem('shopzebra_variant_' + productId) || '';
-  const list = document.getElementById('sheetList');
-  list.innerHTML = product.variants.map(function(v) {
-    const sel = v === chosenVariant ? ' selected' : '';
-    return '<div class="sheet-item' + sel + '" onclick="selectVariant(\'' + productId + '\', \'' + v.replace(/'/g, "\\'") + '\')">' +
-      '<span class="sheet-item-name">' + v + '</span>' +
-      '<div class="sheet-item-check"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>' +
-    '</div>';
-  }).join('');
-
+  renderSheetList();
   document.getElementById('sheetBackdrop').classList.add('visible');
 }
 
 function closeSheet() {
   document.getElementById('sheetBackdrop').classList.remove('visible');
   currentSheetProductId = null;
+  renderAll();
 }
 
-function selectVariant(productId, variantName) {
-  localStorage.setItem('shopzebra_variant_' + productId, variantName);
-  // also select the product if not already
-  if (getSelectedQty(productId) === 0) {
-    setProductQty(productId, 1);
+function renderSheetList() {
+  var productId = currentSheetProductId;
+  var product = ALL_PRODUCTS.find(function(p) { return p.id === productId; });
+  if (!product) return;
+
+  var list = document.getElementById('sheetList');
+  var html = '';
+
+  for (var i = 0; i < product.variants.length; i++) {
+    var v = product.variants[i];
+    var vid = makeVariantId(productId, v);
+    var qty = getItemQty(vid);
+    var sel = qty > 0 ? ' selected' : '';
+    var escapedV = v.replace(/'/g, "\\'");
+
+    html += '<div class="sheet-item' + sel + '">';
+    html += '<span class="sheet-item-name">' + v + '</span>';
+
+    if (qty > 0) {
+      html += '<div class="sheet-stepper">';
+      html += '<button class="sheet-stepper-btn" onclick="adjustVariantQty(\'' + productId + '\', \'' + escapedV + '\', -1)">&minus;</button>';
+      html += '<div class="sheet-stepper-qty">' + qty + ' ' + product.unit + '</div>';
+      html += '<button class="sheet-stepper-btn" onclick="adjustVariantQty(\'' + productId + '\', \'' + escapedV + '\', 1)">+</button>';
+      html += '</div>';
+    } else {
+      html += '<button class="sheet-item-add" onclick="adjustVariantQty(\'' + productId + '\', \'' + escapedV + '\', 1)">+</button>';
+    }
+
+    html += '</div>';
   }
-  closeSheet();
-  renderGrid();
-  renderSummaryBar();
-  updateBottomBar();
+
+  list.innerHTML = html;
 }
 
-function adjustQty(productId, delta, event) {
-  event.stopPropagation();
-  const currentQty = getSelectedQty(productId);
-  const newQty = Math.max(0, currentQty + delta);
-  setProductQty(productId, newQty);
+function adjustVariantQty(productId, variantName, delta) {
+  var product = ALL_PRODUCTS.find(function(p) { return p.id === productId; });
+  if (!product) return;
+  var vid = makeVariantId(productId, variantName);
+  var newQty = Math.max(0, getItemQty(vid) + delta);
+  setItemQty(vid, newQty, product, variantName);
+  renderSheetList();
+}
+
+// === Rendering ===
+
+function renderAll() {
   renderGrid();
   renderSummaryBar();
   updateBottomBar();
 }
 
 function renderGrid() {
-  const grid = document.getElementById('productGrid');
-  const query = document.getElementById('searchInput').value.toLowerCase().trim();
-  const filtered = query
+  var grid = document.getElementById('productGrid');
+  var query = document.getElementById('searchInput').value.toLowerCase().trim();
+  var filtered = query
     ? ALL_PRODUCTS.filter(function(p) {
         if (p.name.toLowerCase().includes(query)) return true;
-        if (p.variants && p.variants.some(function(v) { return v.toLowerCase().includes(query); })) return true;
+        if (p.variants) {
+          for (var i = 0; i < p.variants.length; i++) {
+            if (p.variants[i].toLowerCase().includes(query)) return true;
+          }
+        }
         return false;
       })
     : ALL_PRODUCTS;
@@ -931,34 +1002,55 @@ function renderGrid() {
   document.getElementById('noResults').classList.toggle('visible', filtered.length === 0);
 
   grid.innerHTML = filtered.map(function(p) {
-    var qty = getSelectedQty(p.id);
-    var selected = qty > 0;
     var hasVariants = p.variants && p.variants.length > 0;
-    var chosenVariant = localStorage.getItem('shopzebra_variant_' + p.id) || '';
-    var displayName = selected && chosenVariant ? chosenVariant : p.name;
-    var longPressAttrs = hasVariants
-      ? ' onpointerdown="handlePointerDown(\'' + p.id + '\', event)" onpointerup="handlePointerUp()" onpointerleave="handlePointerLeave()"'
-      : '';
 
-    return '<div class="product-tile' + (selected ? ' selected' : '') + '" onclick="tileClick(\'' + p.id + '\')"' + longPressAttrs + '>' +
-      '<div class="check-badge"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>' +
-      '<div class="product-emoji">' + p.emoji + '</div>' +
-      '<div class="product-name">' + displayName + '</div>' +
-      (hasVariants ? '<div class="variant-hint">gedr\u00FCckt halten</div>' : '<div class="product-unit">' + p.unit + '</div>') +
-      (selected ? '<div class="stepper" style="display:flex">' +
-        '<button class="stepper-btn" onclick="adjustQty(\'' + p.id + '\', -1, event)">&minus;</button>' +
-        '<div class="stepper-qty">' + qty + ' ' + p.unit + '</div>' +
-        '<button class="stepper-btn" onclick="adjustQty(\'' + p.id + '\', 1, event)">+</button>' +
-      '</div>' : '') +
-    '</div>';
+    if (hasVariants) {
+      // Variant product: show aggregate info
+      var info = getProductTotal(p.id);
+      var selected = info.total > 0;
+      var statusHtml = '';
+      if (info.total > 0) {
+        if (info.count === 1) {
+          statusHtml = '<div class="tile-variant-info">' + info.names[0] + ' \u00B7 ' + info.total + ' ' + p.unit + '</div>';
+        } else {
+          statusHtml = '<div class="tile-variant-info">' + info.count + ' Sorten \u00B7 ' + info.total + ' ' + p.unit + '</div>';
+        }
+      } else {
+        statusHtml = '<div class="variant-hint">Tippen f\u00FCr Sorten</div>';
+      }
+
+      return '<div class="product-tile' + (selected ? ' selected' : '') + '" onclick="tileClick(\'' + p.id + '\')">' +
+        (selected ? '<div class="check-badge"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>' : '') +
+        '<div class="product-emoji">' + p.emoji + '</div>' +
+        '<div class="product-name">' + p.name + '</div>' +
+        statusHtml +
+      '</div>';
+
+    } else {
+      // Simple product
+      var qty = getItemQty(p.id);
+      var selected = qty > 0;
+
+      return '<div class="product-tile' + (selected ? ' selected' : '') + '" onclick="tileClick(\'' + p.id + '\')">' +
+        '<div class="check-badge"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>' +
+        '<div class="product-emoji">' + p.emoji + '</div>' +
+        '<div class="product-name">' + p.name + '</div>' +
+        '<div class="product-unit">' + p.unit + '</div>' +
+        (selected ? '<div class="stepper" style="display:flex">' +
+          '<button class="stepper-btn" onclick="adjustSimpleQty(\'' + p.id + '\', -1, event)">&minus;</button>' +
+          '<div class="stepper-qty">' + qty + ' ' + p.unit + '</div>' +
+          '<button class="stepper-btn" onclick="adjustSimpleQty(\'' + p.id + '\', 1, event)">+</button>' +
+        '</div>' : '') +
+      '</div>';
+    }
   }).join('');
 }
 
 function renderSummaryBar() {
-  const catItems = getCategoryItems();
-  const bar = document.getElementById('summaryBar');
-  const emojisContainer = document.getElementById('summaryEmojis');
-  const countEl = document.getElementById('summaryCount');
+  var catItems = getCategoryItems();
+  var bar = document.getElementById('summaryBar');
+  var emojisContainer = document.getElementById('summaryEmojis');
+  var countEl = document.getElementById('summaryCount');
 
   if (catItems.length === 0) {
     bar.classList.remove('visible');
@@ -966,15 +1058,25 @@ function renderSummaryBar() {
   }
 
   bar.classList.add('visible');
-  emojisContainer.innerHTML = catItems.map(i =>
-    `<div class="summary-emoji-circle">${i.emoji}</div>`
-  ).join('');
-  countEl.textContent = `${catItems.length} von ${ALL_PRODUCTS.length}`;
+  // De-duplicate emojis for variant items sharing same parent
+  var seen = {};
+  var emojiHtml = '';
+  for (var i = 0; i < catItems.length; i++) {
+    var parentId = catItems[i].parentId || catItems[i].id;
+    if (!seen[parentId]) {
+      seen[parentId] = true;
+      emojiHtml += '<div class="summary-emoji-circle">' + catItems[i].emoji + '</div>';
+    }
+  }
+  emojisContainer.innerHTML = emojiHtml;
+  var totalQty = catItems.reduce(function(sum, i) { return sum + i.qty; }, 0);
+  countEl.textContent = catItems.length + ' Produkte \u00B7 ' + totalQty + ' Items';
 }
 
 function updateBottomBar() {
-  const catItems = getCategoryItems();
-  document.getElementById('bottomCount').textContent = `${catItems.length} ausgew\u00E4hlt`;
+  var catItems = getCategoryItems();
+  var totalQty = catItems.reduce(function(sum, i) { return sum + i.qty; }, 0);
+  document.getElementById('bottomCount').textContent = totalQty + ' ausgew\u00E4hlt';
 }
 
 function handleSearch() {
@@ -1016,9 +1118,7 @@ function toggleTheme() {
 
 /* Init */
 applyTheme(getTheme());
-renderGrid();
-renderSummaryBar();
-updateBottomBar();
+renderAll();
 </script>
 
 </body>
