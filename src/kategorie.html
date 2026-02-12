@@ -476,7 +476,7 @@
         </a>
         <div class="header-title">Obst & Gem&uuml;se</div>
       </div>
-      <div class="header-subtitle" id="subtitle">21 Produkte</div>
+      <div class="header-subtitle" id="subtitle">71 Produkte</div>
     </div>
 
     <!-- Selected Summary -->
@@ -519,27 +519,80 @@
 
 <script>
 const ALL_PRODUCTS = [
+  // === Obst ===
   { id: 'ananas', emoji: '\u{1F34D}', name: 'Ananas', unit: 'St' },
   { id: 'aepfel', emoji: '\u{1F34E}', name: '\u00C4pfel', unit: 'kg' },
+  { id: 'aprikosen', emoji: '\u{1F351}', name: 'Aprikosen', unit: 'Schale' },
   { id: 'avocado', emoji: '\u{1F951}', name: 'Avocado', unit: 'St' },
   { id: 'bananen', emoji: '\u{1F34C}', name: 'Bananen', unit: 'St' },
+  { id: 'birnen', emoji: '\u{1F350}', name: 'Birnen', unit: 'kg' },
   { id: 'blaubeeren', emoji: '\u{1FAD0}', name: 'Blaubeeren', unit: 'Schale' },
+  { id: 'erdbeeren', emoji: '\u{1F353}', name: 'Erdbeeren', unit: 'Schale' },
+  { id: 'granatapfel', emoji: '\u{1F34E}', name: 'Granatapfel', unit: 'St' },
+  { id: 'grapefruit', emoji: '\u{1F34A}', name: 'Grapefruit', unit: 'St' },
+  { id: 'himbeeren', emoji: '\u{1FAD0}', name: 'Himbeeren', unit: 'Schale' },
+  { id: 'honigmelone', emoji: '\u{1F348}', name: 'Honigmelone', unit: 'St' },
+  { id: 'kirschen', emoji: '\u{1F352}', name: 'Kirschen', unit: 'Schale' },
+  { id: 'kiwi', emoji: '\u{1F95D}', name: 'Kiwi', unit: 'St' },
+  { id: 'kokosnuss', emoji: '\u{1F965}', name: 'Kokosnuss', unit: 'St' },
+  { id: 'limetten', emoji: '\u{1F34B}', name: 'Limetten', unit: 'St' },
+  { id: 'mandarinen', emoji: '\u{1F34A}', name: 'Mandarinen', unit: 'Netz' },
+  { id: 'mango', emoji: '\u{1F96D}', name: 'Mango', unit: 'St' },
+  { id: 'nektarinen', emoji: '\u{1F351}', name: 'Nektarinen', unit: 'kg' },
+  { id: 'orangen', emoji: '\u{1F34A}', name: 'Orangen', unit: 'kg' },
+  { id: 'pfirsiche', emoji: '\u{1F351}', name: 'Pfirsiche', unit: 'kg' },
+  { id: 'pflaumen', emoji: '\u{1F351}', name: 'Pflaumen', unit: 'kg' },
+  { id: 'trauben', emoji: '\u{1F347}', name: 'Trauben', unit: 'kg' },
+  { id: 'wassermelone', emoji: '\u{1F349}', name: 'Wassermelone', unit: 'St' },
+  { id: 'zitronen', emoji: '\u{1F34B}', name: 'Zitronen', unit: 'St' },
+  // === Gem\u00FCse ===
+  { id: 'aubergine', emoji: '\u{1F346}', name: 'Aubergine', unit: 'St' },
+  { id: 'blumenkohl', emoji: '\u{1F966}', name: 'Blumenkohl', unit: 'St' },
+  { id: 'bohnen', emoji: '\u{1FAD8}', name: 'Bohnen', unit: '250g' },
   { id: 'brokkoli', emoji: '\u{1F966}', name: 'Brokkoli', unit: 'St' },
   { id: 'champignons', emoji: '\u{1F344}', name: 'Champignons', unit: '200g' },
-  { id: 'erdbeeren', emoji: '\u{1F353}', name: 'Erdbeeren', unit: 'Schale' },
+  { id: 'chinakohl', emoji: '\u{1F96C}', name: 'Chinakohl', unit: 'St' },
+  { id: 'erbsen', emoji: '\u{1FAD1}', name: 'Erbsen', unit: '250g' },
+  { id: 'fenchel', emoji: '\u{1F96C}', name: 'Fenchel', unit: 'St' },
+  { id: 'fruehlingszwiebeln', emoji: '\u{1F9C5}', name: 'Fr\u00FChlingszwiebeln', unit: 'Bund' },
   { id: 'gurke', emoji: '\u{1F952}', name: 'Gurke', unit: 'St' },
   { id: 'ingwer', emoji: '\u{1FADA}', name: 'Ingwer', unit: 'St' },
   { id: 'kartoffeln', emoji: '\u{1F954}', name: 'Kartoffeln', unit: 'kg' },
   { id: 'knoblauch', emoji: '\u{1F9C4}', name: 'Knoblauch', unit: 'Knolle' },
+  { id: 'kohlrabi', emoji: '\u{1F96C}', name: 'Kohlrabi', unit: 'St' },
+  { id: 'kuerbis', emoji: '\u{1F383}', name: 'K\u00FCrbis', unit: 'St' },
+  { id: 'lauch', emoji: '\u{1F9C5}', name: 'Lauch', unit: 'St' },
+  { id: 'mais', emoji: '\u{1F33D}', name: 'Mais', unit: 'St' },
   { id: 'moehren', emoji: '\u{1F955}', name: 'M\u00F6hren', unit: 'kg' },
   { id: 'paprika', emoji: '\u{1FAD1}', name: 'Paprika', unit: 'St' },
-  { id: 'salat', emoji: '\u{1F96C}', name: 'Salat', unit: 'Kopf' },
+  { id: 'radieschen', emoji: '\u{1F955}', name: 'Radieschen', unit: 'Bund' },
+  { id: 'rosenkohl', emoji: '\u{1F96C}', name: 'Rosenkohl', unit: '500g' },
+  { id: 'rote-beete', emoji: '\u{1F96C}', name: 'Rote Beete', unit: 'Bund' },
+  { id: 'rotkohl', emoji: '\u{1F96C}', name: 'Rotkohl', unit: 'St' },
+  { id: 'salat', emoji: '\u{1F96C}', name: 'Kopfsalat', unit: 'Kopf' },
+  { id: 'rucola', emoji: '\u{1F96C}', name: 'Rucola', unit: 'Beutel' },
+  { id: 'eisbergsalat', emoji: '\u{1F96C}', name: 'Eisbergsalat', unit: 'St' },
+  { id: 'feldsalat', emoji: '\u{1F96C}', name: 'Feldsalat', unit: 'Beutel' },
+  { id: 'sellerie', emoji: '\u{1F96C}', name: 'Sellerie', unit: 'St' },
+  { id: 'spargel', emoji: '\u{1F96C}', name: 'Spargel', unit: 'Bund' },
   { id: 'spinat', emoji: '\u{1F33F}', name: 'Spinat', unit: 'Beutel' },
+  { id: 'spitzkohl', emoji: '\u{1F96C}', name: 'Spitzkohl', unit: 'St' },
+  { id: 'staudensellerie', emoji: '\u{1F96C}', name: 'Staudensellerie', unit: 'St' },
+  { id: 'suesskartoffeln', emoji: '\u{1F360}', name: 'S\u00FC\u00DFkartoffeln', unit: 'kg' },
   { id: 'tomaten', emoji: '\u{1F345}', name: 'Tomaten', unit: 'kg' },
-  { id: 'trauben', emoji: '\u{1F347}', name: 'Trauben', unit: 'kg' },
-  { id: 'zitronen', emoji: '\u{1F34B}', name: 'Zitronen', unit: 'St' },
+  { id: 'cherrytomaten', emoji: '\u{1F345}', name: 'Cherrytomaten', unit: 'Schale' },
+  { id: 'weisskohl', emoji: '\u{1F96C}', name: 'Wei\u00DFkohl', unit: 'St' },
   { id: 'zucchini', emoji: '\u{1F952}', name: 'Zucchini', unit: 'St' },
-  { id: 'zwiebeln', emoji: '\u{1F9C5}', name: 'Zwiebeln', unit: 'Netz' }
+  { id: 'zwiebeln', emoji: '\u{1F9C5}', name: 'Zwiebeln', unit: 'Netz' },
+  // === Kr\u00E4uter ===
+  { id: 'basilikum', emoji: '\u{1F33F}', name: 'Basilikum', unit: 'Topf' },
+  { id: 'dill', emoji: '\u{1F33F}', name: 'Dill', unit: 'Bund' },
+  { id: 'koriander', emoji: '\u{1F33F}', name: 'Koriander', unit: 'Bund' },
+  { id: 'minze', emoji: '\u{1F33F}', name: 'Minze', unit: 'Topf' },
+  { id: 'petersilie', emoji: '\u{1F33F}', name: 'Petersilie', unit: 'Bund' },
+  { id: 'rosmarin', emoji: '\u{1F33F}', name: 'Rosmarin', unit: 'Topf' },
+  { id: 'schnittlauch', emoji: '\u{1F33F}', name: 'Schnittlauch', unit: 'Topf' },
+  { id: 'thymian', emoji: '\u{1F33F}', name: 'Thymian', unit: 'Topf' }
 ];
 
 const DEFAULT_ITEMS = [
