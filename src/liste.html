@@ -242,19 +242,25 @@
 
   /* ===== Header ===== */
   .header {
-    padding: 8px 24px 20px;
+    padding: 8px 20px 16px;
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
   }
   .header-title {
     font-size: 24px;
     font-weight: 800;
     color: var(--text-primary);
-    margin-bottom: 4px;
     letter-spacing: -0.3px;
   }
   .header-subtitle {
     font-size: 13px;
     font-weight: 500;
     color: var(--text-dim);
+    padding-left: 48px;
   }
 
   /* ===== Warenkorb Card ===== */
@@ -625,24 +631,20 @@
 
   /* ===== Back Button ===== */
   .back-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    border: 1.5px solid var(--surface-border);
+    background: var(--surface);
     display: flex;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
     text-decoration: none;
-    color: var(--teal);
-    font-size: 15px;
-    font-weight: 600;
-    padding: 4px 0;
-    transition: opacity 0.2s;
+    cursor: pointer;
+    transition: all 0.2s;
   }
-  .back-btn:active {
-    opacity: 0.6;
-  }
-  .back-btn svg {
-    width: 20px;
-    height: 20px;
-    fill: currentColor;
-  }
+  .back-btn:hover { border-color: var(--teal); }
+  .back-btn svg { width: 18px; height: 18px; fill: var(--text-secondary); }
 </style>
 </head>
 <body>
@@ -662,11 +664,12 @@
 
     <!-- Header -->
     <div class="header">
-      <a class="back-btn" href="listen.html">
-        <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
-        Listen
-      </a>
-      <h1 class="header-title">REWE Wocheneinkauf</h1>
+      <div class="header-top">
+        <a class="back-btn" href="listen.html" aria-label="Zurück zu Listen">
+          <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+        </a>
+        <h1 class="header-title">REWE Wocheneinkauf</h1>
+      </div>
       <p class="header-subtitle">Familien-Einkauf &middot; 3 Personen</p>
     </div>
 
