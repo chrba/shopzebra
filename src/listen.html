@@ -520,8 +520,8 @@
   }
 
   function getAllLists() {
-    var userLists = loadLists();
-    return DEFAULT_LISTS.concat(userLists);
+    var userLists = loadLists().reverse();
+    return userLists.concat(DEFAULT_LISTS);
   }
 
   function escapeHtml(str) {

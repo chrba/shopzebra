@@ -332,36 +332,6 @@
   .member-avatar.unselected { opacity: 0.35; }
   .member-avatar.unselected .check { display: none; }
 
-  /* ===== Store Type ===== */
-  .store-section {
-    padding: 24px 24px 0;
-  }
-  .store-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .store-chip {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: var(--surface);
-    border: 1px solid var(--surface-border);
-    border-radius: 20px;
-    padding: 10px 16px;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  .store-chip:hover { background: var(--surface-hover); }
-  .store-chip.selected {
-    border-color: var(--teal);
-    background: rgba(78,157,166,0.1);
-    color: var(--teal);
-  }
-
   /* ===== CTA Button ===== */
   .cta-section {
     padding: 32px 24px;
@@ -466,17 +436,6 @@
       </div>
     </div>
 
-    <!-- Store Type -->
-    <div class="store-section">
-      <div class="form-label">Laden (optional)</div>
-      <div class="store-chips" id="storeChips">
-        <div class="store-chip" data-store="Supermarkt">&#x1F6D2; Supermarkt</div>
-        <div class="store-chip" data-store="Drogerie">&#x1F9F4; Drogerie</div>
-        <div class="store-chip" data-store="Baumarkt">&#x1F527; Baumarkt</div>
-        <div class="store-chip" data-store="Sonstiges">&#x1F3EC; Sonstiges</div>
-      </div>
-    </div>
-
     <!-- Members -->
     <div class="members-section">
       <div class="form-label">Teilen mit</div>
@@ -531,7 +490,6 @@
   var state = {
     emoji: document.querySelector('.emoji-option.selected').textContent.trim(),
     color: 'green',
-    store: '',
     members: ['M', 'P']
   };
 
@@ -559,20 +517,6 @@
     opt.classList.add('selected');
     state.color = opt.getAttribute('data-color');
     updatePreviewBg();
-  });
-
-  // ===== Store Chips =====
-  document.getElementById('storeChips').addEventListener('click', function(e) {
-    var chip = e.target.closest('.store-chip');
-    if (!chip) return;
-    var wasSelected = chip.classList.contains('selected');
-    document.querySelectorAll('.store-chip').forEach(function(el) { el.classList.remove('selected'); });
-    if (!wasSelected) {
-      chip.classList.add('selected');
-      state.store = chip.getAttribute('data-store');
-    } else {
-      state.store = '';
-    }
   });
 
   // ===== Member Toggle =====
@@ -618,7 +562,6 @@
       emoji: state.emoji,
       color: state.color,
       items: 0,
-      store: state.store,
       members: state.members.map(function(m) {
         return { letter: m, color: memberColorMap[m], name: memberNameMap[m] };
       }),
