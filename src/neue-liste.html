@@ -534,14 +534,88 @@
     }
   });
 
-  // ===== Create List =====
+  // ===== Create / Edit List =====
   var LISTS_KEY = 'shopzebra_listen';
+  var MEMBER_COLOR_MAP = { M: '#6BBF6B', P: '#5BA8D5', L: '#E07B7B', O: '#A07BCC' };
+  var MEMBER_NAME_MAP = { M: 'Mama', P: 'Papa', L: 'Lena', O: 'Opa' };
+
+  var DEFAULT_LISTS = [
+    { id: 'rewe', name: 'REWE Wocheneinkauf', emoji: '\u{1F6D2}', color: 'green', items: 15,
+      members: [{letter:'M',color:'#6BBF6B'},{letter:'P',color:'#5BA8D5'},{letter:'L',color:'#E07B7B'}] },
+    { id: 'dm', name: 'dm Drogerie', emoji: '\u{1F9F4}', color: 'blue', items: 4,
+      members: [{letter:'P',color:'#5BA8D5'}] },
+    { id: 'party', name: 'Geburtstagsparty Lena', emoji: '\u{1F389}', color: 'red', items: 22,
+      members: [{letter:'M',color:'#6BBF6B'},{letter:'P',color:'#5BA8D5'},{letter:'L',color:'#E07B7B'},{letter:'O',color:'#A07BCC'}] },
+    { id: 'aldi', name: 'ALDI Vorr\u00e4te', emoji: '\u{1F34E}', color: 'green', items: 8,
+      members: [{letter:'M',color:'#6BBF6B'}] },
+    { id: 'baumarkt', name: 'Baumarkt Garten', emoji: '\u{1F527}', color: 'blue', items: 6,
+      members: [{letter:'P',color:'#5BA8D5'},{letter:'O',color:'#A07BCC'}] },
+    { id: 'wochenmarkt', name: 'Wochenmarkt Samstag', emoji: '\u{1F9C0}', color: 'red', items: 11,
+      members: [{letter:'M',color:'#6BBF6B'},{letter:'L',color:'#E07B7B'}] }
+  ];
 
   function loadLists() {
     try {
       var data = JSON.parse(localStorage.getItem(LISTS_KEY));
       return Array.isArray(data) ? data : null;
     } catch(e) { return null; }
+  }
+
+  function findList(id) {
+    var userLists = loadLists() || [];
+    for (var i = 0; i < userLists.length; i++) {
+      if (userLists[i].id === id) return userLists[i];
+    }
+    for (var j = 0; j < DEFAULT_LISTS.length; j++) {
+      if (DEFAULT_LISTS[j].id === id) return DEFAULT_LISTS[j];
+    }
+    return null;
+  }
+
+  // ===== Edit Mode =====
+  var urlParams = new URLSearchParams(window.location.search);
+  var editId = urlParams.get('edit');
+  var isEditMode = !!editId;
+
+  if (isEditMode) {
+    var editList = findList(editId);
+    if (editList) {
+      // Update page title & nav
+      document.title = 'ShopZebra - Liste bearbeiten';
+      document.querySelector('.nav-title').textContent = 'Bearbeiten';
+      document.getElementById('ctaButton').textContent = 'Speichern';
+
+      // Pre-fill name
+      document.getElementById('nameInput').value = editList.name;
+
+      // Pre-fill emoji
+      state.emoji = editList.emoji;
+      document.getElementById('emojiPreview').textContent = editList.emoji;
+      document.querySelectorAll('.emoji-option').forEach(function(el) {
+        el.classList.remove('selected');
+        if (el.textContent.trim() === editList.emoji) el.classList.add('selected');
+      });
+
+      // Pre-fill color
+      state.color = editList.color;
+      document.querySelectorAll('.color-option').forEach(function(el) {
+        el.classList.remove('selected');
+        if (el.getAttribute('data-color') === editList.color) el.classList.add('selected');
+      });
+      updatePreviewBg();
+
+      // Pre-fill members
+      var editMembers = (editList.members || []).map(function(m) { return m.letter; });
+      state.members = editMembers;
+      document.querySelectorAll('.member-avatar').forEach(function(el) {
+        var letter = el.getAttribute('data-member');
+        if (editMembers.indexOf(letter) >= 0) {
+          el.classList.remove('unselected');
+        } else {
+          el.classList.add('unselected');
+        }
+      });
+    }
   }
 
   function createList() {
@@ -553,26 +627,53 @@
     }
     document.getElementById('ctaError').textContent = '';
 
-    var memberColorMap = { M: '#6BBF6B', P: '#5BA8D5', L: '#E07B7B', O: '#A07BCC' };
-    var memberNameMap = { M: 'Mama', P: 'Papa', L: 'Lena', O: 'Opa' };
+    var membersData = state.members.map(function(m) {
+      return { letter: m, color: MEMBER_COLOR_MAP[m], name: MEMBER_NAME_MAP[m] };
+    });
 
-    var newList = {
-      id: 'list-' + Date.now(),
-      name: name,
-      emoji: state.emoji,
-      color: state.color,
-      items: 0,
-      members: state.members.map(function(m) {
-        return { letter: m, color: memberColorMap[m], name: memberNameMap[m] };
-      }),
-      activity: { who: 'Du', what: 'erstellt', when: 'gerade' },
-      badge: null,
-      createdAt: new Date().toISOString()
-    };
-
-    var lists = loadLists() || [];
-    lists.push(newList);
-    localStorage.setItem(LISTS_KEY, JSON.stringify(lists));
+    if (isEditMode) {
+      // Update existing list in localStorage
+      var lists = loadLists() || [];
+      var found = false;
+      for (var i = 0; i < lists.length; i++) {
+        if (lists[i].id === editId) {
+          lists[i].name = name;
+          lists[i].emoji = state.emoji;
+          lists[i].color = state.color;
+          lists[i].members = membersData;
+          found = true;
+          break;
+        }
+      }
+      // If editing a default list, copy it to user lists
+      if (!found) {
+        var original = findList(editId);
+        if (original) {
+          var copy = JSON.parse(JSON.stringify(original));
+          copy.name = name;
+          copy.emoji = state.emoji;
+          copy.color = state.color;
+          copy.members = membersData;
+          lists.push(copy);
+        }
+      }
+      localStorage.setItem(LISTS_KEY, JSON.stringify(lists));
+    } else {
+      var newList = {
+        id: 'list-' + Date.now(),
+        name: name,
+        emoji: state.emoji,
+        color: state.color,
+        items: 0,
+        members: membersData,
+        activity: { who: 'Du', what: 'erstellt', when: 'gerade' },
+        badge: null,
+        createdAt: new Date().toISOString()
+      };
+      var allLists = loadLists() || [];
+      allLists.push(newList);
+      localStorage.setItem(LISTS_KEY, JSON.stringify(allLists));
+    }
 
     window.location.href = 'listen.html';
   }

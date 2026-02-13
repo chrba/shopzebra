@@ -344,6 +344,27 @@
     z-index: 2;
   }
 
+  /* Edit button on tile */
+  .tile-edit {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+    opacity: 0;
+    transition: opacity 0.2s ease, background 0.2s ease;
+    text-decoration: none;
+  }
+  .tile:hover .tile-edit { opacity: 0.6; }
+  .tile-edit:hover { opacity: 1 !important; background: var(--surface-hover); }
+
   /* Add tile */
   .tile-add {
     background: transparent;
@@ -443,9 +464,10 @@
       <div class="summary-chip">
         <span class="summary-chip-num" id="sumItems">0</span> Items
       </div>
-      <div class="summary-chip">
+      <a class="summary-chip" href="einladen.html" style="text-decoration:none;color:inherit;cursor:pointer;">
         <span class="summary-chip-num" id="sumMitglieder">4</span> Mitglieder
-      </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--teal)" style="margin-left:2px;"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+      </a>
     </div>
 
     <!-- Tile Grid (rendered by JS) -->
@@ -542,9 +564,13 @@
     var actWhat = list.activity ? escapeHtml(list.activity.what) : '';
     var actWhen = list.activity ? escapeHtml(list.activity.when) : '';
     var activityText = actWho ? '<strong>' + actWho + '</strong> ' + actWhat + ' &middot; ' + actWhen : '';
+    var editHtml = '<a class="tile-edit" href="neue-liste.html?edit=' + encodeURIComponent(list.id) + '" aria-label="Liste bearbeiten">' +
+      '<svg viewBox="0 0 24 24" width="14" height="14"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="var(--text-dim)"/></svg>' +
+    '</a>';
 
-    return '<a class="tile" data-color="' + escapeHtml(list.color) + '" href="liste.html?id=' + encodeURIComponent(list.id) + '">' +
+    return '<div class="tile" data-color="' + escapeHtml(list.color) + '" data-href="liste.html?id=' + encodeURIComponent(list.id) + '">' +
       badgeHtml +
+      editHtml +
       '<div class="tile-icon-bg ' + escapeHtml(list.color) + '">' +
         '<span class="tile-emoji">' + list.emoji + '</span>' +
       '</div>' +
@@ -555,7 +581,7 @@
         '<span class="tile-members">' + escapeHtml(formatMembers(list.members)) + '</span>' +
       '</div>' +
       '<div class="tile-activity">' + activityText + '</div>' +
-    '</a>';
+    '</div>';
   }
 
   function renderAddTile() {
@@ -585,6 +611,13 @@
   }
 
   render();
+
+  // Tile click → navigate (but not when clicking the edit button)
+  document.getElementById('tileGrid').addEventListener('click', function(e) {
+    if (e.target.closest('.tile-edit') || e.target.closest('.tile-add')) return;
+    var tile = e.target.closest('.tile[data-href]');
+    if (tile) window.location.href = tile.getAttribute('data-href');
+  });
 
   // Re-render when returning from neue-liste
   window.addEventListener('pageshow', render);

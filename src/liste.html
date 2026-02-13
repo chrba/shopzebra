@@ -60,11 +60,14 @@
     --red-glow: 0 0 20px rgba(224,123,123,0.3);
     --purple-bg: rgba(160,123,204,0.12);
     --purple-glow: 0 0 20px rgba(160,123,204,0.3);
+    --cyan-bg: rgba(78,200,220,0.12);
+    --cyan-glow: 0 0 20px rgba(78,200,220,0.3);
     --chevron-green: #6BBF6B;
     --chevron-blue: #5BA8D5;
     --chevron-yellow: #E8C44A;
     --chevron-red: #E07B7B;
     --chevron-purple: #A07BCC;
+    --chevron-cyan: #4EC8DC;
   }
 
   [data-theme="glass"] {
@@ -123,11 +126,14 @@
     --red-glow: 0 0 20px rgba(236,72,153,0.2);
     --purple-bg: rgba(139,92,246,0.15);
     --purple-glow: 0 0 20px rgba(139,92,246,0.2);
+    --cyan-bg: rgba(78,200,220,0.15);
+    --cyan-glow: 0 0 20px rgba(78,200,220,0.2);
     --chevron-green: rgba(255,255,255,0.25);
     --chevron-blue: rgba(255,255,255,0.25);
     --chevron-yellow: rgba(255,255,255,0.25);
     --chevron-red: rgba(255,255,255,0.25);
     --chevron-purple: rgba(255,255,255,0.25);
+    --chevron-cyan: rgba(255,255,255,0.25);
   }
 
   /* ===== Reset ===== */
@@ -508,6 +514,9 @@
   .category-card[data-cat="zutaten-gewuerze"]::before {
     background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%);
   }
+  .category-card[data-cat="drogerie-haushalt"]::before {
+    background: radial-gradient(circle, rgba(78,200,220,0.15) 0%, transparent 70%);
+  }
 
   .category-icon {
     width: 52px;
@@ -541,6 +550,10 @@
   .category-icon.purple {
     background: var(--purple-bg);
     box-shadow: var(--purple-glow);
+  }
+  .category-icon.cyan {
+    background: var(--cyan-bg);
+    box-shadow: var(--cyan-glow);
   }
 
   .category-info {
@@ -665,7 +678,7 @@
     <!-- Header -->
     <div class="header">
       <div class="header-top">
-        <a class="back-btn" href="listen.html" aria-label="Zurück zu Listen">
+        <a class="back-btn" href="listen.html" aria-label="Zur&uuml;ck zu Listen">
           <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
         </a>
         <h1 class="header-title">REWE Wocheneinkauf</h1>
@@ -753,29 +766,30 @@
     { id: 'gurke', emoji: '\u{1F952}', name: 'Gurke', qty: 2, unit: 'St', cat: 'obst-gemuese' },
     { id: 'paprika', emoji: '\u{1FAD1}', name: 'Paprika', qty: 3, unit: 'St', cat: 'obst-gemuese' },
     { id: 'zwiebeln', emoji: '\u{1F9C5}', name: 'Zwiebeln', qty: 1, unit: 'Netz', cat: 'obst-gemuese' },
-    { id: 'salat', emoji: '\u{1F96C}', name: 'Salat', qty: 1, unit: 'Kopf', cat: 'obst-gemuese' },
+    { id: 'salat', emoji: '\u{1F957}', name: 'Salat', qty: 1, unit: 'Kopf', cat: 'obst-gemuese' },
     { id: 'milch', emoji: '\u{1F95B}', name: 'Milch', qty: 2, unit: 'L', cat: 'milch-kaese' },
     { id: 'gouda', emoji: '\u{1F9C0}', name: 'Gouda', qty: 1, unit: 'Pck', cat: 'milch-kaese' },
-    { id: 'jogurt', emoji: '\u{1F95B}', name: 'Joghurt', qty: 4, unit: 'St', cat: 'milch-kaese' },
+    { id: 'jogurt', emoji: '\u{1F963}', name: 'Joghurt', qty: 4, unit: 'St', cat: 'milch-kaese' },
     { id: 'butter', emoji: '\u{1F9C8}', name: 'Butter', qty: 1, unit: 'St', cat: 'milch-kaese' },
-    { id: 'vollkornbrot', emoji: '\u{1F35E}', name: 'Vollkornbrot', qty: 1, unit: 'St', cat: 'brot-gebaeck' },
-    { id: 'broetchen', emoji: '\u{1F950}', name: 'Brötchen', qty: 6, unit: 'St', cat: 'brot-gebaeck' },
+    { id: 'brot', emoji: '\u{1F35E}', name: 'Brot', qty: 1, unit: 'Pck', cat: 'brot-gebaeck' },
+    { id: 'broetchen', emoji: '\u{1F96F}', name: 'Brötchen', qty: 6, unit: 'St', cat: 'brot-gebaeck' },
     { id: 'hackfleisch', emoji: '\u{1F969}', name: 'Hackfleisch', qty: 1, unit: '500g', cat: 'fleisch-fisch' },
     { id: 'haehnchen', emoji: '\u{1F357}', name: 'Hähnchenbrust', qty: 1, unit: '400g', cat: 'fleisch-fisch' },
     { id: 'lachs', emoji: '\u{1F41F}', name: 'Lachs', qty: 1, unit: '200g', cat: 'fleisch-fisch' },
     { id: 'nudeln', emoji: '\u{1F35D}', name: 'Nudeln', qty: 2, unit: 'Pck', cat: 'zutaten-gewuerze' },
     { id: 'reis', emoji: '\u{1F35A}', name: 'Reis', qty: 1, unit: 'Pck', cat: 'zutaten-gewuerze' },
-    { id: 'olivenoel', emoji: '\u{1FAD2}', name: 'Olivenöl', qty: 1, unit: 'Fl', cat: 'zutaten-gewuerze' },
+    { id: 'speiseoel', emoji: '\u{1FAD2}', name: 'Speise\u00F6l', qty: 1, unit: 'Fl', cat: 'zutaten-gewuerze' },
     { id: 'passierte-tomaten', emoji: '\u{1F96B}', name: 'Passierte Tomaten', qty: 2, unit: 'Pck', cat: 'zutaten-gewuerze' },
     { id: 'sojasauce', emoji: '\u{1F962}', name: 'Sojasauce', qty: 1, unit: 'Fl', cat: 'zutaten-gewuerze' }
   ];
 
   const CATEGORIES = [
-    { id: 'obst-gemuese', name: 'Obst & Gemüse', emoji: '\u{1F34E}', color: 'green', totalProducts: 21 },
-    { id: 'milch-kaese', name: 'Milch & Käse', emoji: '\u{1F9C0}', color: 'blue', totalProducts: 12 },
-    { id: 'brot-gebaeck', name: 'Brot & Gebäck', emoji: '\u{1F35E}', color: 'yellow', totalProducts: 8 },
-    { id: 'fleisch-fisch', name: 'Fleisch & Fisch', emoji: '\u{1F969}', color: 'red', totalProducts: 9 },
-    { id: 'zutaten-gewuerze', name: 'Zutaten & Gewürze', emoji: '\u{1F9C2}', color: 'purple', totalProducts: 15 }
+    { id: 'obst-gemuese', name: 'Obst & Gemüse', emoji: '\u{1F34E}', color: 'green', totalProducts: 41 },
+    { id: 'milch-kaese', name: 'Milch & Käse', emoji: '\u{1F9C0}', color: 'blue', totalProducts: 15 },
+    { id: 'brot-gebaeck', name: 'Brot & Gebäck', emoji: '\u{1F35E}', color: 'yellow', totalProducts: 10 },
+    { id: 'fleisch-fisch', name: 'Fleisch & Fisch', emoji: '\u{1F969}', color: 'red', totalProducts: 13 },
+    { id: 'zutaten-gewuerze', name: 'Zutaten & Gewürze', emoji: '\u{1F9C2}', color: 'purple', totalProducts: 26 },
+    { id: 'drogerie-haushalt', name: 'Drogerie & Haushalt', emoji: '\u{1F9F4}', color: 'cyan', totalProducts: 20 }
   ];
 
   const CHEVRON_COLORS = {
@@ -783,7 +797,8 @@
     blue: 'var(--chevron-blue)',
     yellow: 'var(--chevron-yellow)',
     red: 'var(--chevron-red)',
-    purple: 'var(--chevron-purple)'
+    purple: 'var(--chevron-purple)',
+    cyan: 'var(--chevron-cyan)'
   };
 
   function loadItems() {
@@ -826,7 +841,7 @@
     }
 
     // Update category badges
-    const cats = ['obst-gemuese', 'milch-kaese', 'brot-gebaeck', 'fleisch-fisch', 'zutaten-gewuerze'];
+    const cats = ['obst-gemuese', 'milch-kaese', 'brot-gebaeck', 'fleisch-fisch', 'zutaten-gewuerze', 'drogerie-haushalt'];
     cats.forEach(function(cat) {
       const catItems = items.filter(function(item) { return item.cat === cat; });
       const badge = document.querySelector('[data-cat-badge="' + cat + '"]');
