@@ -198,37 +198,23 @@
     position: sticky;
     top: 44px;
     z-index: 40;
-    background: var(--screen-bg);
+    background: transparent;
     padding: 10px 20px;
     display: flex;
     align-items: center;
     gap: 10px;
     border-bottom: none;
     min-height: 52px;
+    opacity: 0;
     transition: opacity 0.3s ease;
+    pointer-events: none;
   }
-  .selected-summary.visible .summary-hint { display: none; }
-  .selected-summary.visible .summary-emojis,
-  .selected-summary.visible .summary-count { opacity: 1; }
-  .summary-hint {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    color: var(--text-dim);
-    white-space: nowrap;
-  }
-  .summary-hint-icon {
-    font-size: 18px;
-    filter: grayscale(1) opacity(0.4);
-  }
+  .selected-summary.visible { opacity: 1; pointer-events: auto; }
   .summary-emojis {
     display: flex;
     gap: 4px;
     flex: 1;
     overflow: hidden;
-    opacity: 0;
-    transition: opacity 0.3s ease;
   }
   .summary-emoji-circle {
     width: 32px;
@@ -248,13 +234,7 @@
     color: var(--teal);
     font-weight: 600;
     white-space: nowrap;
-    opacity: 0;
-    transition: opacity 0.3s ease, color 0.4s ease;
-  }
-  [data-theme="glass"] .selected-summary {
-    background: var(--screen-bg);
-    background-image: var(--screen-gradient);
-    background-attachment: fixed;
+    transition: color 0.4s ease;
   }
   [data-theme="glass"] .summary-emoji-circle {
     background: rgba(255,255,255,0.08);
@@ -392,9 +372,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-  .tile-status-dim {
-    opacity: 0.4;
   }
 
   /* No results */
@@ -550,6 +527,11 @@
     background: rgba(78,157,166,0.12);
     color: var(--text-primary);
   }
+  .variant-chip.selected::before {
+    content: '\2713 ';
+    color: var(--teal);
+    font-weight: 700;
+  }
 
   /* Qty chips */
   .qty-chips {
@@ -576,39 +558,6 @@
   .qty-chip:active { transform: scale(0.95); }
   .qty-chip.selected {
     border-color: var(--teal);
-    background: rgba(78,157,166,0.12);
-    color: var(--teal);
-    font-weight: 700;
-  }
-  .qty-custom-input {
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
-    background: var(--surface);
-    border: 1.5px dashed var(--surface-border);
-    color: var(--text-secondary);
-    font-size: 15px;
-    font-weight: 600;
-    font-family: inherit;
-    text-align: center;
-    outline: none;
-    transition: all 0.2s;
-    -moz-appearance: textfield;
-    appearance: textfield;
-  }
-  .qty-custom-input::-webkit-outer-spin-button,
-  .qty-custom-input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-  .qty-custom-input:focus {
-    border-color: var(--teal);
-    border-style: solid;
-    color: var(--teal);
-  }
-  .qty-custom-input.has-value {
-    border-color: var(--teal);
-    border-style: solid;
     background: rgba(78,157,166,0.12);
     color: var(--teal);
     font-weight: 700;
@@ -680,18 +629,17 @@
     <!-- Header -->
     <div class="header">
       <div class="header-top">
-        <a class="nav-back" id="backLink" href="liste.html">
+        <a class="nav-back" href="liste.html">
           <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
           Liste
         </a>
-        <div class="header-title" id="headerTitle"></div>
+        <div class="header-title" id="headerTitle">Obst &amp; Gem&uuml;se</div>
       </div>
       <div class="header-subtitle" id="subtitle">40 Produkte</div>
     </div>
 
     <!-- Selected Summary -->
     <div class="selected-summary" id="summaryBar">
-      <div class="summary-hint">So leer hier... <span class="summary-hint-icon">💔</span></div>
       <div class="summary-emojis" id="summaryEmojis"></div>
       <div class="summary-count" id="summaryCount"></div>
     </div>
@@ -745,12 +693,10 @@
 
 <script>
 
-const URL_PARAMS = new URLSearchParams(window.location.search);
-const LIST_ID = URL_PARAMS.get('liste') || 'default';
-const CATEGORY = URL_PARAMS.get('cat') || 'obst-gemuese';
-const STORAGE_KEY = 'shopzebra_items_' + LIST_ID;
-const CUSTOM_VARIANTS_KEY = 'shopzebra_custom_variants_' + LIST_ID;
-const SELECTION_MEMORY_KEY = 'shopzebra_selection_memory_' + LIST_ID;
+const CATEGORY = 'obst-gemuese';
+const STORAGE_KEY = 'shopzebra_items';
+const CUSTOM_VARIANTS_KEY = 'shopzebra_custom_variants';
+const SELECTION_MEMORY_KEY = 'shopzebra_selection_memory';
 
 const PRODUCTS_BY_CATEGORY = {
   'obst-gemuese': [
@@ -837,97 +783,6 @@ const PRODUCTS_BY_CATEGORY = {
     { id: 'kraeuter', emoji: '\u{1F33F}', name: 'Kr\u00E4uter', unit: 'Bund', variants: [
       'Basilikum', 'Petersilie', 'Schnittlauch', 'Dill', 'Koriander', 'Minze', 'Rosmarin', 'Thymian', 'Oregano', 'Salbei'
     ]}
-  ],
-  'milch-kaese': [
-    { id: 'milch', emoji: '\u{1F95B}', name: 'Milch', unit: 'L', variants: ['1,5% fettarm', '3,5% Vollmilch', 'Laktosefrei', 'H-Milch', 'Frischmilch'] },
-    { id: 'butter', emoji: '\u{1F9C8}', name: 'Butter', unit: 'St', variants: ['Deutsche Markenbutter', 'Irische Butter', 'Sauerrahmbutter'] },
-    { id: 'kaese-scheiben', emoji: '\u{1F9C0}', name: 'K\u00E4se Scheiben', unit: 'Pck', variants: ['Gouda', 'Emmentaler', 'Edamer', 'Butterk\u00E4se', 'Maasdamer', 'Tilsiter'] },
-    { id: 'kaese-stueck', emoji: '\u{1F9C0}', name: 'K\u00E4se St\u00FCck', unit: 'St', variants: ['Parmesan', 'Gruy\u00E8re', 'Cheddar', 'Brie', 'Camembert', 'Mozzarella', 'Feta', 'Bergk\u00E4se'] },
-    { id: 'frischkaese', emoji: '\u{1F95B}', name: 'Frischk\u00E4se', unit: 'Becher', variants: ['Natur', 'Kr\u00E4uter', 'Philadelphia', 'Doppelrahmstufe'] },
-    { id: 'joghurt', emoji: '\u{1F963}', name: 'Joghurt', unit: 'Becher', variants: ['Naturjoghurt', 'Griechisch', 'Fruchtjoghurt', 'Skyr', 'Trinkjoghurt'] },
-    { id: 'quark', emoji: '\u{1F95B}', name: 'Quark', unit: 'Becher', variants: ['Magerquark', 'Speisequark 20%', 'Speisequark 40%', 'Kr\u00E4uterquark'] },
-    { id: 'sahne', emoji: '\u{1F95B}', name: 'Sahne', unit: 'Becher', variants: ['Schlagsahne', 'Saure Sahne', 'Cr\u00E8me fra\u00eeche', 'Schmand', 'Kochsahne'] },
-    { id: 'eier', emoji: '\u{1F95A}', name: 'Eier', unit: 'Pck', variants: ['6er Freiland', '10er Freiland', '6er Bio', '10er Bio'] },
-    { id: 'pflanzenmilch', emoji: '\u{1F95B}', name: 'Pflanzenmilch', unit: 'L', variants: ['Hafermilch', 'Sojamilch', 'Mandelmilch', 'Kokosmilch', 'Reismilch'] },
-    { id: 'pudding', emoji: '\u{1F36E}', name: 'Pudding', unit: 'Becher', variants: ['Schoko', 'Vanille', 'Griessbrei', 'Milchreis'] },
-    { id: 'aufstrich', emoji: '\u{1F963}', name: 'Aufstrich', unit: 'Glas', variants: ['Marmelade', 'Honig', 'Nutella', 'Erdnussbutter'] },
-    { id: 'tofu', emoji: '\u{1F9C8}', name: 'Tofu', unit: 'Pck', variants: ['Natur', 'Ger\u00E4uchert', 'Seidentofu', 'Mariniert'] }
-  ],
-  'brot-gebaeck': [
-    { id: 'brot', emoji: '\u{1F35E}', name: 'Brot', unit: 'St', variants: ['Vollkorn', 'Mischbrot', 'Roggenbrot', 'Dinkel', 'Weizenbrot', 'Sauerteig', 'Pumpernickel'] },
-    { id: 'broetchen', emoji: '\u{1F35E}', name: 'Br\u00F6tchen', unit: 'St', variants: ['Normal', 'Vollkorn', 'K\u00F6rnerbr\u00F6tchen', 'Laugen', 'Ciabatta'] },
-    { id: 'toast', emoji: '\u{1F35E}', name: 'Toast', unit: 'Pck', variants: ['Weizen', 'Vollkorn', 'Buttermilch', 'K\u00F6rner'] },
-    { id: 'croissant', emoji: '\u{1F950}', name: 'Croissant', unit: 'St' },
-    { id: 'baguette', emoji: '\u{1F956}', name: 'Baguette', unit: 'St' },
-    { id: 'brezel', emoji: '\u{1F968}', name: 'Brezel', unit: 'St' },
-    { id: 'kuchen', emoji: '\u{1F370}', name: 'Kuchen', unit: 'St', variants: ['Apfelkuchen', 'K\u00E4sekuchen', 'Marmorkuchen', 'Streuselkuchen'] },
-    { id: 'tortillas', emoji: '\u{1FAD3}', name: 'Tortillas', unit: 'Pck', variants: ['Weizen', 'Vollkorn', 'Mais'] },
-    { id: 'knäckebrot', emoji: '\u{1F35E}', name: 'Kn\u00E4ckebrot', unit: 'Pck' },
-    { id: 'mehl', emoji: '\u{1F33E}', name: 'Mehl', unit: 'kg', variants: ['Weizenmehl 405', 'Weizenmehl 550', 'Dinkelmehl', 'Vollkornmehl'] }
-  ],
-  'fleisch-fisch': [
-    { id: 'haehnchen', emoji: '\u{1F357}', name: 'H\u00E4hnchen', unit: 'g', variants: ['Brust', 'Schenkel', 'Fl\u00FCgel', 'Ganzes H\u00E4hnchen', 'Hackfleisch'] },
-    { id: 'rind', emoji: '\u{1F969}', name: 'Rind', unit: 'g', variants: ['Hackfleisch', 'Steak', 'Gulasch', 'Rouladen', 'Filet'] },
-    { id: 'schwein', emoji: '\u{1F969}', name: 'Schwein', unit: 'g', variants: ['Hackfleisch', 'Schnitzel', 'Filet', 'Kotelett', 'Gulasch', 'Bauch'] },
-    { id: 'gemischt-hack', emoji: '\u{1F356}', name: 'Hackfleisch gemischt', unit: 'g' },
-    { id: 'wurst', emoji: '\u{1F953}', name: 'Wurst', unit: 'Pck', variants: ['Salami', 'Schinken', 'Mortadella', 'Leberwurst', 'Lyoner', 'Wiener W\u00FCrstchen'] },
-    { id: 'bacon', emoji: '\u{1F953}', name: 'Bacon', unit: 'Pck' },
-    { id: 'lachs', emoji: '\u{1F99E}', name: 'Lachs', unit: 'g', variants: ['Frisch', 'R\u00E4ucherlachs', 'TK Filet'] },
-    { id: 'thunfisch', emoji: '\u{1F41F}', name: 'Thunfisch', unit: 'Dose', variants: ['In \u00D6l', 'In Wasser', 'Im eigenen Saft'] },
-    { id: 'garnelen', emoji: '\u{1F990}', name: 'Garnelen', unit: 'g', variants: ['Frisch', 'TK', 'Riesengarnelen'] },
-    { id: 'fischstaebchen', emoji: '\u{1F41F}', name: 'Fischst\u00E4bchen', unit: 'Pck' },
-    { id: 'forelle', emoji: '\u{1F41F}', name: 'Forelle', unit: 'St' },
-    { id: 'fleischersatz', emoji: '\u{1F331}', name: 'Fleischersatz', unit: 'Pck', variants: ['Beyond Burger', 'Veganes Hack', 'Vegane Nuggets', 'Seitan', 'Tempeh'] }
-  ],
-  'zutaten-gewuerze': [
-    { id: 'salz', emoji: '\u{1F9C2}', name: 'Salz', unit: 'Pck' },
-    { id: 'pfeffer', emoji: '\u{1F3F7}\u{FE0F}', name: 'Pfeffer', unit: 'Pck' },
-    { id: 'olivenoel', emoji: '\u{1FAD2}', name: 'Oliven\u00F6l', unit: 'Fl', variants: ['Extra Vergine', 'Zum Braten'] },
-    { id: 'sonnenblumenoel', emoji: '\u{1FAD2}', name: 'Sonnenblumen\u00F6l', unit: 'Fl' },
-    { id: 'essig', emoji: '\u{1FAD2}', name: 'Essig', unit: 'Fl', variants: ['Balsamico', 'Wei\u00DFweinessig', 'Apfelessig'] },
-    { id: 'zucker', emoji: '\u{1F3F7}\u{FE0F}', name: 'Zucker', unit: 'kg', variants: ['Wei\u00DF', 'Braun', 'Puderzucker', 'Vanillezucker'] },
-    { id: 'senf', emoji: '\u{1F3F7}\u{FE0F}', name: 'Senf', unit: 'Glas', variants: ['Mittelscharf', 'S\u00FC\u00DF', 'Dijon'] },
-    { id: 'ketchup', emoji: '\u{1F3F7}\u{FE0F}', name: 'Ketchup', unit: 'Fl' },
-    { id: 'mayo', emoji: '\u{1F3F7}\u{FE0F}', name: 'Mayonnaise', unit: 'Glas' },
-    { id: 'sojasauce', emoji: '\u{1F3F7}\u{FE0F}', name: 'Sojasauce', unit: 'Fl' },
-    { id: 'nudeln', emoji: '\u{1F35D}', name: 'Nudeln', unit: 'Pck', variants: ['Spaghetti', 'Penne', 'Fusilli', 'Farfalle', 'Tagliatelle', 'Lasagneplatten'] },
-    { id: 'reis', emoji: '\u{1F35A}', name: 'Reis', unit: 'Pck', variants: ['Basmati', 'Jasmin', 'Langkorn', 'Risotto', 'Sushi-Reis'] },
-    { id: 'passierte-tomaten', emoji: '\u{1F345}', name: 'Passierte Tomaten', unit: 'Pck' },
-    { id: 'tomatenmark', emoji: '\u{1F345}', name: 'Tomatenmark', unit: 'Tube' },
-    { id: 'kokosmilch-dose', emoji: '\u{1F965}', name: 'Kokosmilch', unit: 'Dose' },
-    { id: 'bruehe', emoji: '\u{1F372}', name: 'Br\u00FChe', unit: 'Glas', variants: ['Gem\u00FCse', 'H\u00FChner', 'Rinder'] },
-    { id: 'gewuerze', emoji: '\u{1F3F7}\u{FE0F}', name: 'Gew\u00FCrze', unit: 'Pck', variants: ['Paprika', 'Curry', 'Kurkuma', 'Zimt', 'Muskat', 'Kreuzkümmel', 'Chilliflocken', 'Oregano getr.'] },
-    { id: 'backpulver', emoji: '\u{1F3F7}\u{FE0F}', name: 'Backpulver', unit: 'Pck' },
-    { id: 'hefe', emoji: '\u{1F3F7}\u{FE0F}', name: 'Hefe', unit: 'W\u00FCrfel', variants: ['Frische Hefe', 'Trockenhefe'] },
-    { id: 'nüsse', emoji: '\u{1F95C}', name: 'N\u00FCsse', unit: 'Pck', variants: ['Waln\u00FCsse', 'Mandeln', 'Haseln\u00FCsse', 'Cashews', 'Erdnüsse', 'Pinienkerne'] },
-    { id: 'paniermehl', emoji: '\u{1F35E}', name: 'Paniermehl', unit: 'Pck' },
-    { id: 'haferflocken', emoji: '\u{1F33E}', name: 'Haferflocken', unit: 'Pck', variants: ['Zart', 'Kernig'] },
-    { id: 'dosen-mais', emoji: '\u{1F33D}', name: 'Mais (Dose)', unit: 'Dose' },
-    { id: 'dosen-bohnen', emoji: '\u{1FAD8}', name: 'Bohnen (Dose)', unit: 'Dose', variants: ['Kidneybohnen', 'Kichererbsen', 'Wei\u00DFe Bohnen'] },
-    { id: 'linsen', emoji: '\u{1F3F7}\u{FE0F}', name: 'Linsen', unit: 'Pck', variants: ['Rote Linsen', 'Belugalinsen', 'Tellerlinsen'] },
-    { id: 'couscous', emoji: '\u{1F35A}', name: 'Couscous', unit: 'Pck' }
-  ],
-  'drogerie-haushalt': [
-    { id: 'toilettenpapier', emoji: '\u{1F9FB}', name: 'Toilettenpapier', unit: 'Pck' },
-    { id: 'kuechenpapier', emoji: '\u{1F9FB}', name: 'K\u00FCchenpapier', unit: 'Pck' },
-    { id: 'spuelmittel', emoji: '\u{1F9F4}', name: 'Sp\u00FClmittel', unit: 'Fl' },
-    { id: 'waschmittel', emoji: '\u{1F9F4}', name: 'Waschmittel', unit: 'Fl', variants: ['Fl\u00FCssig', 'Pulver', 'Pods/Caps'] },
-    { id: 'weichspueler', emoji: '\u{1F9F4}', name: 'Weichsp\u00FCler', unit: 'Fl' },
-    { id: 'allzweckreiniger', emoji: '\u{1F9F4}', name: 'Allzweckreiniger', unit: 'Fl' },
-    { id: 'muellbeutel', emoji: '\u{1F5D1}\u{FE0F}', name: 'M\u00FCllbeutel', unit: 'Rolle' },
-    { id: 'alufolie', emoji: '\u{1F3F7}\u{FE0F}', name: 'Alufolie', unit: 'Rolle' },
-    { id: 'frischhaltefolie', emoji: '\u{1F3F7}\u{FE0F}', name: 'Frischhaltefolie', unit: 'Rolle' },
-    { id: 'schwamm', emoji: '\u{1F9FD}', name: 'Schw\u00E4mme', unit: 'Pck' },
-    { id: 'zahnpasta', emoji: '\u{1FAA5}', name: 'Zahnpasta', unit: 'Tube' },
-    { id: 'zahnbuerste', emoji: '\u{1FAA5}', name: 'Zahnb\u00FCrste', unit: 'St' },
-    { id: 'shampoo', emoji: '\u{1F9F4}', name: 'Shampoo', unit: 'Fl' },
-    { id: 'duschgel', emoji: '\u{1F6BF}', name: 'Duschgel', unit: 'Fl' },
-    { id: 'handseife', emoji: '\u{1F9FC}', name: 'Handseife', unit: 'St' },
-    { id: 'deo', emoji: '\u{1F3F7}\u{FE0F}', name: 'Deo', unit: 'St' },
-    { id: 'taschentuecher', emoji: '\u{1F3F7}\u{FE0F}', name: 'Taschent\u00FCcher', unit: 'Pck' },
-    { id: 'batterien', emoji: '\u{1F50B}', name: 'Batterien', unit: 'Pck', variants: ['AA', 'AAA', '9V'] },
-    { id: 'kerzen', emoji: '\u{1F56F}\u{FE0F}', name: 'Kerzen', unit: 'Pck' },
-    { id: 'spueltabs', emoji: '\u{1F3F7}\u{FE0F}', name: 'Sp\u00FCltabs', unit: 'Pck' }
   ]
 };
 
@@ -1154,22 +1009,14 @@ function renderSheetContent() {
   html += '<button class="custom-variant-add-btn" id="customAddBtn" onclick="addCustom()">+</button>';
   html += '</div>';
 
-  // Qty chips + custom input
+  // Qty chips
   html += '<div class="sheet-section-label">Menge (' + product.unit + ')</div>';
   html += '<div class="qty-chips">';
   const genericQty = info.genericQty || 1;
-  const isCustomQty = genericQty > 5;
   for (let i = 1; i <= 5; i++) {
-    const sel = (!isCustomQty && genericQty === i) ? ' selected' : '';
+    const sel = (genericQty === i) ? ' selected' : '';
     html += '<button class="qty-chip' + sel + '" onclick="setGenericQty(' + i + ')">' + i + '</button>';
   }
-  html += '<input type="number" class="qty-custom-input' + (isCustomQty ? ' has-value' : '') + '" ' +
-    'placeholder="..." ' +
-    'value="' + (isCustomQty ? genericQty : '') + '" ' +
-    'min="1" max="99" ' +
-    'onfocus="this.select()" ' +
-    'oninput="onQtyCustomInput(this)" ' +
-    'onkeydown="if(event.key===\'Enter\'){this.blur()}">';
   html += '</div>';
 
   document.getElementById('sheetContent').innerHTML = html;
@@ -1193,18 +1040,6 @@ function setGenericQty(qty) {
   if (!product) return;
   setItemQty(currentSheetProductId, qty, product);
   renderSheetContent();
-}
-
-function onQtyCustomInput(input) {
-  const val = parseInt(input.value, 10);
-  if (val > 0 && val <= 99) {
-    const product = ALL_PRODUCTS.find(p => p.id === currentSheetProductId);
-    if (!product) return;
-    setItemQty(currentSheetProductId, val, product);
-    input.classList.add('has-value');
-    // Deselect chip buttons visually
-    input.parentElement.querySelectorAll('.qty-chip').forEach(c => c.classList.remove('selected'));
-  }
 }
 
 function onCustomInput(input) {
@@ -1252,31 +1087,24 @@ function renderGrid() {
     const info = getProductInfo(p.id);
     const selected = info.isSelected;
 
-    // Build status text (also show from memory when deselected)
+    // Build status text
     let statusHtml = '';
-    const statusParts = [];
     if (selected) {
+      const parts = [];
       if (info.variants.length > 0) {
-        statusParts.push(info.variants.length === 1 ? info.variants[0].name : info.variants.length + ' Sorten');
+        if (info.variants.length === 1) {
+          parts.push(info.variants[0].name);
+        } else {
+          parts.push(info.variants.length + ' Sorten');
+        }
       }
       if (info.genericQty > 1) {
-        statusParts.push(info.genericQty + ' ' + p.unit);
+        parts.push(info.genericQty + ' ' + p.unit);
+      }
+      if (parts.length > 0) {
+        statusHtml = '<div class="tile-status">' + parts.join(' \u00B7 ') + '</div>';
       }
     } else {
-      const mem = recallProduct(p.id);
-      if (mem) {
-        if (mem.variants.length > 0) {
-          statusParts.push(mem.variants.length === 1 ? mem.variants[0].name : mem.variants.length + ' Sorten');
-        }
-        if (mem.genericQty > 1) {
-          statusParts.push(mem.genericQty + ' ' + p.unit);
-        }
-      }
-    }
-    if (statusParts.length > 0) {
-      const dimClass = selected ? 'tile-status' : 'tile-status tile-status-dim';
-      statusHtml = '<div class="' + dimClass + '">' + statusParts.join(' \u00B7 ') + '</div>';
-    } else if (!selected) {
       statusHtml = '<div class="product-unit">' + p.unit + '</div>';
     }
 
@@ -1343,7 +1171,7 @@ function clearSearch() {
 }
 
 function finish() {
-  window.location.href = 'liste.html?id=' + LIST_ID;
+  window.location.href = 'liste.html';
 }
 
 /* Theme */
@@ -1365,20 +1193,8 @@ function toggleTheme() {
   applyTheme(current === 'dark' ? 'glass' : 'dark');
 }
 
-/* Category display names */
-const CATEGORY_NAMES = {
-  'obst-gemuese': 'Obst & Gem\u00FCse',
-  'milch-kaese': 'Milch & K\u00E4se',
-  'brot-gebaeck': 'Brot & Geb\u00E4ck',
-  'fleisch-fisch': 'Fleisch & Fisch',
-  'zutaten-gewuerze': 'Zutaten & Gew\u00FCrze',
-  'drogerie-haushalt': 'Drogerie & Haushalt'
-};
-
 /* Init */
 applyTheme(getTheme());
-document.getElementById('backLink').href = 'liste.html?id=' + LIST_ID;
-document.getElementById('headerTitle').textContent = CATEGORY_NAMES[CATEGORY] || CATEGORY;
 document.getElementById('subtitle').textContent = ALL_PRODUCTS.length + ' Produkte';
 renderAll();
 

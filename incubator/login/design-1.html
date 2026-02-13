@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopZebra - Login Design 1: Minimal + Social</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ========================================
+     Login Design 1: Minimal + Social Login
+     Clean layout mit Google/Apple + E-Mail
+     Vorbereitet fuer AWS Cognito Federation
+     ======================================== */
+
+  /* ===== Theme: Dark ===== */
+  [data-theme="dark"] {
+    --body-bg: #0a0a0e;
+    --screen-bg: #121216;
+    --screen-gradient: none;
+    --surface: rgba(255,255,255,0.04);
+    --surface-hover: rgba(255,255,255,0.06);
+    --surface-border: rgba(255,255,255,0.06);
+    --teal: #4E9DA6;
+    --orange: #E8923A;
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255,255,255,0.5);
+    --text-dim: rgba(255,255,255,0.35);
+    --card-bg: rgba(255,255,255,0.03);
+    --card-border: rgba(255,255,255,0.06);
+    --card-blur: 0px;
+    --input-bg: rgba(255,255,255,0.04);
+    --input-border: rgba(255,255,255,0.08);
+    --input-focus: rgba(78,157,166,0.3);
+    --frame-shadow: 0 0 60px rgba(0,0,0,0.5), 0 0 120px rgba(78,157,166,0.05);
+    --frame-border: 1px solid rgba(255,255,255,0.08);
+    --icon-radius: 50%;
+    --error-bg: rgba(220,60,60,0.1);
+    --error-color: #E85454;
+    --error-border: rgba(220,60,60,0.3);
+  }
+
+  /* ===== Theme: Glass ===== */
+  [data-theme="glass"] {
+    --body-bg: #1a1a2e;
+    --screen-bg: #0a0a12;
+    --screen-gradient:
+      radial-gradient(ellipse at 20% 80%, rgba(120, 50, 180, 0.35) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(50, 120, 180, 0.3) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 50%, rgba(180, 50, 120, 0.2) 0%, transparent 60%);
+    --surface: rgba(255,255,255,0.06);
+    --surface-hover: rgba(255,255,255,0.09);
+    --surface-border: rgba(255,255,255,0.1);
+    --teal: #4E9DA6;
+    --orange: #E8923A;
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255,255,255,0.5);
+    --text-dim: rgba(255,255,255,0.35);
+    --card-bg: rgba(255,255,255,0.06);
+    --card-border: rgba(255,255,255,0.1);
+    --card-blur: blur(20px);
+    --input-bg: rgba(255,255,255,0.06);
+    --input-border: rgba(255,255,255,0.1);
+    --input-focus: rgba(78,157,166,0.4);
+    --frame-shadow: 0 0 0 2px rgba(255,255,255,0.08), 0 40px 80px rgba(0,0,0,0.6), 0 0 120px rgba(139,92,246,0.15);
+    --frame-border: none;
+    --icon-radius: 14px;
+    --error-bg: rgba(220,60,60,0.12);
+    --error-color: #F06060;
+    --error-border: rgba(220,60,60,0.35);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--body-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    color: var(--text-primary);
+    transition: background 0.4s ease;
+  }
+
+  .phone-frame {
+    width: 390px;
+    height: 844px;
+    background: var(--screen-bg);
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    border: var(--frame-border);
+    box-shadow: var(--frame-shadow);
+    transition: background 0.4s ease, border-color 0.3s ease, box-shadow 0.4s ease;
+  }
+
+  .screen {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    background-color: var(--screen-bg);
+    background-image: var(--screen-gradient);
+    transition: background 0.4s ease;
+    display: flex;
+    flex-direction: column;
+  }
+  .screen::-webkit-scrollbar { display: none; }
+
+  /* ===== Status Bar ===== */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 28px 8px;
+    flex-shrink: 0;
+  }
+  .status-time { font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
+  .status-icons { display: flex; align-items: center; gap: 6px; }
+  .status-icons svg { width: 16px; height: 16px; fill: white; }
+  .theme-toggle {
+    width: 20px; height: 20px; background: transparent; border: none;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    opacity: 0.5; padding: 0; margin: 0 6px; transition: opacity 0.2s ease;
+  }
+  .theme-toggle:hover { opacity: 0.85; }
+  .theme-toggle svg { width: 16px; height: 16px; fill: white; }
+
+  /* ===== Branding ===== */
+  .branding {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 24px;
+    min-height: 0;
+  }
+
+  .logo-area {
+    margin-bottom: 8px;
+  }
+
+  .logo-icon {
+    width: 72px;
+    height: 72px;
+    background: linear-gradient(135deg, var(--teal), #3A8A92);
+    border-radius: var(--icon-radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    box-shadow: 0 8px 32px rgba(78,157,166,0.25);
+    transition: border-radius 0.4s ease;
+  }
+
+  .app-name {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-top: 16px;
+  }
+
+  .app-tagline {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-top: 6px;
+  }
+
+  /* ===== Form Area (bottom-aligned, thumb-zone) ===== */
+  .form-area {
+    padding: 0 24px 40px;
+    flex-shrink: 0;
+  }
+
+  .input-group {
+    margin-bottom: 14px;
+    position: relative;
+  }
+
+  .input-field {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: 16px;
+    padding: 16px 18px;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text-primary);
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    -webkit-appearance: none;
+  }
+  .input-field::placeholder {
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+  .input-field:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px var(--input-focus);
+  }
+  .input-field.error {
+    border-color: var(--error-border);
+    box-shadow: 0 0 0 3px var(--error-bg);
+  }
+
+  .input-password-wrap {
+    position: relative;
+  }
+  .input-password-wrap .input-field {
+    padding-right: 52px;
+  }
+
+  .pw-toggle {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.4;
+    transition: opacity 0.2s ease;
+  }
+  .pw-toggle:hover { opacity: 0.7; }
+  .pw-toggle svg { width: 22px; height: 22px; fill: var(--text-primary); }
+
+  .inline-error {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--error-color);
+    margin-top: 6px;
+    padding-left: 4px;
+    display: none;
+    align-items: center;
+    gap: 5px;
+  }
+  .inline-error.visible {
+    display: flex;
+  }
+  .inline-error svg { width: 14px; height: 14px; fill: var(--error-color); flex-shrink: 0; }
+
+  .forgot-link {
+    text-align: right;
+    margin-bottom: 20px;
+    margin-top: -4px;
+  }
+  .forgot-link a {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--teal);
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+  }
+  .forgot-link a:hover { opacity: 0.8; }
+
+  .btn-primary {
+    width: 100%;
+    padding: 17px;
+    border-radius: 16px;
+    border: none;
+    background: linear-gradient(135deg, var(--teal), #3A8A92);
+    box-shadow: 0 4px 20px rgba(78,157,166,0.3);
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-primary:hover {
+    box-shadow: 0 6px 28px rgba(78,157,166,0.4);
+    transform: translateY(-1px);
+  }
+  .btn-primary:active {
+    transform: translateY(0) scale(0.99);
+  }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .btn-primary .spinner {
+    display: none;
+    width: 20px;
+    height: 20px;
+    border: 2.5px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto;
+  }
+  .btn-primary.loading .btn-text { display: none; }
+  .btn-primary.loading .spinner { display: block; }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* ===== Social Login Buttons ===== */
+  .social-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  .btn-social {
+    width: 100%;
+    padding: 15px 18px;
+    border-radius: 16px;
+    border: 1px solid var(--surface-border);
+    background: var(--surface);
+    backdrop-filter: var(--card-blur);
+    -webkit-backdrop-filter: var(--card-blur);
+    color: var(--text-primary);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .btn-social:hover {
+    background: var(--surface-hover);
+    border-color: rgba(255,255,255,0.12);
+  }
+  .btn-social:active {
+    transform: scale(0.98);
+  }
+  .btn-social svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 18px 0;
+  }
+  .divider::before,
+  .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--surface-border);
+  }
+  .divider span {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
+  /* ===== Register Footer ===== */
+  .register-footer {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+  .register-footer a {
+    color: var(--teal);
+    font-weight: 700;
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+  }
+  .register-footer a:hover { opacity: 0.8; }
+
+  /* ===== Toast ===== */
+  .toast {
+    position: absolute;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--error-bg);
+    border: 1px solid var(--error-border);
+    color: var(--error-color);
+    padding: 12px 24px;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0;
+    transition: all 0.3s ease;
+    pointer-events: none;
+    z-index: 200;
+    white-space: nowrap;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <div class="screen">
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-time">9:41</div>
+      <div class="status-icons">
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle theme"></button>
+        <svg viewBox="0 0 16 16"><path d="M1.5 4.5C4 2 7.5 1 8 1s4 1 6.5 3.5l-1.2 1.2C11.2 3.6 9 2.5 8 2.5S4.8 3.6 2.7 5.7L1.5 4.5zM4 7.3C5.3 6 6.8 5.2 8 5.2s2.7.8 4 2.1L10.8 8.5C9.8 7.5 9 7 8 7s-1.8.5-2.8 1.5L4 7.3zM6.5 10c.8-.8 1.2-1 1.5-1s.7.2 1.5 1L8 11.5 6.5 10z"/></svg>
+        <svg viewBox="0 0 16 16"><path d="M1 4h2v8H1V4zm3.5 2h2v6h-2V6zM8 3h2v9H8V3zm3.5 1h2v8h-2V4z"/></svg>
+        <svg viewBox="0 0 24 14"><rect x="0.5" y="0.5" width="20" height="13" rx="2.5" stroke="white" stroke-opacity="0.35" fill="none"/><path opacity="0.4" d="M22 5v4a2 2 0 000-4z" fill="white"/><rect x="2" y="2" width="15" height="9" rx="1.5" fill="white"/></svg>
+      </div>
+    </div>
+
+    <!-- Branding (centered in available space) -->
+    <div class="branding">
+      <div class="logo-area">
+        <div class="logo-icon">&#x1F993;</div>
+      </div>
+      <div class="app-name">ShopZebra</div>
+      <div class="app-tagline">Deine Familien-Einkaufsliste</div>
+    </div>
+
+    <!-- Form Area (bottom, thumb-zone) -->
+    <div class="form-area">
+      <!-- Social Login (Cognito Federation) -->
+      <div class="social-buttons">
+        <button class="btn-social" onclick="handleSocialLogin('google')">
+          <svg viewBox="0 0 24 24">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A10.96 10.96 0 001 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+          </svg>
+          Mit Google anmelden
+        </button>
+        <button class="btn-social" onclick="handleSocialLogin('apple')">
+          <svg viewBox="0 0 24 24" fill="white">
+            <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+          </svg>
+          Mit Apple anmelden
+        </button>
+      </div>
+
+      <div class="divider"><span>oder mit E-Mail</span></div>
+
+      <!-- E-Mail + Passwort (Cognito User Pool) -->
+      <div class="input-group">
+        <input
+          type="email"
+          class="input-field"
+          id="emailInput"
+          placeholder="E-Mail-Adresse"
+          autocomplete="email"
+          inputmode="email"
+          spellcheck="false"
+        >
+        <div class="inline-error" id="emailError">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+          <span>Bitte gib eine g&uuml;ltige E-Mail-Adresse ein</span>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <div class="input-password-wrap">
+          <input
+            type="password"
+            class="input-field"
+            id="passwordInput"
+            placeholder="Passwort"
+            autocomplete="current-password"
+          >
+          <button class="pw-toggle" id="pwToggle" onclick="togglePasswordVisibility()" aria-label="Passwort anzeigen" type="button">
+            <svg id="eyeIcon" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+          </button>
+        </div>
+        <div class="inline-error" id="passwordError">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+          <span>Passwort muss mindestens 8 Zeichen lang sein</span>
+        </div>
+      </div>
+
+      <div class="forgot-link">
+        <a href="#" onclick="handleForgot(event)">Passwort vergessen?</a>
+      </div>
+
+      <button class="btn-primary" id="loginBtn" onclick="handleLogin()">
+        <span class="btn-text">Anmelden</span>
+        <div class="spinner"></div>
+      </button>
+
+      <div class="register-footer">
+        Neu hier? <a href="#" onclick="handleRegister(); return false;">Konto erstellen</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+  // ===== Theme =====
+  var MOON_SVG = '<svg viewBox="0 0 24 24" fill="white"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>';
+  var SUN_SVG = '<svg viewBox="0 0 24 24" fill="white"><path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79 1.42-1.41zM4 10.5H1v2h3v-2zm9-9.95h-2V3.5h2V.55zm7.45 3.91l-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zm-3.21 13.7l1.79 1.8 1.41-1.41-1.8-1.79-1.4 1.4zM20 10.5v2h3v-2h-3zm-8-5c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm-1 16.95h2V19.5h-2v2.95zm-7.45-3.91l1.41 1.41 1.79-1.8-1.41-1.41-1.79 1.8z"/></svg>';
+  function getTheme() { return localStorage.getItem('shopzebra_theme') || 'dark'; }
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('shopzebra_theme', t);
+    document.getElementById('themeToggle').innerHTML = t === 'dark' ? MOON_SVG : SUN_SVG;
+  }
+  function toggleTheme() { applyTheme(getTheme() === 'dark' ? 'glass' : 'dark'); }
+  applyTheme(getTheme());
+
+  // ===== Password Visibility =====
+  var passwordVisible = false;
+  var EYE_OPEN = '<svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
+  var EYE_CLOSED = '<svg viewBox="0 0 24 24"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46A11.8 11.8 0 001 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></svg>';
+
+  function togglePasswordVisibility() {
+    var input = document.getElementById('passwordInput');
+    var icon = document.getElementById('eyeIcon');
+    passwordVisible = !passwordVisible;
+    input.type = passwordVisible ? 'text' : 'password';
+    document.getElementById('pwToggle').innerHTML = passwordVisible ? EYE_CLOSED : EYE_OPEN;
+  }
+
+  // ===== Validation =====
+  function validateEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  function clearErrors() {
+    document.getElementById('emailInput').classList.remove('error');
+    document.getElementById('passwordInput').classList.remove('error');
+    document.getElementById('emailError').classList.remove('visible');
+    document.getElementById('passwordError').classList.remove('visible');
+  }
+
+  // ===== Login =====
+  function handleLogin() {
+    clearErrors();
+    var email = document.getElementById('emailInput').value.trim();
+    var password = document.getElementById('passwordInput').value;
+    var hasError = false;
+
+    if (!email || !validateEmail(email)) {
+      document.getElementById('emailInput').classList.add('error');
+      document.getElementById('emailError').classList.add('visible');
+      hasError = true;
+    }
+    if (!password || password.length < 8) {
+      document.getElementById('passwordInput').classList.add('error');
+      document.getElementById('passwordError').classList.add('visible');
+      hasError = true;
+    }
+
+    if (hasError) return;
+
+    // Simulate login
+    var btn = document.getElementById('loginBtn');
+    btn.classList.add('loading');
+    btn.disabled = true;
+
+    setTimeout(function() {
+      btn.classList.remove('loading');
+      btn.disabled = false;
+      showToast('Willkommen bei ShopZebra!');
+    }, 1800);
+  }
+
+  // ===== Social Login (Cognito Federation) =====
+  function handleSocialLogin(provider) {
+    // In production: redirect to Cognito Hosted UI with provider
+    // e.g. https://<domain>.auth.<region>.amazoncognito.com/oauth2/authorize?identity_provider=Google
+    showToast('Weiterleitung zu ' + (provider === 'google' ? 'Google' : 'Apple') + '...');
+  }
+
+  function handleRegister() {
+    showToast('Registrierung wird ge\u00F6ffnet...');
+  }
+
+  function handleForgot(e) {
+    e.preventDefault();
+    showToast('Link zum Zur\u00FCcksetzen gesendet');
+  }
+
+  // ===== Toast =====
+  function showToast(msg) {
+    var toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.style.background = 'rgba(78,157,166,0.15)';
+    toast.style.borderColor = 'rgba(78,157,166,0.3)';
+    toast.style.color = 'var(--teal)';
+    toast.classList.add('show');
+    setTimeout(function() { toast.classList.remove('show'); }, 2500);
+  }
+
+  // ===== Clear errors on input =====
+  document.getElementById('emailInput').addEventListener('input', function() {
+    this.classList.remove('error');
+    document.getElementById('emailError').classList.remove('visible');
+  });
+  document.getElementById('passwordInput').addEventListener('input', function() {
+    this.classList.remove('error');
+    document.getElementById('passwordError').classList.remove('visible');
+  });
+
+  // ===== Enter key =====
+  document.querySelectorAll('.input-field').forEach(function(input) {
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') handleLogin();
+    });
+  });
+</script>
+
+</body>
+</html>

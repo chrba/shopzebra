@@ -3,16 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ShopZebra - Mitglieder (Design 2: Tab Toggle)</title>
+<title>ShopZebra - Mitglieder (Design 1: Compact Combined)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   /* ========================================
-     Design 2: Tab/Segment Toggle
-     Segmented control switching between
-     "Mitglieder" and "Einladen" views.
-     Each view uses full screen space.
+     Design 1: Compact Combined
+     Members as horizontal avatar bubbles at top,
+     invite section below. One screen, no scroll.
      ======================================== */
 
   /* ===== Theme: Dark ===== */
@@ -43,8 +42,6 @@
     --success-color: #6BBF6B;
     --danger-color: #E07B7B;
     --danger-bg: rgba(224,123,123,0.12);
-    --segment-bg: rgba(255,255,255,0.04);
-    --segment-active: rgba(255,255,255,0.1);
   }
 
   /* ===== Theme: Glass ===== */
@@ -78,8 +75,6 @@
     --success-color: #6BBF6B;
     --danger-color: #E07B7B;
     --danger-bg: rgba(236,72,153,0.15);
-    --segment-bg: rgba(255,255,255,0.06);
-    --segment-active: rgba(255,255,255,0.14);
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -165,87 +160,34 @@
   }
   .nav-spacer { width: 70px; }
 
-  /* ===== Segmented Control ===== */
-  .segment-control {
-    display: flex;
-    margin: 0 24px 16px;
-    background: var(--segment-bg);
-    border-radius: 12px;
-    padding: 3px;
+  /* ===== Members Section (compact bubbles) ===== */
+  .members-section {
+    padding: 0 24px 16px;
     flex-shrink: 0;
-    border: 1px solid var(--surface-border);
   }
-  .segment-btn {
-    flex: 1;
-    padding: 10px 0;
-    border: none;
-    border-radius: 10px;
-    background: transparent;
-    color: var(--text-secondary);
-    font-size: 14px;
+  .members-label {
+    font-size: 12px;
     font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-  }
-  .segment-btn.active {
-    background: var(--segment-active);
-    color: var(--text-primary);
-    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
-  }
-  .segment-btn svg { width: 16px; height: 16px; fill: currentColor; }
-  .segment-badge {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--teal);
-    color: white;
-    font-size: 11px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  /* ===== Tab Content ===== */
-  .tab-content {
-    flex: 1;
-    display: none;
-    flex-direction: column;
-    min-height: 0;
-  }
-  .tab-content.active {
-    display: flex;
-  }
-
-  /* ===== Members Tab ===== */
-  .members-list {
-    padding: 0 20px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-  }
-  .member-card {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 16px;
-    padding: 14px 16px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
     margin-bottom: 10px;
-    backdrop-filter: var(--card-blur);
-    -webkit-backdrop-filter: var(--card-blur);
-    transition: all 0.3s ease;
   }
-  .member-card-avatar {
-    width: 44px;
-    height: 44px;
+  .members-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .member-bubble {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    position: relative;
+  }
+  .member-avatar {
+    width: 48px;
+    height: 48px;
     border-radius: var(--icon-radius);
     display: flex;
     align-items: center;
@@ -253,142 +195,160 @@
     font-size: 18px;
     font-weight: 700;
     color: white;
-    flex-shrink: 0;
+    position: relative;
     transition: border-radius 0.3s ease;
   }
-  .member-card-avatar.green { background: #6BBF6B; }
-  .member-card-avatar.blue { background: #5B8DEF; }
-  .member-card-avatar.purple { background: #A855F7; }
-  .member-card-info { flex: 1; min-width: 0; }
-  .member-card-name {
-    font-size: 15px;
+  .member-avatar.green { background: #6BBF6B; }
+  .member-avatar.blue { background: #5B8DEF; }
+  .member-avatar.purple { background: #A855F7; }
+  .member-name {
+    font-size: 11px;
     font-weight: 600;
-    color: var(--text-primary);
+    color: var(--text-secondary);
+    max-width: 56px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .member-card-role {
-    font-size: 12px;
+  .member-role {
+    font-size: 9px;
     font-weight: 500;
     color: var(--text-dim);
-    margin-top: 1px;
+    margin-top: -2px;
   }
-  .member-card-role.admin { color: var(--teal); }
-  .member-remove-btn {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-    background: var(--danger-bg);
-    border: none;
-    display: flex;
+  .member-remove {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--danger-color);
+    border: 2px solid var(--screen-bg);
+    display: none;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: transform 0.15s ease;
+  }
+  .member-remove:active { transform: scale(0.9); }
+  .member-remove svg { width: 10px; height: 10px; fill: white; }
+  .member-bubble.removable .member-remove { display: flex; }
+  .member-bubble.removable .member-avatar { animation: wiggle 0.4s ease-in-out infinite; }
+
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-2deg); }
+    75% { transform: rotate(2deg); }
+  }
+
+  .member-count {
+    font-size: 13px;
+    color: var(--text-dim);
+    font-weight: 500;
+    margin-left: auto;
+  }
+  .edit-members-btn {
+    background: none;
+    border: none;
+    color: var(--teal);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 4px 0;
+    margin-left: auto;
+    transition: opacity 0.2s ease;
+  }
+  .edit-members-btn:active { opacity: 0.6; }
+
+  /* ===== Divider ===== */
+  .section-divider {
+    height: 1px;
+    background: var(--surface-border);
+    margin: 0 24px 16px;
     flex-shrink: 0;
   }
-  .member-remove-btn:hover { background: rgba(224,123,123,0.2); }
-  .member-remove-btn:active { transform: scale(0.92); }
-  .member-remove-btn svg { width: 16px; height: 16px; fill: var(--danger-color); }
 
-  /* Invite CTA at bottom of members tab */
-  .invite-cta {
-    margin: auto 20px 50px;
-    padding: 16px;
-    border-radius: 16px;
-    background: rgba(78,157,166,0.08);
-    border: 1px solid rgba(78,157,166,0.15);
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  .invite-cta:hover { background: rgba(78,157,166,0.12); }
-  .invite-cta:active { transform: scale(0.98); }
-  .invite-cta-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: rgba(78,157,166,0.15);
-    margin: 0 auto 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .invite-cta-icon svg { width: 22px; height: 22px; fill: var(--teal); }
-  .invite-cta-title {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--teal);
-    margin-bottom: 4px;
-  }
-  .invite-cta-desc {
-    font-size: 12px;
-    color: var(--text-dim);
-    font-weight: 500;
-  }
-
-  /* ===== Invite Tab ===== */
-  .invite-tab {
-    padding: 0 24px;
+  /* ===== Invite Section ===== */
+  .invite-section {
     flex: 1;
     display: flex;
     flex-direction: column;
+    padding: 0 24px;
+    min-height: 0;
+  }
+  .invite-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    flex-shrink: 0;
   }
 
-  .qr-section {
-    text-align: center;
-    padding: 12px 0 16px;
+  /* QR + Link side by side */
+  .qr-link-row {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    margin-bottom: 14px;
     flex-shrink: 0;
   }
   .qr-container {
-    width: 160px;
-    height: 160px;
+    width: 120px;
+    height: 120px;
     background: var(--qr-bg);
-    border-radius: 20px;
-    margin: 0 auto 12px;
+    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: var(--qr-shadow);
+    flex-shrink: 0;
   }
   .qr-pattern {
-    width: 120px;
-    height: 120px;
+    width: 90px;
+    height: 90px;
     display: grid;
     grid-template-columns: repeat(11, 1fr);
     grid-template-rows: repeat(11, 1fr);
     gap: 1px;
   }
-  .qr-cell { border-radius: 1.5px; }
+  .qr-cell { border-radius: 1px; }
   .qr-cell.dark { background: #1a1a2e; }
   .qr-cell.light { background: transparent; }
-  .qr-label {
+
+  .qr-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .qr-info-title {
     font-size: 14px;
     font-weight: 600;
-    color: var(--text-secondary);
-    margin-bottom: 3px;
+    color: var(--text-primary);
   }
-  .qr-hint {
+  .qr-info-hint {
     font-size: 12px;
     color: var(--text-dim);
     font-weight: 500;
-  }
-
-  /* Link Field */
-  .link-section {
-    padding: 0 0 14px;
-    flex-shrink: 0;
+    line-height: 1.4;
   }
   .link-field {
     display: flex;
     align-items: center;
     background: var(--input-bg);
     border: 1px solid var(--input-border);
-    border-radius: 14px;
+    border-radius: 10px;
     overflow: hidden;
   }
   .link-text {
     flex: 1;
-    padding: 12px 14px;
-    font-size: 13px;
+    padding: 10px 10px;
+    font-size: 12px;
     font-weight: 500;
     color: var(--text-secondary);
     font-family: 'Plus Jakarta Sans', monospace;
@@ -398,8 +358,8 @@
     user-select: all;
   }
   .link-copy {
-    width: 48px;
-    height: 44px;
+    width: 40px;
+    height: 38px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -412,29 +372,25 @@
   }
   .link-copy:hover { background: var(--surface-hover); }
   .link-copy:active { transform: scale(0.95); }
-  .link-copy svg { width: 18px; height: 18px; fill: var(--teal); }
+  .link-copy svg { width: 16px; height: 16px; fill: var(--teal); }
   .link-copy.copied svg { fill: var(--success-color); }
+
   .link-validity {
     text-align: center;
     font-size: 11px;
     color: var(--text-dim);
     font-weight: 500;
-    margin-top: 8px;
+    margin-top: 6px;
   }
 
-  /* Share Buttons */
-  .share-section {
+  /* ===== Share Buttons ===== */
+  .share-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
     flex-shrink: 0;
     margin-top: auto;
     padding-bottom: 50px;
-  }
-  .share-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 10px;
   }
   .share-button {
     width: 100%;
@@ -451,7 +407,6 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 8px;
     backdrop-filter: var(--card-blur);
     -webkit-backdrop-filter: var(--card-blur);
   }
@@ -554,82 +509,50 @@
         <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
         Listen
       </a>
-      <div class="nav-title">REWE Wocheneinkauf</div>
+      <div class="nav-title">Mitglieder</div>
       <div class="nav-spacer"></div>
     </div>
 
-    <!-- Segmented Control -->
-    <div class="segment-control">
-      <button class="segment-btn active" id="segMembers" onclick="switchTab('members')">
-        <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
-        Mitglieder
-        <span class="segment-badge">3</span>
-      </button>
-      <button class="segment-btn" id="segInvite" onclick="switchTab('invite')">
-        <svg viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-        Einladen
-      </button>
-    </div>
-
-    <!-- Tab: Mitglieder -->
-    <div class="tab-content active" id="tabMembers">
-      <div class="members-list">
-        <!-- Sarah (Admin/Self) -->
-        <div class="member-card" data-member="sarah">
-          <div class="member-card-avatar green">S</div>
-          <div class="member-card-info">
-            <div class="member-card-name">Sarah</div>
-            <div class="member-card-role admin">Admin &middot; Du</div>
-          </div>
+    <!-- Members: compact avatar bubbles -->
+    <div class="members-section">
+      <div class="members-label">REWE Wocheneinkauf &middot; 3 Mitglieder</div>
+      <div class="members-row" id="membersRow">
+        <div class="member-bubble" data-member="sarah">
+          <div class="member-avatar green">S</div>
+          <div class="member-name">Sarah</div>
+          <div class="member-role">du / Admin</div>
         </div>
-
-        <!-- Tom -->
-        <div class="member-card" data-member="tom" id="cardTom">
-          <div class="member-card-avatar blue">T</div>
-          <div class="member-card-info">
-            <div class="member-card-name">Tom</div>
-            <div class="member-card-role">Mitglied</div>
-          </div>
-          <button class="member-remove-btn" onclick="confirmRemove('Tom')">
+        <div class="member-bubble" data-member="tom">
+          <div class="member-avatar blue">T</div>
+          <div class="member-remove" onclick="confirmRemove('Tom')">
             <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-          </button>
-        </div>
-
-        <!-- Lena -->
-        <div class="member-card" data-member="lena" id="cardLena">
-          <div class="member-card-avatar purple">L</div>
-          <div class="member-card-info">
-            <div class="member-card-name">Lena</div>
-            <div class="member-card-role">Mitglied</div>
           </div>
-          <button class="member-remove-btn" onclick="confirmRemove('Lena')">
+          <div class="member-name">Tom</div>
+          <div class="member-role">Mitglied</div>
+        </div>
+        <div class="member-bubble" data-member="lena">
+          <div class="member-avatar purple">L</div>
+          <div class="member-remove" onclick="confirmRemove('Lena')">
             <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-          </button>
+          </div>
+          <div class="member-name">Lena</div>
+          <div class="member-role">Mitglied</div>
         </div>
-      </div>
-
-      <!-- CTA to switch to invite tab -->
-      <div class="invite-cta" onclick="switchTab('invite')">
-        <div class="invite-cta-icon">
-          <svg viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-        </div>
-        <div class="invite-cta-title">Neues Mitglied einladen</div>
-        <div class="invite-cta-desc">Per QR-Code, Link, WhatsApp oder E-Mail</div>
+        <button class="edit-members-btn" id="editBtn" onclick="toggleEditMode()">Bearbeiten</button>
       </div>
     </div>
 
-    <!-- Tab: Einladen -->
-    <div class="tab-content" id="tabInvite">
-      <div class="invite-tab">
-        <!-- QR Code -->
-        <div class="qr-section">
-          <div class="qr-container" id="qrContainer"></div>
-          <div class="qr-label">QR-Code scannen</div>
-          <div class="qr-hint">oder Einladungslink teilen</div>
-        </div>
+    <div class="section-divider"></div>
 
-        <!-- Link Field -->
-        <div class="link-section">
+    <!-- Invite Section -->
+    <div class="invite-section">
+      <div class="invite-label">Neue Mitglieder einladen</div>
+
+      <div class="qr-link-row">
+        <div class="qr-container" id="qrContainer"></div>
+        <div class="qr-info">
+          <div class="qr-info-title">QR-Code scannen</div>
+          <div class="qr-info-hint">Oder Einladungslink kopieren und teilen</div>
           <div class="link-field">
             <div class="link-text">shopzebra.app/j/Ax9fK2m</div>
             <button class="link-copy" id="copyBtn" onclick="copyLink()">
@@ -638,21 +561,21 @@
           </div>
           <div class="link-validity">Link g&uuml;ltig f&uuml;r 7 Tage</div>
         </div>
+      </div>
 
-        <!-- Share Buttons -->
-        <div class="share-section">
-          <div class="share-label">Einladung senden</div>
-          <button class="share-button whatsapp" onclick="shareWhatsApp()">
-            <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-            Per WhatsApp
-            <span class="btn-desc">Direkt senden</span>
-          </button>
-          <button class="share-button email" onclick="shareEmail()">
-            <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-            Per E-Mail
-            <span class="btn-desc">Einladungstext</span>
-          </button>
-        </div>
+      <!-- Share Buttons -->
+      <div class="share-buttons">
+        <button class="share-button whatsapp" onclick="shareWhatsApp()">
+          <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          Per WhatsApp
+          <span class="btn-desc">Direkt senden</span>
+        </button>
+
+        <button class="share-button email" onclick="shareEmail()">
+          <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+          Per E-Mail
+          <span class="btn-desc">Einladungstext</span>
+        </button>
       </div>
     </div>
   </div>
@@ -686,26 +609,6 @@
   function toggleTheme() { applyTheme(getTheme() === 'dark' ? 'glass' : 'dark'); }
   applyTheme(getTheme());
 
-  // ===== Tab Switching =====
-  function switchTab(tab) {
-    var tabMembers = document.getElementById('tabMembers');
-    var tabInvite = document.getElementById('tabInvite');
-    var segMembers = document.getElementById('segMembers');
-    var segInvite = document.getElementById('segInvite');
-
-    if (tab === 'members') {
-      tabMembers.classList.add('active');
-      tabInvite.classList.remove('active');
-      segMembers.classList.add('active');
-      segInvite.classList.remove('active');
-    } else {
-      tabInvite.classList.add('active');
-      tabMembers.classList.remove('active');
-      segInvite.classList.add('active');
-      segMembers.classList.remove('active');
-    }
-  }
-
   // ===== Fake QR Code =====
   function generateQR() {
     var container = document.getElementById('qrContainer');
@@ -733,6 +636,23 @@
   }
   generateQR();
 
+  // ===== Edit Mode (toggle remove buttons) =====
+  var editMode = false;
+  function toggleEditMode() {
+    editMode = !editMode;
+    var bubbles = document.querySelectorAll('.member-bubble[data-member]:not([data-member="sarah"])');
+    var btn = document.getElementById('editBtn');
+    for (var i = 0; i < bubbles.length; i++) {
+      if (editMode) {
+        bubbles[i].classList.add('removable');
+      } else {
+        bubbles[i].classList.remove('removable');
+      }
+    }
+    btn.textContent = editMode ? 'Fertig' : 'Bearbeiten';
+    btn.style.color = editMode ? 'var(--danger-color)' : 'var(--teal)';
+  }
+
   // ===== Remove Member =====
   var pendingRemoveName = '';
   function confirmRemove(name) {
@@ -747,23 +667,14 @@
   }
   function executeRemove() {
     hideRemoveDialog();
-    var cardId = 'card' + pendingRemoveName;
-    var card = document.getElementById(cardId);
-    if (card) {
-      card.style.transition = 'opacity 0.3s ease, transform 0.3s ease, max-height 0.3s ease';
-      card.style.opacity = '0';
-      card.style.transform = 'translateX(60px)';
-      card.style.maxHeight = '0';
-      card.style.marginBottom = '0';
-      card.style.padding = '0 16px';
-      card.style.overflow = 'hidden';
-      setTimeout(function() { card.remove(); }, 350);
+    var key = pendingRemoveName.toLowerCase();
+    var bubble = document.querySelector('.member-bubble[data-member="' + key + '"]');
+    if (bubble) {
+      bubble.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+      bubble.style.opacity = '0';
+      bubble.style.transform = 'scale(0.5)';
+      setTimeout(function() { bubble.remove(); }, 300);
     }
-    // Update badge count
-    var badge = document.querySelector('.segment-badge');
-    var current = parseInt(badge.textContent);
-    badge.textContent = current - 1;
-
     showToast(pendingRemoveName + ' wurde entfernt');
   }
 
@@ -784,8 +695,12 @@
   }
 
   // ===== Share =====
-  function shareWhatsApp() { showToast('WhatsApp wird ge\u00F6ffnet...'); }
-  function shareEmail() { showToast('E-Mail wird ge\u00F6ffnet...'); }
+  function shareWhatsApp() {
+    showToast('WhatsApp wird ge\u00F6ffnet...');
+  }
+  function shareEmail() {
+    showToast('E-Mail wird ge\u00F6ffnet...');
+  }
 
   // ===== Toast =====
   function showToast(msg) {

@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopZebra - Profil Design 2: iOS-Style Listen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ========================================
+     Profil Design 2: iOS-Style Listen
+     Kompakt, gruppierte Rows mit Chevrons
+     ======================================== */
+
+  /* ===== Theme: Dark ===== */
+  [data-theme="dark"] {
+    --body-bg: #0a0a0e;
+    --screen-bg: #121216;
+    --screen-gradient: none;
+    --surface: rgba(255,255,255,0.04);
+    --surface-hover: rgba(255,255,255,0.06);
+    --surface-border: rgba(255,255,255,0.06);
+    --teal: #4E9DA6;
+    --orange: #E8923A;
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255,255,255,0.5);
+    --text-dim: rgba(255,255,255,0.35);
+    --card-bg: rgba(255,255,255,0.03);
+    --card-border: rgba(255,255,255,0.06);
+    --card-blur: 0px;
+    --input-bg: rgba(255,255,255,0.04);
+    --input-border: rgba(255,255,255,0.08);
+    --input-focus: rgba(78,157,166,0.3);
+    --frame-shadow: 0 0 60px rgba(0,0,0,0.5), 0 0 120px rgba(78,157,166,0.05);
+    --frame-border: 1px solid rgba(255,255,255,0.08);
+    --icon-radius: 50%;
+    --green-bg: rgba(107,191,107,0.12);
+    --red-bg: rgba(224,123,123,0.12);
+  }
+
+  /* ===== Theme: Glass ===== */
+  [data-theme="glass"] {
+    --body-bg: #1a1a2e;
+    --screen-bg: #0a0a12;
+    --screen-gradient:
+      radial-gradient(ellipse at 20% 80%, rgba(120, 50, 180, 0.35) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(50, 120, 180, 0.3) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 50%, rgba(180, 50, 120, 0.2) 0%, transparent 60%);
+    --surface: rgba(255,255,255,0.06);
+    --surface-hover: rgba(255,255,255,0.09);
+    --surface-border: rgba(255,255,255,0.1);
+    --teal: #4E9DA6;
+    --orange: #E8923A;
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255,255,255,0.5);
+    --text-dim: rgba(255,255,255,0.35);
+    --card-bg: rgba(255,255,255,0.06);
+    --card-border: rgba(255,255,255,0.1);
+    --card-blur: blur(20px);
+    --input-bg: rgba(255,255,255,0.06);
+    --input-border: rgba(255,255,255,0.1);
+    --input-focus: rgba(78,157,166,0.4);
+    --frame-shadow: 0 0 0 2px rgba(255,255,255,0.08), 0 40px 80px rgba(0,0,0,0.6), 0 0 120px rgba(139,92,246,0.15);
+    --frame-border: none;
+    --icon-radius: 14px;
+    --green-bg: rgba(80,180,80,0.15);
+    --red-bg: rgba(236,72,153,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--body-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    color: var(--text-primary);
+    transition: background 0.4s ease;
+  }
+
+  .phone-frame {
+    width: 390px;
+    height: 844px;
+    background: var(--screen-bg);
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    border: var(--frame-border);
+    box-shadow: var(--frame-shadow);
+    transition: background 0.4s ease, border-color 0.3s ease, box-shadow 0.4s ease;
+  }
+
+  .screen {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 40px;
+    scrollbar-width: none;
+    background-color: var(--screen-bg);
+    background-image: var(--screen-gradient);
+    transition: background 0.4s ease;
+  }
+  .screen::-webkit-scrollbar { display: none; }
+
+  /* ===== Status Bar ===== */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 28px 8px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--screen-bg);
+  }
+  .status-time { font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
+  .status-icons { display: flex; align-items: center; gap: 6px; }
+  .status-icons svg { width: 16px; height: 16px; fill: white; }
+  .theme-toggle {
+    width: 20px; height: 20px; background: transparent; border: none;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    opacity: 0.5; padding: 0; margin: 0 6px; transition: opacity 0.2s ease;
+  }
+  .theme-toggle:hover { opacity: 0.85; }
+  .theme-toggle svg { width: 16px; height: 16px; fill: white; }
+
+  /* ===== Nav Header ===== */
+  .nav-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 24px 16px;
+  }
+  .nav-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: var(--teal);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    text-decoration: none;
+  }
+  .nav-back svg { width: 20px; height: 20px; fill: var(--teal); }
+  .nav-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .nav-spacer { width: 70px; }
+
+  /* ===== Profile Header (Compact) ===== */
+  .profile-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 4px 24px 24px;
+  }
+  .profile-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--icon-radius);
+    background: #6BBF6B;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 800;
+    color: white;
+    flex-shrink: 0;
+    transition: border-radius 0.3s ease;
+  }
+  .profile-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .profile-name {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .profile-email {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ===== iOS-Style Grouped List ===== */
+  .list-section {
+    margin: 0 20px 20px;
+  }
+  .list-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    padding-left: 4px;
+  }
+  .list-group {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    overflow: hidden;
+    backdrop-filter: var(--card-blur);
+    -webkit-backdrop-filter: var(--card-blur);
+    transition: background 0.3s ease, border-color 0.3s ease;
+  }
+  .list-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    text-decoration: none;
+    color: inherit;
+  }
+  .list-row:hover { background: var(--surface-hover); }
+  .list-row:active { background: var(--surface); }
+  .list-row + .list-row {
+    border-top: 1px solid var(--surface-border);
+  }
+  .list-row-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--icon-radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+    transition: border-radius 0.3s ease;
+  }
+  .list-row-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .list-row-icon svg { width: 18px; height: 18px; fill: var(--text-secondary); }
+  .list-row-icon.teal { background: rgba(78,157,166,0.12); }
+  .list-row-icon.teal svg { fill: var(--teal); }
+  .list-row-icon.orange { background: rgba(232,146,58,0.12); }
+  .list-row-icon.orange svg { fill: var(--orange); }
+  .list-row-content {
+    flex: 1;
+    min-width: 0;
+  }
+  .list-row-title {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .list-row-subtitle {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 500;
+    margin-top: 1px;
+  }
+  .list-row-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .list-row-value {
+    font-size: 13px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+  .list-row-tag {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 12px;
+    background: rgba(78,157,166,0.12);
+    color: var(--teal);
+  }
+  .list-row-you {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--teal);
+  }
+  .chevron {
+    width: 16px;
+    height: 16px;
+    fill: var(--text-dim);
+    flex-shrink: 0;
+  }
+
+  /* ===== Toggle Switch ===== */
+  .toggle {
+    width: 48px;
+    height: 28px;
+    border-radius: 14px;
+    background: var(--surface-border);
+    position: relative;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    border: none;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .toggle.active {
+    background: var(--teal);
+  }
+  .toggle-knob {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: white;
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    transition: transform 0.3s ease;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+  .toggle.active .toggle-knob {
+    transform: translateX(20px);
+  }
+
+  /* ===== Invite Row Special ===== */
+  .invite-row {
+    color: var(--teal);
+  }
+  .invite-row .list-row-title {
+    color: var(--teal);
+  }
+  .invite-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--icon-radius);
+    border: 2px dashed rgba(78,157,166,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: border-radius 0.3s ease;
+  }
+  .invite-icon svg { width: 18px; height: 18px; fill: var(--teal); }
+
+  /* ===== Danger Rows ===== */
+  .logout-row .list-row-title {
+    color: var(--text-primary);
+  }
+  .logout-row .list-row-icon {
+    background: var(--surface);
+  }
+  .delete-row .list-row-title {
+    color: #E07B7B;
+  }
+  .delete-row .list-row-icon {
+    background: var(--red-bg);
+  }
+  .delete-row .list-row-icon svg { fill: #E07B7B; }
+
+  /* ===== Version Footer ===== */
+  .version-footer {
+    text-align: center;
+    padding: 16px 0 8px;
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+
+  /* ===== Confirm Dialog ===== */
+  .dialog-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 24px;
+  }
+  .dialog-overlay.show { display: flex; }
+  .dialog-box {
+    background: var(--screen-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 24px;
+    width: 100%;
+    max-width: 320px;
+    text-align: center;
+    backdrop-filter: var(--card-blur);
+    -webkit-backdrop-filter: var(--card-blur);
+  }
+  .dialog-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .dialog-message {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+  .dialog-actions {
+    display: flex;
+    gap: 10px;
+  }
+  .dialog-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.1s ease;
+  }
+  .dialog-btn:active { transform: scale(0.97); }
+  .dialog-btn.cancel {
+    background: var(--surface);
+    color: var(--text-primary);
+  }
+  .dialog-btn.danger {
+    background: #E07B7B;
+    color: white;
+  }
+
+  /* ===== Toast ===== */
+  .toast {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--green-bg);
+    border: 1px solid rgba(107,191,107,0.2);
+    color: #6BBF6B;
+    padding: 12px 24px;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0;
+    transition: all 0.3s ease;
+    pointer-events: none;
+    z-index: 200;
+    white-space: nowrap;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <div class="screen">
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-time">9:41</div>
+      <div class="status-icons">
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle theme"></button>
+        <svg viewBox="0 0 16 16"><path d="M1.5 4.5C4 2 7.5 1 8 1s4 1 6.5 3.5l-1.2 1.2C11.2 3.6 9 2.5 8 2.5S4.8 3.6 2.7 5.7L1.5 4.5zM4 7.3C5.3 6 6.8 5.2 8 5.2s2.7.8 4 2.1L10.8 8.5C9.8 7.5 9 7 8 7s-1.8.5-2.8 1.5L4 7.3zM6.5 10c.8-.8 1.2-1 1.5-1s.7.2 1.5 1L8 11.5 6.5 10z"/></svg>
+        <svg viewBox="0 0 16 16"><path d="M1 4h2v8H1V4zm3.5 2h2v6h-2V6zM8 3h2v9H8V3zm3.5 1h2v8h-2V4z"/></svg>
+        <svg viewBox="0 0 24 14"><rect x="0.5" y="0.5" width="20" height="13" rx="2.5" stroke="white" stroke-opacity="0.35" fill="none"/><path opacity="0.4" d="M22 5v4a2 2 0 000-4z" fill="white"/><rect x="2" y="2" width="15" height="9" rx="1.5" fill="white"/></svg>
+      </div>
+    </div>
+
+    <!-- Nav Header -->
+    <div class="nav-header">
+      <a class="nav-back" href="listen.html">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        Listen
+      </a>
+      <div class="nav-title">Profil</div>
+      <div class="nav-spacer"></div>
+    </div>
+
+    <!-- Profile Header (Compact) -->
+    <div class="profile-header">
+      <div class="profile-avatar">A</div>
+      <div class="profile-info">
+        <div class="profile-name">Anna Weber</div>
+        <div class="profile-email">anna.weber@gmail.com</div>
+      </div>
+      <svg class="chevron" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+    </div>
+
+    <!-- Family Group -->
+    <div class="list-section">
+      <div class="list-label">Familie Weber</div>
+      <div class="list-group">
+        <div class="list-row">
+          <div class="list-row-avatar" style="background:#6BBF6B;">M</div>
+          <div class="list-row-content">
+            <div class="list-row-title">Mama (Anna)</div>
+          </div>
+          <div class="list-row-right">
+            <span class="list-row-you">Du</span>
+          </div>
+        </div>
+        <div class="list-row">
+          <div class="list-row-avatar" style="background:#5BA8D5;">P</div>
+          <div class="list-row-content">
+            <div class="list-row-title">Papa</div>
+          </div>
+          <div class="list-row-right">
+            <svg class="chevron" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+          </div>
+        </div>
+        <div class="list-row">
+          <div class="list-row-avatar" style="background:#E07B7B;">L</div>
+          <div class="list-row-content">
+            <div class="list-row-title">Lena</div>
+          </div>
+          <div class="list-row-right">
+            <svg class="chevron" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+          </div>
+        </div>
+        <div class="list-row">
+          <div class="list-row-avatar" style="background:#A07BCC;">O</div>
+          <div class="list-row-content">
+            <div class="list-row-title">Opa</div>
+          </div>
+          <div class="list-row-right">
+            <svg class="chevron" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+          </div>
+        </div>
+        <a class="list-row invite-row" href="einladen.html">
+          <div class="invite-icon">
+            <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          </div>
+          <div class="list-row-content">
+            <div class="list-row-title">Mitglied einladen</div>
+          </div>
+          <div class="list-row-right">
+            <svg class="chevron" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" fill="var(--teal)"/></svg>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Dietary Preferences Group -->
+    <div class="list-section">
+      <div class="list-label">Ern&auml;hrungspr&auml;ferenzen</div>
+      <div class="list-group">
+        <div class="list-row">
+          <div class="list-row-avatar" style="background:#6BBF6B;">M</div>
+          <div class="list-row-content">
+            <div class="list-row-title">Mama</div>
+            <div class="list-row-subtitle">Keine Einschr&auml;nkungen</div>
+          </div>
+          <div class="list-row-right">
+            <svg class="chevron" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+          </div>
+        </div>
+        <div class="list-row">
+          <div class="list-row-avatar" style="background:#5BA8D5;">P</div>
+          <div class="list-row-content">
+            <div class="list-row-title">Papa</div>
+            <div class="list-row-subtitle">Keine Einschr&auml;nkungen</div>
+          </div>
+          <div class="list-row-right">
+            <svg class="chevron" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+          </div>
+        </div>
+        <div class="list-row">
+          <div class="list-row-avatar" style="background:#E07B7B;">L</div>
+          <div class="list-row-content">
+            <div class="list-row-title">Lena</div>
+          </div>
+          <div class="list-row-right">
+            <span class="list-row-tag">Laktosefrei</span>
+            <svg class="chevron" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+          </div>
+        </div>
+        <div class="list-row">
+          <div class="list-row-avatar" style="background:#A07BCC;">O</div>
+          <div class="list-row-content">
+            <div class="list-row-title">Opa</div>
+          </div>
+          <div class="list-row-right">
+            <span class="list-row-tag">Glutenfrei</span>
+            <svg class="chevron" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Group -->
+    <div class="list-section">
+      <div class="list-label">Einstellungen</div>
+      <div class="list-group">
+        <div class="list-row">
+          <div class="list-row-icon teal">
+            <svg viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>
+          </div>
+          <div class="list-row-content">
+            <div class="list-row-title">Dark Mode</div>
+          </div>
+          <div class="list-row-right">
+            <button class="toggle active" id="toggleDarkMode" onclick="toggleDarkMode(event)">
+              <div class="toggle-knob"></div>
+            </button>
+          </div>
+        </div>
+        <div class="list-row">
+          <div class="list-row-icon orange">
+            <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+          </div>
+          <div class="list-row-content">
+            <div class="list-row-title">Benachrichtigungen</div>
+          </div>
+          <div class="list-row-right">
+            <button class="toggle active" id="toggleNotifications" onclick="toggleNotif(event)">
+              <div class="toggle-knob"></div>
+            </button>
+          </div>
+        </div>
+        <div class="list-row" onclick="showToast('Laden-Layout')">
+          <div class="list-row-icon">
+            <svg viewBox="0 0 24 24"><path d="M20 4H4v2h16V4zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6h1zm-9 4H6v-4h6v4z"/></svg>
+          </div>
+          <div class="list-row-content">
+            <div class="list-row-title">Laden-Layout</div>
+            <div class="list-row-subtitle">Kategorie-Reihenfolge anpassen</div>
+          </div>
+          <div class="list-row-right">
+            <span class="list-row-value">REWE</span>
+            <svg class="chevron" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+          </div>
+        </div>
+        <div class="list-row" onclick="showToast('Kundenkarten')">
+          <div class="list-row-icon">
+            <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+          </div>
+          <div class="list-row-content">
+            <div class="list-row-title">Kundenkarten</div>
+            <div class="list-row-subtitle">Wallet verwalten</div>
+          </div>
+          <div class="list-row-right">
+            <span class="list-row-value">2 Karten</span>
+            <svg class="chevron" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Account Group -->
+    <div class="list-section">
+      <div class="list-label">Konto</div>
+      <div class="list-group">
+        <div class="list-row logout-row" onclick="handleLogout()">
+          <div class="list-row-icon">
+            <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+          </div>
+          <div class="list-row-content">
+            <div class="list-row-title">Abmelden</div>
+          </div>
+        </div>
+        <div class="list-row delete-row" onclick="showDeleteDialog()">
+          <div class="list-row-icon">
+            <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+          </div>
+          <div class="list-row-content">
+            <div class="list-row-title">Konto l&ouml;schen</div>
+            <div class="list-row-subtitle">Alle Daten unwiderruflich entfernen</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Version -->
+    <div class="version-footer">ShopZebra v1.0.0</div>
+  </div>
+
+  <!-- Delete Confirmation Dialog -->
+  <div class="dialog-overlay" id="deleteDialog">
+    <div class="dialog-box">
+      <div class="dialog-title">Konto l&ouml;schen?</div>
+      <div class="dialog-message">Dein Konto und alle Daten werden unwiderruflich gel&ouml;scht. Diese Aktion kann nicht r&uuml;ckg&auml;ngig gemacht werden.</div>
+      <div class="dialog-actions">
+        <button class="dialog-btn cancel" onclick="hideDeleteDialog()">Abbrechen</button>
+        <button class="dialog-btn danger" onclick="confirmDelete()">L&ouml;schen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+  // ===== Theme =====
+  var MOON_SVG = '<svg viewBox="0 0 24 24" fill="white"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>';
+  var SUN_SVG = '<svg viewBox="0 0 24 24" fill="white"><path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79 1.42-1.41zM4 10.5H1v2h3v-2zm9-9.95h-2V3.5h2V.55zm7.45 3.91l-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zm-3.21 13.7l1.79 1.8 1.41-1.41-1.8-1.79-1.4 1.4zM20 10.5v2h3v-2h-3zm-8-5c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm-1 16.95h2V19.5h-2v2.95zm-7.45-3.91l1.41 1.41 1.79-1.8-1.41-1.41-1.79 1.8z"/></svg>';
+  function getTheme() { return localStorage.getItem('shopzebra_theme') || 'dark'; }
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('shopzebra_theme', t);
+    document.getElementById('themeToggle').innerHTML = t === 'dark' ? MOON_SVG : SUN_SVG;
+    var dm = document.getElementById('toggleDarkMode');
+    if (dm) {
+      if (t === 'dark') { dm.classList.add('active'); } else { dm.classList.remove('active'); }
+    }
+  }
+  function toggleTheme() { applyTheme(getTheme() === 'dark' ? 'glass' : 'dark'); }
+  applyTheme(getTheme());
+
+  // ===== Toggles =====
+  function toggleDarkMode(e) {
+    e.stopPropagation();
+    toggleTheme();
+  }
+  function toggleNotif(e) {
+    e.stopPropagation();
+    var btn = document.getElementById('toggleNotifications');
+    btn.classList.toggle('active');
+    showToast(btn.classList.contains('active') ? 'Benachrichtigungen aktiviert' : 'Benachrichtigungen deaktiviert');
+  }
+
+  // ===== Delete Dialog =====
+  function showDeleteDialog() {
+    document.getElementById('deleteDialog').classList.add('show');
+  }
+  function hideDeleteDialog() {
+    document.getElementById('deleteDialog').classList.remove('show');
+  }
+  function confirmDelete() {
+    hideDeleteDialog();
+    showToast('Konto wird gel\u00F6scht...');
+  }
+
+  // ===== Logout =====
+  function handleLogout() {
+    showToast('Abgemeldet');
+  }
+
+  // ===== Toast =====
+  function showToast(msg) {
+    var toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(function() { toast.classList.remove('show'); }, 2500);
+  }
+</script>
+
+</body>
+</html>

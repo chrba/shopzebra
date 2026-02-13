@@ -642,22 +642,22 @@
     box-shadow: 0 0 12px rgba(232,146,58,0.5);
   }
 
-  /* ===== Back Button ===== */
-  .back-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 12px;
-    border: 1.5px solid var(--surface-border);
-    background: var(--surface);
+  /* ===== Back Link ===== */
+  .nav-back {
     display: flex;
     align-items: center;
-    justify-content: center;
-    text-decoration: none;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: var(--teal);
+    font-size: 15px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    font-family: inherit;
+    text-decoration: none;
+    flex-shrink: 0;
   }
-  .back-btn:hover { border-color: var(--teal); }
-  .back-btn svg { width: 18px; height: 18px; fill: var(--text-secondary); }
+  .nav-back svg { width: 20px; height: 20px; fill: var(--teal); }
 </style>
 </head>
 <body>
@@ -678,8 +678,9 @@
     <!-- Header -->
     <div class="header">
       <div class="header-top">
-        <a class="back-btn" href="listen.html" aria-label="Zur&uuml;ck zu Listen">
-          <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+        <a class="nav-back" href="listen.html">
+          <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+          Listen
         </a>
         <h1 class="header-title">REWE Wocheneinkauf</h1>
       </div>
@@ -755,8 +756,11 @@
     }
   }
 
+  // ===== List ID from URL =====
+  const LIST_ID = new URLSearchParams(window.location.search).get('id') || 'default';
+
   // ===== Items & Data =====
-  const STORAGE_KEY = 'shopzebra_items';
+  const STORAGE_KEY = 'shopzebra_items_' + LIST_ID;
 
   const DEFAULT_ITEMS = [
     { id: 'aepfel', emoji: '\u{1F34E}', name: 'Äpfel', qty: 2, unit: 'kg', cat: 'obst-gemuese' },
@@ -784,10 +788,10 @@
   ];
 
   const CATEGORIES = [
-    { id: 'obst-gemuese', name: 'Obst & Gemüse', emoji: '\u{1F34E}', color: 'green', totalProducts: 41 },
-    { id: 'milch-kaese', name: 'Milch & Käse', emoji: '\u{1F9C0}', color: 'blue', totalProducts: 15 },
+    { id: 'obst-gemuese', name: 'Obst & Gemüse', emoji: '\u{1F34E}', color: 'green', totalProducts: 40 },
+    { id: 'milch-kaese', name: 'Milch & Käse', emoji: '\u{1F9C0}', color: 'blue', totalProducts: 13 },
     { id: 'brot-gebaeck', name: 'Brot & Gebäck', emoji: '\u{1F35E}', color: 'yellow', totalProducts: 10 },
-    { id: 'fleisch-fisch', name: 'Fleisch & Fisch', emoji: '\u{1F969}', color: 'red', totalProducts: 13 },
+    { id: 'fleisch-fisch', name: 'Fleisch & Fisch', emoji: '\u{1F969}', color: 'red', totalProducts: 12 },
     { id: 'zutaten-gewuerze', name: 'Zutaten & Gewürze', emoji: '\u{1F9C2}', color: 'purple', totalProducts: 26 },
     { id: 'drogerie-haushalt', name: 'Drogerie & Haushalt', emoji: '\u{1F9F4}', color: 'cyan', totalProducts: 20 }
   ];
@@ -865,7 +869,7 @@
       const badgeClass = catItems.length > 0 ? 'category-badge visible' : 'category-badge';
       const badgeText = catItems.length > 0 ? catItems.length + ' gewählt' : '';
 
-      return '<a class="category-card" href="kategorie.html?cat=' + cat.id + '" data-cat="' + cat.id + '">' +
+      return '<a class="category-card" href="kategorie.html?liste=' + LIST_ID + '&cat=' + cat.id + '" data-cat="' + cat.id + '">' +
         '<div class="category-icon ' + cat.color + '">' + cat.emoji + '</div>' +
         '<div class="category-info">' +
           '<div class="category-name">' + cat.name + '</div>' +
