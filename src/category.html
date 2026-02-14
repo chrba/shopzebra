@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ShopZebra - Kategorie</title>
+<title>ShopZebra - Category</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -680,7 +680,7 @@
     <!-- Header -->
     <div class="header">
       <div class="header-top">
-        <a class="nav-back" id="backLink" href="liste.html">
+        <a class="nav-back" id="backLink" href="list.html">
           <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
           Liste
         </a>
@@ -746,188 +746,188 @@
 <script>
 
 const URL_PARAMS = new URLSearchParams(window.location.search);
-const LIST_ID = URL_PARAMS.get('liste') || 'default';
-const CATEGORY = URL_PARAMS.get('cat') || 'obst-gemuese';
+const LIST_ID = URL_PARAMS.get('list') || 'default';
+const CATEGORY = URL_PARAMS.get('cat') || 'fruits-vegetables';
 const STORAGE_KEY = 'shopzebra_items_' + LIST_ID;
 const CUSTOM_VARIANTS_KEY = 'shopzebra_custom_variants_' + LIST_ID;
 const SELECTION_MEMORY_KEY = 'shopzebra_selection_memory_' + LIST_ID;
 
 const PRODUCTS_BY_CATEGORY = {
-  'obst-gemuese': [
-    { id: 'ananas', emoji: '\u{1F34D}', name: 'Ananas', unit: 'St' },
-    { id: 'aepfel', emoji: '\u{1F34E}', name: '\u00C4pfel', unit: 'kg', variants: [
+  'fruits-vegetables': [
+    { id: 'pineapple', emoji: '\u{1F34D}', name: 'Ananas', unit: 'St' },
+    { id: 'apples', emoji: '\u{1F34E}', name: '\u00C4pfel', unit: 'kg', variants: [
       'Elstar', 'Braeburn', 'Gala', 'Granny Smith', 'Pink Lady', 'Golden Delicious', 'Jonagold'
     ]},
     { id: 'avocado', emoji: '\u{1F951}', name: 'Avocado', unit: 'St' },
-    { id: 'bananen', emoji: '\u{1F34C}', name: 'Bananen', unit: 'St' },
-    { id: 'beeren', emoji: '\u{1F353}', name: 'Beeren', unit: 'Schale', variants: [
+    { id: 'bananas', emoji: '\u{1F34C}', name: 'Bananen', unit: 'St' },
+    { id: 'berries', emoji: '\u{1F353}', name: 'Beeren', unit: 'Schale', variants: [
       'Erdbeeren', 'Blaubeeren', 'Himbeeren', 'Brombeeren', 'Johannisbeeren', 'Stachelbeeren'
     ]},
-    { id: 'birnen', emoji: '\u{1F350}', name: 'Birnen', unit: 'kg', variants: [
+    { id: 'pears', emoji: '\u{1F350}', name: 'Birnen', unit: 'kg', variants: [
       'Conference', 'Williams', 'Abate'
     ]},
-    { id: 'granatapfel', emoji: '\u{1F34F}', name: 'Granatapfel', unit: 'St' },
-    { id: 'kirschen', emoji: '\u{1F352}', name: 'Kirschen', unit: 'Schale' },
+    { id: 'pomegranate', emoji: '\u{1F34F}', name: 'Granatapfel', unit: 'St' },
+    { id: 'cherries', emoji: '\u{1F352}', name: 'Kirschen', unit: 'Schale' },
     { id: 'kiwi', emoji: '\u{1F95D}', name: 'Kiwi', unit: 'St' },
-    { id: 'kokosnuss', emoji: '\u{1F965}', name: 'Kokosnuss', unit: 'St' },
+    { id: 'coconut', emoji: '\u{1F965}', name: 'Kokosnuss', unit: 'St' },
     { id: 'mango', emoji: '\u{1F96D}', name: 'Mango', unit: 'St' },
-    { id: 'melone', emoji: '\u{1F348}', name: 'Melone', unit: 'St', variants: [
+    { id: 'melon', emoji: '\u{1F348}', name: 'Melone', unit: 'St', variants: [
       'Wassermelone', 'Honigmelone', 'Galiamelone', 'Cantaloupemelone'
     ]},
-    { id: 'steinobst', emoji: '\u{1F351}', name: 'Steinobst', unit: 'kg', variants: [
+    { id: 'stone-fruit', emoji: '\u{1F351}', name: 'Steinobst', unit: 'kg', variants: [
       'Pfirsiche', 'Nektarinen', 'Aprikosen', 'Pflaumen', 'Mirabellen'
     ]},
-    { id: 'trauben', emoji: '\u{1F347}', name: 'Trauben', unit: 'kg', variants: [
+    { id: 'grapes', emoji: '\u{1F347}', name: 'Trauben', unit: 'kg', variants: [
       'Wei\u00DFe kernlos', 'Rote kernlos', 'Wei\u00DFe', 'Rote'
     ]},
-    { id: 'zitrusfruechte', emoji: '\u{1F34A}', name: 'Zitrusfr\u00FCchte', unit: 'St', variants: [
+    { id: 'citrus-fruits', emoji: '\u{1F34A}', name: 'Zitrusfr\u00FCchte', unit: 'St', variants: [
       'Orangen', 'Zitronen', 'Limetten', 'Mandarinen', 'Clementinen', 'Grapefruit', 'Blutorangen'
     ]},
-    { id: 'aubergine', emoji: '\u{1F346}', name: 'Aubergine', unit: 'St' },
-    { id: 'bohnen', emoji: '\u{1FAD8}', name: 'Bohnen', unit: '250g', variants: [
+    { id: 'eggplant', emoji: '\u{1F346}', name: 'Aubergine', unit: 'St' },
+    { id: 'beans', emoji: '\u{1FAD8}', name: 'Bohnen', unit: '250g', variants: [
       'Gr\u00FCne Bohnen', 'Kidney-Bohnen', 'Wei\u00DFe Bohnen'
     ]},
-    { id: 'brokkoli', emoji: '\u{1F966}', name: 'Brokkoli', unit: 'St' },
-    { id: 'erbsen', emoji: '\u{1FADB}', name: 'Erbsen', unit: '250g', variants: [
+    { id: 'broccoli', emoji: '\u{1F966}', name: 'Brokkoli', unit: 'St' },
+    { id: 'peas', emoji: '\u{1FADB}', name: 'Erbsen', unit: '250g', variants: [
       'Zuckererbsen', 'Erbsen TK', 'Erbsen frisch'
     ]},
-    { id: 'fenchel', emoji: '\u{1F331}', name: 'Fenchel', unit: 'St' },
-    { id: 'gurke', emoji: '\u{1F952}', name: 'Gurke', unit: 'St', variants: [
+    { id: 'fennel', emoji: '\u{1F331}', name: 'Fenchel', unit: 'St' },
+    { id: 'cucumber', emoji: '\u{1F952}', name: 'Gurke', unit: 'St', variants: [
       'Salatgurke', 'Minigurken', 'Schmorgurke'
     ]},
-    { id: 'ingwer', emoji: '\u{1FADA}', name: 'Ingwer', unit: 'St' },
-    { id: 'kartoffeln', emoji: '\u{1F954}', name: 'Kartoffeln', unit: 'kg', variants: [
+    { id: 'ginger', emoji: '\u{1FADA}', name: 'Ingwer', unit: 'St' },
+    { id: 'potatoes', emoji: '\u{1F954}', name: 'Kartoffeln', unit: 'kg', variants: [
       'Festkochend', 'Mehligkochend', 'Vorwiegend festkochend', 'Drillinge', 'S\u00FC\u00DFkartoffeln'
     ]},
-    { id: 'knoblauch', emoji: '\u{1F9C4}', name: 'Knoblauch', unit: 'Knolle' },
-    { id: 'kohl', emoji: '\u{1F96C}', name: 'Kohl', unit: 'St', variants: [
+    { id: 'garlic', emoji: '\u{1F9C4}', name: 'Knoblauch', unit: 'Knolle' },
+    { id: 'cabbage', emoji: '\u{1F96C}', name: 'Kohl', unit: 'St', variants: [
       'Rotkohl', 'Wei\u00DFkohl', 'Spitzkohl', 'Chinakohl', 'Wirsing', 'Rosenkohl', 'Blumenkohl', 'Kohlrabi', 'Gr\u00FCnkohl'
     ]},
-    { id: 'kuerbis', emoji: '\u{1F383}', name: 'K\u00FCrbis', unit: 'St', variants: [
+    { id: 'pumpkin', emoji: '\u{1F383}', name: 'K\u00FCrbis', unit: 'St', variants: [
       'Hokkaido', 'Butternut', 'Muskatk\u00FCrbis', 'Spaghettikürbis'
     ]},
-    { id: 'lauch', emoji: '\u{1F3F7}\u{FE0F}', name: 'Lauch', unit: 'St' },
-    { id: 'mais', emoji: '\u{1F33D}', name: 'Mais', unit: 'St' },
-    { id: 'moehren', emoji: '\u{1F955}', name: 'M\u00F6hren', unit: 'kg' },
-    { id: 'paprika', emoji: '\u{1FAD1}', name: 'Paprika', unit: 'St', variants: [
+    { id: 'leek', emoji: '\u{1F3F7}\u{FE0F}', name: 'Lauch', unit: 'St' },
+    { id: 'corn', emoji: '\u{1F33D}', name: 'Mais', unit: 'St' },
+    { id: 'carrots', emoji: '\u{1F955}', name: 'M\u00F6hren', unit: 'kg' },
+    { id: 'bell-pepper', emoji: '\u{1FAD1}', name: 'Paprika', unit: 'St', variants: [
       'Rot', 'Gelb', 'Gr\u00FCn', 'Orange', 'Spitzpaprika'
     ]},
-    { id: 'pilze', emoji: '\u{1F344}', name: 'Pilze', unit: '200g', variants: [
+    { id: 'mushrooms', emoji: '\u{1F344}', name: 'Pilze', unit: '200g', variants: [
       'Champignons', 'Kr\u00E4uterseitlinge', 'Austernpilze', 'Shiitake', 'Pfifferlinge'
     ]},
-    { id: 'radieschen', emoji: '\u{1F3F7}\u{FE0F}', name: 'Radieschen', unit: 'Bund' },
-    { id: 'rote-beete', emoji: '\u{1F3F7}\u{FE0F}', name: 'Rote Beete', unit: 'Bund' },
-    { id: 'salat', emoji: '\u{1F957}', name: 'Salat', unit: 'St', variants: [
+    { id: 'radishes', emoji: '\u{1F3F7}\u{FE0F}', name: 'Radieschen', unit: 'Bund' },
+    { id: 'beetroot', emoji: '\u{1F3F7}\u{FE0F}', name: 'Rote Beete', unit: 'Bund' },
+    { id: 'lettuce', emoji: '\u{1F957}', name: 'Salat', unit: 'St', variants: [
       'Kopfsalat', 'Eisbergsalat', 'Feldsalat', 'Rucola', 'Romana', 'Lollo Rosso', 'Batavia'
     ]},
-    { id: 'sellerie', emoji: '\u{1FAB4}', name: 'Sellerie', unit: 'St', variants: [
+    { id: 'celery', emoji: '\u{1FAB4}', name: 'Sellerie', unit: 'St', variants: [
       'Knollensellerie', 'Staudensellerie'
     ]},
-    { id: 'spargel', emoji: '\u{1F3F7}\u{FE0F}', name: 'Spargel', unit: 'Bund', variants: [
+    { id: 'asparagus', emoji: '\u{1F3F7}\u{FE0F}', name: 'Spargel', unit: 'Bund', variants: [
       'Wei\u00DFer Spargel', 'Gr\u00FCner Spargel'
     ]},
-    { id: 'spinat', emoji: '\u{1F343}', name: 'Spinat', unit: 'Beutel' },
-    { id: 'tomaten', emoji: '\u{1F345}', name: 'Tomaten', unit: 'kg', variants: [
+    { id: 'spinach', emoji: '\u{1F343}', name: 'Spinat', unit: 'Beutel' },
+    { id: 'tomatoes', emoji: '\u{1F345}', name: 'Tomaten', unit: 'kg', variants: [
       'Rispentomaten', 'Cherrytomaten', 'Roma', 'Fleischtomaten', 'Cocktailtomaten'
     ]},
     { id: 'zucchini', emoji: '\u{1F3F7}\u{FE0F}', name: 'Zucchini', unit: 'St' },
-    { id: 'zwiebeln', emoji: '\u{1F9C5}', name: 'Zwiebeln', unit: 'Netz', variants: [
+    { id: 'onions', emoji: '\u{1F9C5}', name: 'Zwiebeln', unit: 'Netz', variants: [
       'Gelbe Zwiebeln', 'Rote Zwiebeln', 'Schalotten', 'Fr\u00FChlingszwiebeln'
     ]},
-    { id: 'kraeuter', emoji: '\u{1F33F}', name: 'Kr\u00E4uter', unit: 'Bund', variants: [
+    { id: 'herbs', emoji: '\u{1F33F}', name: 'Kr\u00E4uter', unit: 'Bund', variants: [
       'Basilikum', 'Petersilie', 'Schnittlauch', 'Dill', 'Koriander', 'Minze', 'Rosmarin', 'Thymian', 'Oregano', 'Salbei'
     ]}
   ],
-  'milch-kaese': [
-    { id: 'milch', emoji: '\u{1F95B}', name: 'Milch', unit: 'L', variants: ['1,5% fettarm', '3,5% Vollmilch', 'Laktosefrei', 'H-Milch', 'Frischmilch'] },
+  'dairy-cheese': [
+    { id: 'milk', emoji: '\u{1F95B}', name: 'Milch', unit: 'L', variants: ['1,5% fettarm', '3,5% Vollmilch', 'Laktosefrei', 'H-Milch', 'Frischmilch'] },
     { id: 'butter', emoji: '\u{1F9C8}', name: 'Butter', unit: 'St', variants: ['Deutsche Markenbutter', 'Irische Butter', 'Sauerrahmbutter'] },
-    { id: 'kaese-scheiben', emoji: '\u{1F9C0}', name: 'K\u00E4se Scheiben', unit: 'Pck', variants: ['Gouda', 'Emmentaler', 'Edamer', 'Butterk\u00E4se', 'Maasdamer', 'Tilsiter'] },
-    { id: 'kaese-stueck', emoji: '\u{1F9C0}', name: 'K\u00E4se St\u00FCck', unit: 'St', variants: ['Parmesan', 'Gruy\u00E8re', 'Cheddar', 'Brie', 'Camembert', 'Mozzarella', 'Feta', 'Bergk\u00E4se'] },
-    { id: 'frischkaese', emoji: '\u{1F95B}', name: 'Frischk\u00E4se', unit: 'Becher', variants: ['Natur', 'Kr\u00E4uter', 'Philadelphia', 'Doppelrahmstufe'] },
-    { id: 'joghurt', emoji: '\u{1F963}', name: 'Joghurt', unit: 'Becher', variants: ['Naturjoghurt', 'Griechisch', 'Fruchtjoghurt', 'Skyr', 'Trinkjoghurt'] },
+    { id: 'cheese-slices', emoji: '\u{1F9C0}', name: 'K\u00E4se Scheiben', unit: 'Pck', variants: ['Gouda', 'Emmentaler', 'Edamer', 'Butterk\u00E4se', 'Maasdamer', 'Tilsiter'] },
+    { id: 'cheese-block', emoji: '\u{1F9C0}', name: 'K\u00E4se St\u00FCck', unit: 'St', variants: ['Parmesan', 'Gruy\u00E8re', 'Cheddar', 'Brie', 'Camembert', 'Mozzarella', 'Feta', 'Bergk\u00E4se'] },
+    { id: 'cream-cheese', emoji: '\u{1F95B}', name: 'Frischk\u00E4se', unit: 'Becher', variants: ['Natur', 'Kr\u00E4uter', 'Philadelphia', 'Doppelrahmstufe'] },
+    { id: 'yogurt', emoji: '\u{1F963}', name: 'Joghurt', unit: 'Becher', variants: ['Naturjoghurt', 'Griechisch', 'Fruchtjoghurt', 'Skyr', 'Trinkjoghurt'] },
     { id: 'quark', emoji: '\u{1F95B}', name: 'Quark', unit: 'Becher', variants: ['Magerquark', 'Speisequark 20%', 'Speisequark 40%', 'Kr\u00E4uterquark'] },
-    { id: 'sahne', emoji: '\u{1F95B}', name: 'Sahne', unit: 'Becher', variants: ['Schlagsahne', 'Saure Sahne', 'Cr\u00E8me fra\u00eeche', 'Schmand', 'Kochsahne'] },
-    { id: 'eier', emoji: '\u{1F95A}', name: 'Eier', unit: 'Pck', variants: ['6er Freiland', '10er Freiland', '6er Bio', '10er Bio'] },
-    { id: 'pflanzenmilch', emoji: '\u{1F95B}', name: 'Pflanzenmilch', unit: 'L', variants: ['Hafermilch', 'Sojamilch', 'Mandelmilch', 'Kokosmilch', 'Reismilch'] },
+    { id: 'cream', emoji: '\u{1F95B}', name: 'Sahne', unit: 'Becher', variants: ['Schlagsahne', 'Saure Sahne', 'Cr\u00E8me fra\u00eeche', 'Schmand', 'Kochsahne'] },
+    { id: 'eggs', emoji: '\u{1F95A}', name: 'Eier', unit: 'Pck', variants: ['6er Freiland', '10er Freiland', '6er Bio', '10er Bio'] },
+    { id: 'plant-milk', emoji: '\u{1F95B}', name: 'Pflanzenmilch', unit: 'L', variants: ['Hafermilch', 'Sojamilch', 'Mandelmilch', 'Kokosmilch', 'Reismilch'] },
     { id: 'pudding', emoji: '\u{1F36E}', name: 'Pudding', unit: 'Becher', variants: ['Schoko', 'Vanille', 'Griessbrei', 'Milchreis'] },
-    { id: 'aufstrich', emoji: '\u{1F963}', name: 'Aufstrich', unit: 'Glas', variants: ['Marmelade', 'Honig', 'Nutella', 'Erdnussbutter'] },
+    { id: 'spread', emoji: '\u{1F963}', name: 'Aufstrich', unit: 'Glas', variants: ['Marmelade', 'Honig', 'Nutella', 'Erdnussbutter'] },
     { id: 'tofu', emoji: '\u{1F9C8}', name: 'Tofu', unit: 'Pck', variants: ['Natur', 'Ger\u00E4uchert', 'Seidentofu', 'Mariniert'] }
   ],
-  'brot-gebaeck': [
-    { id: 'brot', emoji: '\u{1F35E}', name: 'Brot', unit: 'St', variants: ['Vollkorn', 'Mischbrot', 'Roggenbrot', 'Dinkel', 'Weizenbrot', 'Sauerteig', 'Pumpernickel'] },
-    { id: 'broetchen', emoji: '\u{1F35E}', name: 'Br\u00F6tchen', unit: 'St', variants: ['Normal', 'Vollkorn', 'K\u00F6rnerbr\u00F6tchen', 'Laugen', 'Ciabatta'] },
+  'bread-bakery': [
+    { id: 'bread', emoji: '\u{1F35E}', name: 'Brot', unit: 'St', variants: ['Vollkorn', 'Mischbrot', 'Roggenbrot', 'Dinkel', 'Weizenbrot', 'Sauerteig', 'Pumpernickel'] },
+    { id: 'rolls', emoji: '\u{1F35E}', name: 'Br\u00F6tchen', unit: 'St', variants: ['Normal', 'Vollkorn', 'K\u00F6rnerbr\u00F6tchen', 'Laugen', 'Ciabatta'] },
     { id: 'toast', emoji: '\u{1F35E}', name: 'Toast', unit: 'Pck', variants: ['Weizen', 'Vollkorn', 'Buttermilch', 'K\u00F6rner'] },
     { id: 'croissant', emoji: '\u{1F950}', name: 'Croissant', unit: 'St' },
     { id: 'baguette', emoji: '\u{1F956}', name: 'Baguette', unit: 'St' },
-    { id: 'brezel', emoji: '\u{1F968}', name: 'Brezel', unit: 'St' },
-    { id: 'kuchen', emoji: '\u{1F370}', name: 'Kuchen', unit: 'St', variants: ['Apfelkuchen', 'K\u00E4sekuchen', 'Marmorkuchen', 'Streuselkuchen'] },
+    { id: 'pretzel', emoji: '\u{1F968}', name: 'Brezel', unit: 'St' },
+    { id: 'cake', emoji: '\u{1F370}', name: 'Kuchen', unit: 'St', variants: ['Apfelkuchen', 'K\u00E4sekuchen', 'Marmorkuchen', 'Streuselkuchen'] },
     { id: 'tortillas', emoji: '\u{1FAD3}', name: 'Tortillas', unit: 'Pck', variants: ['Weizen', 'Vollkorn', 'Mais'] },
-    { id: 'knäckebrot', emoji: '\u{1F35E}', name: 'Kn\u00E4ckebrot', unit: 'Pck' },
-    { id: 'mehl', emoji: '\u{1F33E}', name: 'Mehl', unit: 'kg', variants: ['Weizenmehl 405', 'Weizenmehl 550', 'Dinkelmehl', 'Vollkornmehl'] }
+    { id: 'crispbread', emoji: '\u{1F35E}', name: 'Kn\u00E4ckebrot', unit: 'Pck' },
+    { id: 'flour', emoji: '\u{1F33E}', name: 'Mehl', unit: 'kg', variants: ['Weizenmehl 405', 'Weizenmehl 550', 'Dinkelmehl', 'Vollkornmehl'] }
   ],
-  'fleisch-fisch': [
-    { id: 'haehnchen', emoji: '\u{1F357}', name: 'H\u00E4hnchen', unit: 'g', variants: ['Brust', 'Schenkel', 'Fl\u00FCgel', 'Ganzes H\u00E4hnchen', 'Hackfleisch'] },
-    { id: 'rind', emoji: '\u{1F969}', name: 'Rind', unit: 'g', variants: ['Hackfleisch', 'Steak', 'Gulasch', 'Rouladen', 'Filet'] },
-    { id: 'schwein', emoji: '\u{1F969}', name: 'Schwein', unit: 'g', variants: ['Hackfleisch', 'Schnitzel', 'Filet', 'Kotelett', 'Gulasch', 'Bauch'] },
-    { id: 'gemischt-hack', emoji: '\u{1F356}', name: 'Hackfleisch gemischt', unit: 'g' },
-    { id: 'wurst', emoji: '\u{1F953}', name: 'Wurst', unit: 'Pck', variants: ['Salami', 'Schinken', 'Mortadella', 'Leberwurst', 'Lyoner', 'Wiener W\u00FCrstchen'] },
+  'meat-fish': [
+    { id: 'chicken', emoji: '\u{1F357}', name: 'H\u00E4hnchen', unit: 'g', variants: ['Brust', 'Schenkel', 'Fl\u00FCgel', 'Ganzes H\u00E4hnchen', 'Hackfleisch'] },
+    { id: 'beef', emoji: '\u{1F969}', name: 'Rind', unit: 'g', variants: ['Hackfleisch', 'Steak', 'Gulasch', 'Rouladen', 'Filet'] },
+    { id: 'pork', emoji: '\u{1F969}', name: 'Schwein', unit: 'g', variants: ['Hackfleisch', 'Schnitzel', 'Filet', 'Kotelett', 'Gulasch', 'Bauch'] },
+    { id: 'mixed-ground-meat', emoji: '\u{1F356}', name: 'Hackfleisch gemischt', unit: 'g' },
+    { id: 'sausage', emoji: '\u{1F953}', name: 'Wurst', unit: 'Pck', variants: ['Salami', 'Schinken', 'Mortadella', 'Leberwurst', 'Lyoner', 'Wiener W\u00FCrstchen'] },
     { id: 'bacon', emoji: '\u{1F953}', name: 'Bacon', unit: 'Pck' },
-    { id: 'lachs', emoji: '\u{1F99E}', name: 'Lachs', unit: 'g', variants: ['Frisch', 'R\u00E4ucherlachs', 'TK Filet'] },
-    { id: 'thunfisch', emoji: '\u{1F41F}', name: 'Thunfisch', unit: 'Dose', variants: ['In \u00D6l', 'In Wasser', 'Im eigenen Saft'] },
-    { id: 'garnelen', emoji: '\u{1F990}', name: 'Garnelen', unit: 'g', variants: ['Frisch', 'TK', 'Riesengarnelen'] },
-    { id: 'fischstaebchen', emoji: '\u{1F41F}', name: 'Fischst\u00E4bchen', unit: 'Pck' },
-    { id: 'forelle', emoji: '\u{1F41F}', name: 'Forelle', unit: 'St' },
-    { id: 'fleischersatz', emoji: '\u{1F331}', name: 'Fleischersatz', unit: 'Pck', variants: ['Beyond Burger', 'Veganes Hack', 'Vegane Nuggets', 'Seitan', 'Tempeh'] }
+    { id: 'salmon', emoji: '\u{1F99E}', name: 'Lachs', unit: 'g', variants: ['Frisch', 'R\u00E4ucherlachs', 'TK Filet'] },
+    { id: 'tuna', emoji: '\u{1F41F}', name: 'Thunfisch', unit: 'Dose', variants: ['In \u00D6l', 'In Wasser', 'Im eigenen Saft'] },
+    { id: 'shrimp', emoji: '\u{1F990}', name: 'Garnelen', unit: 'g', variants: ['Frisch', 'TK', 'Riesengarnelen'] },
+    { id: 'fish-sticks', emoji: '\u{1F41F}', name: 'Fischst\u00E4bchen', unit: 'Pck' },
+    { id: 'trout', emoji: '\u{1F41F}', name: 'Forelle', unit: 'St' },
+    { id: 'meat-substitute', emoji: '\u{1F331}', name: 'Fleischersatz', unit: 'Pck', variants: ['Beyond Burger', 'Veganes Hack', 'Vegane Nuggets', 'Seitan', 'Tempeh'] }
   ],
-  'zutaten-gewuerze': [
-    { id: 'salz', emoji: '\u{1F9C2}', name: 'Salz', unit: 'Pck' },
-    { id: 'pfeffer', emoji: '\u{1F3F7}\u{FE0F}', name: 'Pfeffer', unit: 'Pck' },
-    { id: 'olivenoel', emoji: '\u{1FAD2}', name: 'Oliven\u00F6l', unit: 'Fl', variants: ['Extra Vergine', 'Zum Braten'] },
-    { id: 'sonnenblumenoel', emoji: '\u{1FAD2}', name: 'Sonnenblumen\u00F6l', unit: 'Fl' },
-    { id: 'essig', emoji: '\u{1FAD2}', name: 'Essig', unit: 'Fl', variants: ['Balsamico', 'Wei\u00DFweinessig', 'Apfelessig'] },
-    { id: 'zucker', emoji: '\u{1F3F7}\u{FE0F}', name: 'Zucker', unit: 'kg', variants: ['Wei\u00DF', 'Braun', 'Puderzucker', 'Vanillezucker'] },
-    { id: 'senf', emoji: '\u{1F3F7}\u{FE0F}', name: 'Senf', unit: 'Glas', variants: ['Mittelscharf', 'S\u00FC\u00DF', 'Dijon'] },
+  'ingredients-spices': [
+    { id: 'salt', emoji: '\u{1F9C2}', name: 'Salz', unit: 'Pck' },
+    { id: 'pepper', emoji: '\u{1F3F7}\u{FE0F}', name: 'Pfeffer', unit: 'Pck' },
+    { id: 'olive-oil', emoji: '\u{1FAD2}', name: 'Oliven\u00F6l', unit: 'Fl', variants: ['Extra Vergine', 'Zum Braten'] },
+    { id: 'sunflower-oil', emoji: '\u{1FAD2}', name: 'Sonnenblumen\u00F6l', unit: 'Fl' },
+    { id: 'vinegar', emoji: '\u{1FAD2}', name: 'Essig', unit: 'Fl', variants: ['Balsamico', 'Wei\u00DFweinessig', 'Apfelessig'] },
+    { id: 'sugar', emoji: '\u{1F3F7}\u{FE0F}', name: 'Zucker', unit: 'kg', variants: ['Wei\u00DF', 'Braun', 'Puderzucker', 'Vanillezucker'] },
+    { id: 'mustard', emoji: '\u{1F3F7}\u{FE0F}', name: 'Senf', unit: 'Glas', variants: ['Mittelscharf', 'S\u00FC\u00DF', 'Dijon'] },
     { id: 'ketchup', emoji: '\u{1F3F7}\u{FE0F}', name: 'Ketchup', unit: 'Fl' },
     { id: 'mayo', emoji: '\u{1F3F7}\u{FE0F}', name: 'Mayonnaise', unit: 'Glas' },
-    { id: 'sojasauce', emoji: '\u{1F3F7}\u{FE0F}', name: 'Sojasauce', unit: 'Fl' },
-    { id: 'nudeln', emoji: '\u{1F35D}', name: 'Nudeln', unit: 'Pck', variants: ['Spaghetti', 'Penne', 'Fusilli', 'Farfalle', 'Tagliatelle', 'Lasagneplatten'] },
-    { id: 'reis', emoji: '\u{1F35A}', name: 'Reis', unit: 'Pck', variants: ['Basmati', 'Jasmin', 'Langkorn', 'Risotto', 'Sushi-Reis'] },
-    { id: 'passierte-tomaten', emoji: '\u{1F345}', name: 'Passierte Tomaten', unit: 'Pck' },
-    { id: 'tomatenmark', emoji: '\u{1F345}', name: 'Tomatenmark', unit: 'Tube' },
-    { id: 'kokosmilch-dose', emoji: '\u{1F965}', name: 'Kokosmilch', unit: 'Dose' },
-    { id: 'bruehe', emoji: '\u{1F372}', name: 'Br\u00FChe', unit: 'Glas', variants: ['Gem\u00FCse', 'H\u00FChner', 'Rinder'] },
-    { id: 'gewuerze', emoji: '\u{1F3F7}\u{FE0F}', name: 'Gew\u00FCrze', unit: 'Pck', variants: ['Paprika', 'Curry', 'Kurkuma', 'Zimt', 'Muskat', 'Kreuzkümmel', 'Chilliflocken', 'Oregano getr.'] },
-    { id: 'backpulver', emoji: '\u{1F3F7}\u{FE0F}', name: 'Backpulver', unit: 'Pck' },
-    { id: 'hefe', emoji: '\u{1F3F7}\u{FE0F}', name: 'Hefe', unit: 'W\u00FCrfel', variants: ['Frische Hefe', 'Trockenhefe'] },
-    { id: 'nüsse', emoji: '\u{1F95C}', name: 'N\u00FCsse', unit: 'Pck', variants: ['Waln\u00FCsse', 'Mandeln', 'Haseln\u00FCsse', 'Cashews', 'Erdnüsse', 'Pinienkerne'] },
-    { id: 'paniermehl', emoji: '\u{1F35E}', name: 'Paniermehl', unit: 'Pck' },
-    { id: 'haferflocken', emoji: '\u{1F33E}', name: 'Haferflocken', unit: 'Pck', variants: ['Zart', 'Kernig'] },
-    { id: 'dosen-mais', emoji: '\u{1F33D}', name: 'Mais (Dose)', unit: 'Dose' },
-    { id: 'dosen-bohnen', emoji: '\u{1FAD8}', name: 'Bohnen (Dose)', unit: 'Dose', variants: ['Kidneybohnen', 'Kichererbsen', 'Wei\u00DFe Bohnen'] },
-    { id: 'linsen', emoji: '\u{1F3F7}\u{FE0F}', name: 'Linsen', unit: 'Pck', variants: ['Rote Linsen', 'Belugalinsen', 'Tellerlinsen'] },
+    { id: 'soy-sauce', emoji: '\u{1F3F7}\u{FE0F}', name: 'Sojasauce', unit: 'Fl' },
+    { id: 'pasta', emoji: '\u{1F35D}', name: 'Nudeln', unit: 'Pck', variants: ['Spaghetti', 'Penne', 'Fusilli', 'Farfalle', 'Tagliatelle', 'Lasagneplatten'] },
+    { id: 'rice', emoji: '\u{1F35A}', name: 'Reis', unit: 'Pck', variants: ['Basmati', 'Jasmin', 'Langkorn', 'Risotto', 'Sushi-Reis'] },
+    { id: 'tomato-puree', emoji: '\u{1F345}', name: 'Passierte Tomaten', unit: 'Pck' },
+    { id: 'tomato-paste', emoji: '\u{1F345}', name: 'Tomatenmark', unit: 'Tube' },
+    { id: 'coconut-milk-can', emoji: '\u{1F965}', name: 'Kokosmilch', unit: 'Dose' },
+    { id: 'broth', emoji: '\u{1F372}', name: 'Br\u00FChe', unit: 'Glas', variants: ['Gem\u00FCse', 'H\u00FChner', 'Rinder'] },
+    { id: 'spices', emoji: '\u{1F3F7}\u{FE0F}', name: 'Gew\u00FCrze', unit: 'Pck', variants: ['Paprika', 'Curry', 'Kurkuma', 'Zimt', 'Muskat', 'Kreuzkümmel', 'Chilliflocken', 'Oregano getr.'] },
+    { id: 'baking-powder', emoji: '\u{1F3F7}\u{FE0F}', name: 'Backpulver', unit: 'Pck' },
+    { id: 'yeast', emoji: '\u{1F3F7}\u{FE0F}', name: 'Hefe', unit: 'W\u00FCrfel', variants: ['Frische Hefe', 'Trockenhefe'] },
+    { id: 'nuts', emoji: '\u{1F95C}', name: 'N\u00FCsse', unit: 'Pck', variants: ['Waln\u00FCsse', 'Mandeln', 'Haseln\u00FCsse', 'Cashews', 'Erdnüsse', 'Pinienkerne'] },
+    { id: 'breadcrumbs', emoji: '\u{1F35E}', name: 'Paniermehl', unit: 'Pck' },
+    { id: 'oatmeal', emoji: '\u{1F33E}', name: 'Haferflocken', unit: 'Pck', variants: ['Zart', 'Kernig'] },
+    { id: 'canned-corn', emoji: '\u{1F33D}', name: 'Mais (Dose)', unit: 'Dose' },
+    { id: 'canned-beans', emoji: '\u{1FAD8}', name: 'Bohnen (Dose)', unit: 'Dose', variants: ['Kidneybohnen', 'Kichererbsen', 'Wei\u00DFe Bohnen'] },
+    { id: 'lentils', emoji: '\u{1F3F7}\u{FE0F}', name: 'Linsen', unit: 'Pck', variants: ['Rote Linsen', 'Belugalinsen', 'Tellerlinsen'] },
     { id: 'couscous', emoji: '\u{1F35A}', name: 'Couscous', unit: 'Pck' }
   ],
-  'drogerie-haushalt': [
-    { id: 'toilettenpapier', emoji: '\u{1F9FB}', name: 'Toilettenpapier', unit: 'Pck' },
-    { id: 'kuechenpapier', emoji: '\u{1F9FB}', name: 'K\u00FCchenpapier', unit: 'Pck' },
-    { id: 'spuelmittel', emoji: '\u{1F9F4}', name: 'Sp\u00FClmittel', unit: 'Fl' },
-    { id: 'waschmittel', emoji: '\u{1F9F4}', name: 'Waschmittel', unit: 'Fl', variants: ['Fl\u00FCssig', 'Pulver', 'Pods/Caps'] },
-    { id: 'weichspueler', emoji: '\u{1F9F4}', name: 'Weichsp\u00FCler', unit: 'Fl' },
-    { id: 'allzweckreiniger', emoji: '\u{1F9F4}', name: 'Allzweckreiniger', unit: 'Fl' },
-    { id: 'muellbeutel', emoji: '\u{1F5D1}\u{FE0F}', name: 'M\u00FCllbeutel', unit: 'Rolle' },
-    { id: 'alufolie', emoji: '\u{1F3F7}\u{FE0F}', name: 'Alufolie', unit: 'Rolle' },
-    { id: 'frischhaltefolie', emoji: '\u{1F3F7}\u{FE0F}', name: 'Frischhaltefolie', unit: 'Rolle' },
-    { id: 'schwamm', emoji: '\u{1F9FD}', name: 'Schw\u00E4mme', unit: 'Pck' },
-    { id: 'zahnpasta', emoji: '\u{1FAA5}', name: 'Zahnpasta', unit: 'Tube' },
-    { id: 'zahnbuerste', emoji: '\u{1FAA5}', name: 'Zahnb\u00FCrste', unit: 'St' },
+  'drugstore-household': [
+    { id: 'toilet-paper', emoji: '\u{1F9FB}', name: 'Toilettenpapier', unit: 'Pck' },
+    { id: 'paper-towels', emoji: '\u{1F9FB}', name: 'K\u00FCchenpapier', unit: 'Pck' },
+    { id: 'dish-soap', emoji: '\u{1F9F4}', name: 'Sp\u00FClmittel', unit: 'Fl' },
+    { id: 'laundry-detergent', emoji: '\u{1F9F4}', name: 'Waschmittel', unit: 'Fl', variants: ['Fl\u00FCssig', 'Pulver', 'Pods/Caps'] },
+    { id: 'fabric-softener', emoji: '\u{1F9F4}', name: 'Weichsp\u00FCler', unit: 'Fl' },
+    { id: 'all-purpose-cleaner', emoji: '\u{1F9F4}', name: 'Allzweckreiniger', unit: 'Fl' },
+    { id: 'trash-bags', emoji: '\u{1F5D1}\u{FE0F}', name: 'M\u00FCllbeutel', unit: 'Rolle' },
+    { id: 'aluminum-foil', emoji: '\u{1F3F7}\u{FE0F}', name: 'Alufolie', unit: 'Rolle' },
+    { id: 'cling-wrap', emoji: '\u{1F3F7}\u{FE0F}', name: 'Frischhaltefolie', unit: 'Rolle' },
+    { id: 'sponges', emoji: '\u{1F9FD}', name: 'Schw\u00E4mme', unit: 'Pck' },
+    { id: 'toothpaste', emoji: '\u{1FAA5}', name: 'Zahnpasta', unit: 'Tube' },
+    { id: 'toothbrush', emoji: '\u{1FAA5}', name: 'Zahnb\u00FCrste', unit: 'St' },
     { id: 'shampoo', emoji: '\u{1F9F4}', name: 'Shampoo', unit: 'Fl' },
-    { id: 'duschgel', emoji: '\u{1F6BF}', name: 'Duschgel', unit: 'Fl' },
-    { id: 'handseife', emoji: '\u{1F9FC}', name: 'Handseife', unit: 'St' },
-    { id: 'deo', emoji: '\u{1F3F7}\u{FE0F}', name: 'Deo', unit: 'St' },
-    { id: 'taschentuecher', emoji: '\u{1F3F7}\u{FE0F}', name: 'Taschent\u00FCcher', unit: 'Pck' },
-    { id: 'batterien', emoji: '\u{1F50B}', name: 'Batterien', unit: 'Pck', variants: ['AA', 'AAA', '9V'] },
-    { id: 'kerzen', emoji: '\u{1F56F}\u{FE0F}', name: 'Kerzen', unit: 'Pck' },
-    { id: 'spueltabs', emoji: '\u{1F3F7}\u{FE0F}', name: 'Sp\u00FCltabs', unit: 'Pck' }
+    { id: 'shower-gel', emoji: '\u{1F6BF}', name: 'Duschgel', unit: 'Fl' },
+    { id: 'hand-soap', emoji: '\u{1F9FC}', name: 'Handseife', unit: 'St' },
+    { id: 'deodorant', emoji: '\u{1F3F7}\u{FE0F}', name: 'Deo', unit: 'St' },
+    { id: 'tissues', emoji: '\u{1F3F7}\u{FE0F}', name: 'Taschent\u00FCcher', unit: 'Pck' },
+    { id: 'batteries', emoji: '\u{1F50B}', name: 'Batterien', unit: 'Pck', variants: ['AA', 'AAA', '9V'] },
+    { id: 'candles', emoji: '\u{1F56F}\u{FE0F}', name: 'Kerzen', unit: 'Pck' },
+    { id: 'dishwasher-tabs', emoji: '\u{1F3F7}\u{FE0F}', name: 'Sp\u00FCltabs', unit: 'Pck' }
   ]
 };
 
@@ -1343,7 +1343,7 @@ function clearSearch() {
 }
 
 function finish() {
-  window.location.href = 'liste.html?id=' + LIST_ID;
+  window.location.href = 'list.html?id=' + LIST_ID;
 }
 
 /* Theme */
@@ -1367,17 +1367,17 @@ function toggleTheme() {
 
 /* Category display names */
 const CATEGORY_NAMES = {
-  'obst-gemuese': 'Obst & Gem\u00FCse',
-  'milch-kaese': 'Milch & K\u00E4se',
-  'brot-gebaeck': 'Brot & Geb\u00E4ck',
-  'fleisch-fisch': 'Fleisch & Fisch',
-  'zutaten-gewuerze': 'Zutaten & Gew\u00FCrze',
-  'drogerie-haushalt': 'Drogerie & Haushalt'
+  'fruits-vegetables': 'Obst & Gem\u00FCse',
+  'dairy-cheese': 'Milch & K\u00E4se',
+  'bread-bakery': 'Brot & Geb\u00E4ck',
+  'meat-fish': 'Fleisch & Fisch',
+  'ingredients-spices': 'Zutaten & Gew\u00FCrze',
+  'drugstore-household': 'Drogerie & Haushalt'
 };
 
 /* Init */
 applyTheme(getTheme());
-document.getElementById('backLink').href = 'liste.html?id=' + LIST_ID;
+document.getElementById('backLink').href = 'list.html?id=' + LIST_ID;
 document.getElementById('headerTitle').textContent = CATEGORY_NAMES[CATEGORY] || CATEGORY;
 document.getElementById('subtitle').textContent = ALL_PRODUCTS.length + ' Produkte';
 renderAll();

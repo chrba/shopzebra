@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ShopZebra - Listen&uuml;bersicht</title>
+<title>ShopZebra - Rezepte</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   /* ========================================
-     Listen-Übersicht: Compact Tiles
+     Rezepte: Recipe Overview Grid
      ======================================== */
 
   /* ===== Theme: Dark ===== */
@@ -52,6 +52,11 @@
     --purple-glow: 0 0 20px rgba(160,123,204,0.3);
     --yellow-bg: rgba(232,196,74,0.12);
     --yellow-glow: 0 0 20px rgba(232,196,74,0.3);
+    --cyan-bg: rgba(78,200,220,0.12);
+    --cyan-glow: 0 0 20px rgba(78,200,220,0.3);
+    --input-bg: rgba(255,255,255,0.04);
+    --input-border: rgba(255,255,255,0.08);
+    --input-focus: rgba(78,157,166,0.3);
     --add-tile-border: dashed;
   }
 
@@ -100,6 +105,11 @@
     --purple-glow: 0 0 20px rgba(139,92,246,0.2);
     --yellow-bg: rgba(220,180,60,0.15);
     --yellow-glow: 0 0 20px rgba(220,180,60,0.2);
+    --cyan-bg: rgba(78,200,220,0.15);
+    --cyan-glow: 0 0 20px rgba(78,200,220,0.2);
+    --input-bg: rgba(255,255,255,0.06);
+    --input-border: rgba(255,255,255,0.1);
+    --input-focus: rgba(78,157,166,0.4);
     --add-tile-border: dashed;
   }
 
@@ -182,30 +192,41 @@
     color: var(--text-dim);
   }
 
-  /* ===== Summary Row ===== */
-  .summary-row {
-    display: flex;
-    gap: 8px;
+  /* ===== Search Bar ===== */
+  .search-bar {
     padding: 0 20px 18px;
-    justify-content: center;
+    position: relative;
   }
-  .summary-chip {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: var(--chip-bg);
-    border: 1px solid var(--chip-border);
+  .search-bar input {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
     border-radius: 16px;
-    padding: 7px 14px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    backdrop-filter: var(--chip-blur);
-    -webkit-backdrop-filter: var(--chip-blur);
+    padding: 14px 18px 14px 44px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
   }
-  .summary-chip-num {
-    color: var(--teal);
-    font-weight: 700;
+  .search-bar input::placeholder {
+    color: var(--text-dim);
+  }
+  .search-bar input:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px var(--input-focus);
+  }
+  .search-icon {
+    position: absolute;
+    left: 34px;
+    top: 50%;
+    transform: translateY(-calc(50% + 9px));
+    top: 15px;
+    width: 18px;
+    height: 18px;
+    fill: var(--text-dim);
+    pointer-events: none;
   }
 
   /* ===== Tile Grid ===== */
@@ -258,6 +279,7 @@
   .tile[data-color="red"]::before { background: radial-gradient(circle, rgba(236,72,153,0.15) 0%, transparent 70%); }
   .tile[data-color="purple"]::before { background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%); }
   .tile[data-color="yellow"]::before { background: radial-gradient(circle, rgba(220,180,60,0.15) 0%, transparent 70%); }
+  .tile[data-color="cyan"]::before { background: radial-gradient(circle, rgba(78,200,220,0.15) 0%, transparent 70%); }
 
   .tile-emoji {
     font-size: 36px;
@@ -282,6 +304,7 @@
   .tile-icon-bg.red { background: var(--red-bg); box-shadow: var(--red-glow); }
   .tile-icon-bg.purple { background: var(--purple-bg); box-shadow: var(--purple-glow); }
   .tile-icon-bg.yellow { background: var(--yellow-bg); box-shadow: var(--yellow-glow); }
+  .tile-icon-bg.cyan { background: var(--cyan-bg); box-shadow: var(--cyan-glow); }
 
   .tile-name {
     font-size: 15px;
@@ -293,77 +316,12 @@
   }
 
   .tile-meta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    position: relative;
-    z-index: 1;
-  }
-  .tile-items {
     font-size: 12px;
     font-weight: 500;
     color: var(--text-dim);
-  }
-  .tile-dot {
-    width: 3px;
-    height: 3px;
-    border-radius: 50%;
-    background: var(--text-dim);
-  }
-  .tile-members {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-dim);
-  }
-
-  .tile-activity {
-    font-size: 11px;
-    color: var(--text-dim);
-    line-height: 1.3;
     position: relative;
     z-index: 1;
   }
-  .tile-activity strong {
-    color: var(--text-secondary);
-    font-weight: 600;
-  }
-
-  /* Badge */
-  .tile-badge {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    background: var(--badge-bg);
-    color: var(--badge-color);
-    font-size: 10px;
-    font-weight: 700;
-    padding: 3px 8px;
-    border-radius: 10px;
-    border: var(--badge-border);
-    box-shadow: var(--badge-shadow);
-    z-index: 2;
-  }
-
-  /* Edit button on tile */
-  .tile-edit {
-    position: absolute;
-    bottom: 12px;
-    right: 12px;
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    background: var(--surface);
-    border: 1px solid var(--surface-border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 3;
-    opacity: 0;
-    transition: opacity 0.2s ease, background 0.2s ease;
-    text-decoration: none;
-  }
-  .tile:hover .tile-edit { opacity: 0.6; }
-  .tile-edit:hover { opacity: 1 !important; background: var(--surface-hover); }
 
   /* Add tile */
   .tile-add {
@@ -375,7 +333,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    min-height: 180px;
+    min-height: 160px;
   }
   .tile-add:hover {
     border-color: var(--teal);
@@ -452,22 +410,14 @@
 
     <!-- Header -->
     <div class="header">
-      <h1 class="header-title">Meine Listen</h1>
-      <p class="header-subtitle">Familie Weber</p>
+      <h1 class="header-title">Meine Rezepte</h1>
+      <p class="header-subtitle" id="recipeCount">6 Rezepte</p>
     </div>
 
-    <!-- Summary -->
-    <div class="summary-row">
-      <div class="summary-chip">
-        <span class="summary-chip-num" id="sumListen">0</span> Listen
-      </div>
-      <div class="summary-chip">
-        <span class="summary-chip-num" id="sumItems">0</span> Items
-      </div>
-      <a class="summary-chip" href="einladen.html" style="text-decoration:none;color:inherit;cursor:pointer;">
-        <span class="summary-chip-num" id="sumMitglieder">4</span> Mitglieder
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--teal)" style="margin-left:2px;"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-      </a>
+    <!-- Search Bar -->
+    <div class="search-bar">
+      <svg class="search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      <input type="text" id="searchInput" placeholder="Rezept suchen..." autocomplete="off">
     </div>
 
     <!-- Tile Grid (rendered by JS) -->
@@ -477,15 +427,15 @@
 
   <!-- Bottom Nav -->
   <div class="bottom-nav">
-    <a class="nav-item active" href="listen.html">
+    <a class="nav-item" href="../lists.html">
       <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
       <span>Listen</span>
     </a>
-    <a class="nav-item" href="recipe-workflow/planen.html">
+    <a class="nav-item" href="planning.html">
       <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/></svg>
       <span>Planen</span>
     </a>
-    <a class="nav-item" href="recipe-workflow/rezepte.html">
+    <a class="nav-item active" href="recipes.html">
       <svg viewBox="0 0 24 24"><path d="M8.1 13.34l2.83-2.83L3.91 3.5a4.008 4.008 0 000 5.66l4.19 4.18zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3.7 19.87l1.41 1.41L12 14.41l6.88 6.88 1.41-1.41L13.41 13l1.47-1.47z"/></svg>
       <span>Rezepte</span>
     </a>
@@ -511,39 +461,27 @@
   applyTheme(getTheme());
 
   // ===== Data =====
-  var LISTS_KEY = 'shopzebra_listen';
+  var REZEPTE_KEY = 'shopzebra_rezepte';
 
-  var DEFAULT_LISTS = [
-    { id: 'rewe', name: 'REWE Wocheneinkauf', emoji: '\u{1F6D2}', color: 'green', items: 15,
-      members: [{letter:'M',color:'#6BBF6B'},{letter:'P',color:'#5BA8D5'},{letter:'L',color:'#E07B7B'}],
-      activity: {who:'Mama',what:'+Milch',when:'14:02'}, badge: '3 neu' },
-    { id: 'dm', name: 'dm Drogerie', emoji: '\u{1F9F4}', color: 'blue', items: 4,
-      members: [{letter:'P',color:'#5BA8D5'}],
-      activity: {who:'Papa',what:'erstellt',when:'gestern'}, badge: null },
-    { id: 'party', name: 'Geburtstagsparty Lena', emoji: '\u{1F389}', color: 'red', items: 22,
-      members: [{letter:'M',color:'#6BBF6B'},{letter:'P',color:'#5BA8D5'},{letter:'L',color:'#E07B7B'},{letter:'O',color:'#A07BCC'}],
-      activity: {who:'Lena',what:'+Schokopudding',when:'Mo'}, badge: null },
-    { id: 'aldi', name: 'ALDI Vorr\u00e4te', emoji: '\u{1F34E}', color: 'green', items: 8,
-      members: [{letter:'M',color:'#6BBF6B'}],
-      activity: {who:'Mama',what:'erstellt',when:'Di'}, badge: null },
-    { id: 'baumarkt', name: 'Baumarkt Garten', emoji: '\u{1F527}', color: 'blue', items: 6,
-      members: [{letter:'P',color:'#5BA8D5'},{letter:'O',color:'#A07BCC'}],
-      activity: {who:'Papa',what:'+Erde',when:'So'}, badge: '2 neu' },
-    { id: 'wochenmarkt', name: 'Wochenmarkt Samstag', emoji: '\u{1F9C0}', color: 'red', items: 11,
-      members: [{letter:'M',color:'#6BBF6B'},{letter:'L',color:'#E07B7B'}],
-      activity: {who:'Mama',what:'+K\u00e4se',when:'letzte Wo'}, badge: null }
+  var DEFAULT_RECIPES = [
+    { id: 'bolognese', name: 'Spaghetti Bolognese', emoji: '\uD83C\uDF5D', color: 'green', portionen: 4, zeit: '30 Min' },
+    { id: 'curry', name: 'Gem\u00FCsecurry', emoji: '\uD83C\uDF5B', color: 'blue', portionen: 4, zeit: '25 Min' },
+    { id: 'haehnchen', name: 'H\u00E4hnchen mit Reis', emoji: '\uD83C\uDF57', color: 'red', portionen: 4, zeit: '35 Min' },
+    { id: 'pizza', name: 'Pizza Margherita', emoji: '\uD83C\uDF55', color: 'purple', portionen: 4, zeit: '45 Min' },
+    { id: 'kartoffelsuppe', name: 'Kartoffelsuppe', emoji: '\uD83E\uDD63', color: 'yellow', portionen: 4, zeit: '30 Min' },
+    { id: 'lachs', name: 'Lachs mit Gem\u00FCse', emoji: '\uD83D\uDC1F', color: 'cyan', portionen: 2, zeit: '25 Min' }
   ];
 
-  function loadLists() {
+  function loadRecipes() {
     try {
-      var data = JSON.parse(localStorage.getItem(LISTS_KEY));
+      var data = JSON.parse(localStorage.getItem(REZEPTE_KEY));
       return Array.isArray(data) ? data : [];
     } catch(e) { return []; }
   }
 
-  function getAllLists() {
-    var userLists = loadLists().reverse();
-    return userLists.concat(DEFAULT_LISTS);
+  function getAllRecipes() {
+    var userRecipes = loadRecipes().reverse();
+    return userRecipes.concat(DEFAULT_RECIPES);
   }
 
   function escapeHtml(str) {
@@ -552,75 +490,55 @@
     return div.innerHTML;
   }
 
-  function formatMembers(members) {
-    if (!members || members.length === 0) return 'Privat';
-    if (members.length === 1) return members[0].name || members[0].letter;
-    return members.length + ' Pers.';
-  }
-
-  function renderTile(list) {
-    var badgeHtml = list.badge ? '<div class="tile-badge">' + escapeHtml(list.badge) + '</div>' : '';
-    var actWho = list.activity ? escapeHtml(list.activity.who) : '';
-    var actWhat = list.activity ? escapeHtml(list.activity.what) : '';
-    var actWhen = list.activity ? escapeHtml(list.activity.when) : '';
-    var activityText = actWho ? '<strong>' + actWho + '</strong> ' + actWhat + ' &middot; ' + actWhen : '';
-    var editHtml = '<a class="tile-edit" href="neue-liste.html?edit=' + encodeURIComponent(list.id) + '" aria-label="Liste bearbeiten">' +
-      '<svg viewBox="0 0 24 24" width="14" height="14"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="var(--text-dim)"/></svg>' +
+  function renderTile(recipe) {
+    return '<a class="tile" data-color="' + escapeHtml(recipe.color) + '" href="recipe.html?id=' + encodeURIComponent(recipe.id) + '">' +
+      '<div class="tile-icon-bg ' + escapeHtml(recipe.color) + '">' +
+        '<span class="tile-emoji">' + recipe.emoji + '</span>' +
+      '</div>' +
+      '<div class="tile-name">' + escapeHtml(recipe.name) + '</div>' +
+      '<div class="tile-meta">' + recipe.portionen + ' Portionen &middot; ' + escapeHtml(recipe.zeit) + '</div>' +
     '</a>';
-
-    return '<div class="tile" data-color="' + escapeHtml(list.color) + '" data-href="liste.html?id=' + encodeURIComponent(list.id) + '">' +
-      badgeHtml +
-      editHtml +
-      '<div class="tile-icon-bg ' + escapeHtml(list.color) + '">' +
-        '<span class="tile-emoji">' + list.emoji + '</span>' +
-      '</div>' +
-      '<div class="tile-name">' + escapeHtml(list.name) + '</div>' +
-      '<div class="tile-meta">' +
-        '<span class="tile-items">' + list.items + ' Items</span>' +
-        '<span class="tile-dot"></span>' +
-        '<span class="tile-members">' + escapeHtml(formatMembers(list.members)) + '</span>' +
-      '</div>' +
-      '<div class="tile-activity">' + activityText + '</div>' +
-    '</div>';
   }
 
   function renderAddTile() {
-    return '<a class="tile tile-add" href="neue-liste.html">' +
+    return '<a class="tile tile-add" href="new-recipe.html">' +
       '<div class="tile-add-icon">' +
         '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>' +
       '</div>' +
-      '<span class="tile-add-label">Neue Liste</span>' +
+      '<span class="tile-add-label">Neues Rezept</span>' +
     '</a>';
   }
 
-  function render() {
-    var lists = getAllLists();
-    var grid = document.getElementById('tileGrid');
-    var totalItems = 0;
+  function render(filter) {
+    var recipes = getAllRecipes();
 
+    if (filter) {
+      var term = filter.toLowerCase();
+      recipes = recipes.filter(function(r) {
+        return r.name.toLowerCase().indexOf(term) !== -1;
+      });
+    }
+
+    var grid = document.getElementById('tileGrid');
     var html = '';
-    lists.forEach(function(list) {
-      html += renderTile(list);
-      totalItems += (list.items || 0);
+    recipes.forEach(function(recipe) {
+      html += renderTile(recipe);
     });
     html += renderAddTile();
     grid.innerHTML = html;
 
-    document.getElementById('sumListen').textContent = lists.length;
-    document.getElementById('sumItems').textContent = totalItems;
+    document.getElementById('recipeCount').textContent = recipes.length + ' Rezept' + (recipes.length !== 1 ? 'e' : '');
   }
 
   render();
 
-  // Tile click → navigate (but not when clicking the edit button)
-  document.getElementById('tileGrid').addEventListener('click', function(e) {
-    if (e.target.closest('.tile-edit') || e.target.closest('.tile-add')) return;
-    var tile = e.target.closest('.tile[data-href]');
-    if (tile) window.location.href = tile.getAttribute('data-href');
+  // ===== Search =====
+  document.getElementById('searchInput').addEventListener('input', function() {
+    render(this.value.trim());
   });
 
-  // Re-render when returning from neue-liste
-  window.addEventListener('pageshow', render);
+  // Re-render when returning from another page
+  window.addEventListener('pageshow', function() { render(document.getElementById('searchInput').value.trim()); });
 </script>
 
 </body>

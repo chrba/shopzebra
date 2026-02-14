@@ -35,16 +35,16 @@
     --nav-blur: blur(20px);
     --nav-border: rgba(255,255,255,0.06);
     --logo-filter: drop-shadow(0 0 10px rgba(78,157,166,0.3));
-    --warenkorb-border: none;
-    --warenkorb-before: linear-gradient(135deg, var(--teal), var(--orange));
-    --warenkorb-before-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    --warenkorb-before-top: 0;
-    --warenkorb-before-right: 0;
-    --warenkorb-before-width: auto;
-    --warenkorb-before-height: auto;
-    --warenkorb-before-radius: 22px;
-    --warenkorb-before-inset: 0;
-    --warenkorb-before-padding: 1px;
+    --cart-border: none;
+    --cart-before: linear-gradient(135deg, var(--teal), var(--orange));
+    --cart-before-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    --cart-before-top: 0;
+    --cart-before-right: 0;
+    --cart-before-width: auto;
+    --cart-before-height: auto;
+    --cart-before-radius: 22px;
+    --cart-before-inset: 0;
+    --cart-before-padding: 1px;
     --badge-bg: var(--orange);
     --badge-color: #fff;
     --badge-border: none;
@@ -70,8 +70,8 @@
     --chevron-cyan: #4EC8DC;
     --progress-bg: rgba(255,255,255,0.06);
     --progress-fill: linear-gradient(90deg, var(--teal), #6BC5A0);
-    --erledigt-bg: rgba(255,255,255,0.02);
-    --erledigt-border: rgba(255,255,255,0.04);
+    --completed-bg: rgba(255,255,255,0.02);
+    --completed-border: rgba(255,255,255,0.04);
     --celebration-glow: rgba(78,157,166,0.15);
   }
 
@@ -106,16 +106,16 @@
     --nav-blur: blur(24px);
     --nav-border: rgba(255,255,255,0.06);
     --logo-filter: drop-shadow(0 0 12px rgba(139,92,246,0.4)) drop-shadow(0 0 24px rgba(236,72,153,0.2));
-    --warenkorb-border: 1px solid rgba(255,255,255,0.1);
-    --warenkorb-before: radial-gradient(circle, rgba(232,146,58,0.1) 0%, transparent 70%);
-    --warenkorb-before-mask: none;
-    --warenkorb-before-top: -40%;
-    --warenkorb-before-right: -20%;
-    --warenkorb-before-width: 200px;
-    --warenkorb-before-height: 200px;
-    --warenkorb-before-radius: 50%;
-    --warenkorb-before-inset: auto;
-    --warenkorb-before-padding: 0;
+    --cart-border: 1px solid rgba(255,255,255,0.1);
+    --cart-before: radial-gradient(circle, rgba(232,146,58,0.1) 0%, transparent 70%);
+    --cart-before-mask: none;
+    --cart-before-top: -40%;
+    --cart-before-right: -20%;
+    --cart-before-width: 200px;
+    --cart-before-height: 200px;
+    --cart-before-radius: 50%;
+    --cart-before-inset: auto;
+    --cart-before-padding: 0;
     --badge-bg: rgba(232,146,58,0.2);
     --badge-color: #E8923A;
     --badge-border: 1px solid rgba(232,146,58,0.25);
@@ -141,8 +141,8 @@
     --chevron-cyan: rgba(255,255,255,0.25);
     --progress-bg: rgba(255,255,255,0.08);
     --progress-fill: linear-gradient(90deg, var(--teal), #6BC5A0);
-    --erledigt-bg: rgba(255,255,255,0.03);
-    --erledigt-border: rgba(255,255,255,0.06);
+    --completed-bg: rgba(255,255,255,0.03);
+    --completed-border: rgba(255,255,255,0.06);
     --celebration-glow: rgba(139,92,246,0.15);
   }
 
@@ -158,13 +158,13 @@
   body,
   .phone-frame,
   .screen,
-  .warenkorb-card,
+  .cart-card,
   .category-card,
   .category-icon,
-  .warenkorb-tile,
+  .cart-tile,
   .bottom-nav,
   .status-bar,
-  .warenkorb-count {
+  .cart-count {
     transition: background 0.4s ease, background-color 0.4s ease, border-color 0.3s ease, box-shadow 0.4s ease, border-radius 0.3s ease;
   }
 
@@ -293,39 +293,39 @@
   }
   .nav-back svg { width: 20px; height: 20px; fill: var(--teal); }
 
-  /* ===== Warenkorb Card ===== */
-  .warenkorb-section {
+  /* ===== Cart Card ===== */
+  .cart-section {
     padding: 0 20px;
     margin-bottom: 24px;
   }
-  .warenkorb-card {
+  .cart-card {
     position: relative;
     border-radius: 22px;
     padding: 18px;
     background: var(--card-bg);
-    border: var(--warenkorb-border);
+    border: var(--cart-border);
     overflow: hidden;
     backdrop-filter: var(--card-blur);
     -webkit-backdrop-filter: var(--card-blur);
   }
-  .warenkorb-card::before {
+  .cart-card::before {
     content: '';
     position: absolute;
-    inset: var(--warenkorb-before-inset);
-    top: var(--warenkorb-before-top);
-    right: var(--warenkorb-before-right);
-    width: var(--warenkorb-before-width);
-    height: var(--warenkorb-before-height);
-    border-radius: var(--warenkorb-before-radius);
-    padding: var(--warenkorb-before-padding);
-    background: var(--warenkorb-before);
-    -webkit-mask: var(--warenkorb-before-mask);
+    inset: var(--cart-before-inset);
+    top: var(--cart-before-top);
+    right: var(--cart-before-right);
+    width: var(--cart-before-width);
+    height: var(--cart-before-height);
+    border-radius: var(--cart-before-radius);
+    padding: var(--cart-before-padding);
+    background: var(--cart-before);
+    -webkit-mask: var(--cart-before-mask);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     pointer-events: none;
     transition: opacity 0.4s ease;
   }
-  .warenkorb-header {
+  .cart-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -333,12 +333,12 @@
     position: relative;
     z-index: 1;
   }
-  .warenkorb-title {
+  .cart-title {
     font-size: 16px;
     font-weight: 700;
     color: var(--text-primary);
   }
-  .warenkorb-count {
+  .cart-count {
     background: var(--badge-bg);
     color: var(--badge-color);
     font-size: 12px;
@@ -348,10 +348,10 @@
     border: var(--badge-border);
     box-shadow: var(--badge-shadow);
   }
-  [data-theme="dark"] .warenkorb-count {
+  [data-theme="dark"] .cart-count {
     animation: pulseOrange 2s ease-in-out infinite;
   }
-  [data-theme="glass"] .warenkorb-count {
+  [data-theme="glass"] .cart-count {
     animation: none;
   }
   @keyframes pulseOrange {
@@ -407,8 +407,8 @@
     border-radius: 0 3px 3px 0;
   }
 
-  /* ===== Warenkorb Grid ===== */
-  .warenkorb-grid {
+  /* ===== Cart Grid ===== */
+  .cart-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 6px;
@@ -416,7 +416,7 @@
     z-index: 1;
   }
 
-  .warenkorb-tile {
+  .cart-tile {
     position: relative;
     padding: 8px 4px;
     border-radius: 14px;
@@ -435,15 +435,15 @@
     -webkit-user-select: none;
     min-height: 68px;
   }
-  .warenkorb-tile:hover {
+  .cart-tile:hover {
     background: var(--surface-hover);
     box-shadow: 0 0 10px rgba(78,157,166,0.15);
   }
-  .warenkorb-tile:active {
+  .cart-tile:active {
     transform: scale(0.95);
   }
 
-  .warenkorb-tile.checking {
+  .cart-tile.checking {
     animation: tileCheckOff 0.4s ease forwards;
   }
   @keyframes tileCheckOff {
@@ -453,7 +453,7 @@
     100% { transform: scale(0.8); opacity: 0; max-height: 0; padding: 0; margin: 0; overflow: hidden; }
   }
 
-  .warenkorb-tile.restoring {
+  .cart-tile.restoring {
     animation: tileRestore 0.35s ease forwards;
   }
   @keyframes tileRestore {
@@ -494,7 +494,7 @@
     overflow: hidden;
   }
 
-  .warenkorb-empty {
+  .cart-empty {
     color: var(--text-dim);
     font-size: 13px;
     font-weight: 500;
@@ -503,19 +503,19 @@
     grid-column: 1 / -1;
   }
 
-  /* ===== Erledigt Section ===== */
-  .erledigt-section {
+  /* ===== Completed Section ===== */
+  .completed-section {
     position: relative;
     z-index: 1;
     margin-top: 14px;
   }
-  .erledigt-divider {
+  .completed-divider {
     width: 100%;
     height: 1px;
-    background: var(--erledigt-border);
+    background: var(--completed-border);
     margin-bottom: 12px;
   }
-  .erledigt-toggle {
+  .completed-toggle {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -524,7 +524,7 @@
     user-select: none;
     -webkit-user-select: none;
   }
-  .erledigt-chevron {
+  .completed-chevron {
     width: 16px;
     height: 16px;
     display: flex;
@@ -532,19 +532,19 @@
     justify-content: center;
     transition: transform 0.25s ease;
   }
-  .erledigt-chevron svg {
+  .completed-chevron svg {
     width: 12px;
     height: 12px;
   }
-  .erledigt-toggle.expanded .erledigt-chevron {
+  .completed-toggle.expanded .completed-chevron {
     transform: rotate(90deg);
   }
-  .erledigt-label {
+  .completed-label {
     font-size: 13px;
     font-weight: 600;
     color: var(--text-dim);
   }
-  .erledigt-count-badge {
+  .completed-count-badge {
     font-size: 11px;
     font-weight: 700;
     color: var(--teal);
@@ -553,7 +553,7 @@
     border-radius: 10px;
   }
 
-  .erledigt-grid {
+  .completed-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 6px;
@@ -565,18 +565,18 @@
                 margin-top 0.3s ease;
     margin-top: 0;
   }
-  .erledigt-grid.expanded {
+  .completed-grid.expanded {
     max-height: 600px;
     opacity: 1;
     margin-top: 8px;
   }
 
-  .erledigt-tile {
+  .completed-tile {
     position: relative;
     padding: 8px 4px;
     border-radius: 14px;
-    background: var(--erledigt-bg);
-    border: 1px solid var(--erledigt-border);
+    background: var(--completed-bg);
+    border: 1px solid var(--completed-border);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -589,31 +589,31 @@
     -webkit-user-select: none;
     min-height: 68px;
   }
-  .erledigt-tile:hover {
+  .completed-tile:hover {
     opacity: 0.65;
     background: var(--surface);
   }
-  .erledigt-tile:active {
+  .completed-tile:active {
     transform: scale(0.95);
   }
-  .erledigt-tile .tile-emoji {
+  .completed-tile .tile-emoji {
     font-size: 20px;
     filter: grayscale(30%);
   }
-  .erledigt-tile .tile-name {
+  .completed-tile .tile-name {
     text-decoration: line-through;
     text-decoration-color: var(--text-dim);
     color: var(--text-dim);
     font-size: 9px;
   }
-  .erledigt-tile .tile-qty {
+  .completed-tile .tile-qty {
     opacity: 0.5;
   }
 
-  .erledigt-tile.incoming {
-    animation: erledigtIncoming 0.4s ease forwards;
+  .completed-tile.incoming {
+    animation: completedIncoming 0.4s ease forwards;
   }
-  @keyframes erledigtIncoming {
+  @keyframes completedIncoming {
     0% { transform: scale(0.5) translateY(-20px); opacity: 0; }
     60% { transform: scale(1.05) translateY(0); opacity: 0.5; }
     100% { transform: scale(1) translateY(0); opacity: 0.45; }
@@ -770,22 +770,22 @@
     opacity: var(--cat-card-before-opacity);
     transition: opacity 0.4s ease;
   }
-  .category-card[data-cat="obst-gemuese"]::before {
+  .category-card[data-cat="fruits-vegetables"]::before {
     background: radial-gradient(circle, rgba(80,180,80,0.15) 0%, transparent 70%);
   }
-  .category-card[data-cat="milch-kaese"]::before {
+  .category-card[data-cat="dairy-cheese"]::before {
     background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%);
   }
-  .category-card[data-cat="brot-gebaeck"]::before {
+  .category-card[data-cat="bread-bakery"]::before {
     background: radial-gradient(circle, rgba(220,180,60,0.15) 0%, transparent 70%);
   }
-  .category-card[data-cat="fleisch-fisch"]::before {
+  .category-card[data-cat="meat-fish"]::before {
     background: radial-gradient(circle, rgba(236,72,153,0.15) 0%, transparent 70%);
   }
-  .category-card[data-cat="zutaten-gewuerze"]::before {
+  .category-card[data-cat="ingredients-spices"]::before {
     background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%);
   }
-  .category-card[data-cat="drogerie-haushalt"]::before {
+  .category-card[data-cat="drugstore-household"]::before {
     background: radial-gradient(circle, rgba(78,200,220,0.15) 0%, transparent 70%);
   }
 
@@ -912,7 +912,7 @@
     <!-- Header -->
     <div class="header">
       <div class="header-top">
-        <a class="nav-back" href="listen.html">
+        <a class="nav-back" href="lists.html">
           <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
           Listen
         </a>
@@ -921,12 +921,12 @@
       <p class="header-subtitle">Familien-Einkauf &middot; 3 Personen</p>
     </div>
 
-    <!-- Warenkorb / Einkaufsliste -->
-    <div class="warenkorb-section">
-      <div class="warenkorb-card">
-        <div class="warenkorb-header">
-          <span class="warenkorb-title">Einkaufsliste</span>
-          <span class="warenkorb-count" id="warenkorbCount">0 Artikel</span>
+    <!-- Cart / Shopping List -->
+    <div class="cart-section">
+      <div class="cart-card">
+        <div class="cart-header">
+          <span class="cart-title">Einkaufsliste</span>
+          <span class="cart-count" id="cartCount">0 Artikel</span>
         </div>
 
         <!-- Progress Bar -->
@@ -941,19 +941,19 @@
         </div>
 
         <!-- Active Items Grid -->
-        <div class="warenkorb-grid" id="activeGrid"></div>
+        <div class="cart-grid" id="activeGrid"></div>
 
-        <!-- Erledigt Section -->
-        <div class="erledigt-section" id="erledigtSection" style="display: none;">
-          <div class="erledigt-divider"></div>
-          <div class="erledigt-toggle" id="erledigtToggle">
-            <div class="erledigt-chevron">
+        <!-- Completed Section -->
+        <div class="completed-section" id="completedSection" style="display: none;">
+          <div class="completed-divider"></div>
+          <div class="completed-toggle" id="completedToggle">
+            <div class="completed-chevron">
               <svg viewBox="0 0 14 14" fill="none" stroke="var(--text-dim)" stroke-width="2" stroke-linecap="round"><path d="M5 2l5 5-5 5"/></svg>
             </div>
-            <span class="erledigt-label">Erledigt</span>
-            <span class="erledigt-count-badge" id="erledigtCountBadge">0</span>
+            <span class="completed-label">Erledigt</span>
+            <span class="completed-count-badge" id="completedCountBadge">0</span>
           </div>
-          <div class="erledigt-grid" id="erledigtGrid"></div>
+          <div class="completed-grid" id="completedGrid"></div>
         </div>
 
         <!-- Celebration State -->
@@ -978,7 +978,7 @@
 
   <!-- Bottom Nav -->
   <div class="bottom-nav">
-    <a class="nav-item active" href="listen.html">
+    <a class="nav-item active" href="lists.html">
       <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
       <span>Listen</span>
     </a>
@@ -992,7 +992,7 @@
     </a>
     <a class="nav-item" href="#">
       <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
-      <span>Aktivität</span>
+      <span>Aktivit&auml;t</span>
       <div class="nav-badge">3</div>
     </a>
   </div>
@@ -1023,41 +1023,41 @@
 
   // ===== Storage Keys (per list) =====
   const STORAGE_KEY = 'shopzebra_items_' + LIST_ID;
-  const ERLEDIGT_KEY = 'shopzebra_erledigt_' + LIST_ID;
+  const COMPLETED_KEY = 'shopzebra_completed_' + LIST_ID;
 
   // ===== Default Items =====
   const DEFAULT_ITEMS = [
-    { id: 'aepfel', emoji: '\u{1F34E}', name: 'Äpfel', qty: 2, unit: 'kg', cat: 'obst-gemuese' },
-    { id: 'bananen', emoji: '\u{1F34C}', name: 'Bananen', qty: 6, unit: 'St', cat: 'obst-gemuese' },
-    { id: 'tomaten', emoji: '\u{1F345}', name: 'Tomaten', qty: 1, unit: 'kg', cat: 'obst-gemuese' },
-    { id: 'kartoffeln', emoji: '\u{1F954}', name: 'Kartoffeln', qty: 2, unit: 'kg', cat: 'obst-gemuese' },
-    { id: 'gurke', emoji: '\u{1F952}', name: 'Gurke', qty: 2, unit: 'St', cat: 'obst-gemuese' },
-    { id: 'paprika', emoji: '\u{1FAD1}', name: 'Paprika', qty: 3, unit: 'St', cat: 'obst-gemuese' },
-    { id: 'zwiebeln', emoji: '\u{1F9C5}', name: 'Zwiebeln', qty: 1, unit: 'Netz', cat: 'obst-gemuese' },
-    { id: 'salat', emoji: '\u{1F957}', name: 'Salat', qty: 1, unit: 'Kopf', cat: 'obst-gemuese' },
-    { id: 'milch', emoji: '\u{1F95B}', name: 'Milch', qty: 2, unit: 'L', cat: 'milch-kaese' },
-    { id: 'gouda', emoji: '\u{1F9C0}', name: 'Gouda', qty: 1, unit: 'Pck', cat: 'milch-kaese' },
-    { id: 'jogurt', emoji: '\u{1F963}', name: 'Joghurt', qty: 4, unit: 'St', cat: 'milch-kaese' },
-    { id: 'butter', emoji: '\u{1F9C8}', name: 'Butter', qty: 1, unit: 'St', cat: 'milch-kaese' },
-    { id: 'brot', emoji: '\u{1F35E}', name: 'Brot', qty: 1, unit: 'Pck', cat: 'brot-gebaeck' },
-    { id: 'broetchen', emoji: '\u{1F96F}', name: 'Brötchen', qty: 6, unit: 'St', cat: 'brot-gebaeck' },
-    { id: 'hackfleisch', emoji: '\u{1F969}', name: 'Hackfleisch', qty: 1, unit: '500g', cat: 'fleisch-fisch' },
-    { id: 'haehnchen', emoji: '\u{1F357}', name: 'Hähnchenbrust', qty: 1, unit: '400g', cat: 'fleisch-fisch' },
-    { id: 'lachs', emoji: '\u{1F41F}', name: 'Lachs', qty: 1, unit: '200g', cat: 'fleisch-fisch' },
-    { id: 'nudeln', emoji: '\u{1F35D}', name: 'Nudeln', qty: 2, unit: 'Pck', cat: 'zutaten-gewuerze' },
-    { id: 'reis', emoji: '\u{1F35A}', name: 'Reis', qty: 1, unit: 'Pck', cat: 'zutaten-gewuerze' },
-    { id: 'speiseoel', emoji: '\u{1FAD2}', name: 'Speiseöl', qty: 1, unit: 'Fl', cat: 'zutaten-gewuerze' },
-    { id: 'passierte-tomaten', emoji: '\u{1F96B}', name: 'Passierte Tomaten', qty: 2, unit: 'Pck', cat: 'zutaten-gewuerze' },
-    { id: 'sojasauce', emoji: '\u{1F962}', name: 'Sojasauce', qty: 1, unit: 'Fl', cat: 'zutaten-gewuerze' }
+    { id: 'apples', emoji: '\u{1F34E}', name: '\u00C4pfel', qty: 2, unit: 'kg', cat: 'fruits-vegetables' },
+    { id: 'bananas', emoji: '\u{1F34C}', name: 'Bananen', qty: 6, unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'tomatoes', emoji: '\u{1F345}', name: 'Tomaten', qty: 1, unit: 'kg', cat: 'fruits-vegetables' },
+    { id: 'potatoes', emoji: '\u{1F954}', name: 'Kartoffeln', qty: 2, unit: 'kg', cat: 'fruits-vegetables' },
+    { id: 'cucumber', emoji: '\u{1F952}', name: 'Gurke', qty: 2, unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'bell-pepper', emoji: '\u{1FAD1}', name: 'Paprika', qty: 3, unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'onions', emoji: '\u{1F9C5}', name: 'Zwiebeln', qty: 1, unit: 'Netz', cat: 'fruits-vegetables' },
+    { id: 'lettuce', emoji: '\u{1F957}', name: 'Salat', qty: 1, unit: 'Kopf', cat: 'fruits-vegetables' },
+    { id: 'milk', emoji: '\u{1F95B}', name: 'Milch', qty: 2, unit: 'L', cat: 'dairy-cheese' },
+    { id: 'gouda', emoji: '\u{1F9C0}', name: 'Gouda', qty: 1, unit: 'Pck', cat: 'dairy-cheese' },
+    { id: 'yogurt', emoji: '\u{1F963}', name: 'Joghurt', qty: 4, unit: 'St', cat: 'dairy-cheese' },
+    { id: 'butter', emoji: '\u{1F9C8}', name: 'Butter', qty: 1, unit: 'St', cat: 'dairy-cheese' },
+    { id: 'bread', emoji: '\u{1F35E}', name: 'Brot', qty: 1, unit: 'Pck', cat: 'bread-bakery' },
+    { id: 'rolls', emoji: '\u{1F96F}', name: 'Br\u00F6tchen', qty: 6, unit: 'St', cat: 'bread-bakery' },
+    { id: 'ground-meat', emoji: '\u{1F969}', name: 'Hackfleisch', qty: 1, unit: '500g', cat: 'meat-fish' },
+    { id: 'chicken', emoji: '\u{1F357}', name: 'H\u00E4hnchenbrust', qty: 1, unit: '400g', cat: 'meat-fish' },
+    { id: 'salmon', emoji: '\u{1F41F}', name: 'Lachs', qty: 1, unit: '200g', cat: 'meat-fish' },
+    { id: 'pasta', emoji: '\u{1F35D}', name: 'Nudeln', qty: 2, unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'rice', emoji: '\u{1F35A}', name: 'Reis', qty: 1, unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'cooking-oil', emoji: '\u{1FAD2}', name: 'Speise\u00F6l', qty: 1, unit: 'Fl', cat: 'ingredients-spices' },
+    { id: 'tomato-puree', emoji: '\u{1F96B}', name: 'Passierte Tomaten', qty: 2, unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'soy-sauce', emoji: '\u{1F962}', name: 'Sojasauce', qty: 1, unit: 'Fl', cat: 'ingredients-spices' }
   ];
 
   const CATEGORIES = [
-    { id: 'obst-gemuese', name: 'Obst & Gemüse', emoji: '\u{1F34E}', color: 'green', totalProducts: 40 },
-    { id: 'milch-kaese', name: 'Milch & Käse', emoji: '\u{1F9C0}', color: 'blue', totalProducts: 13 },
-    { id: 'brot-gebaeck', name: 'Brot & Gebäck', emoji: '\u{1F35E}', color: 'yellow', totalProducts: 10 },
-    { id: 'fleisch-fisch', name: 'Fleisch & Fisch', emoji: '\u{1F969}', color: 'red', totalProducts: 12 },
-    { id: 'zutaten-gewuerze', name: 'Zutaten & Gewürze', emoji: '\u{1F9C2}', color: 'purple', totalProducts: 26 },
-    { id: 'drogerie-haushalt', name: 'Drogerie & Haushalt', emoji: '\u{1F9F4}', color: 'cyan', totalProducts: 20 }
+    { id: 'fruits-vegetables', name: 'Obst & Gem\u00FCse', emoji: '\u{1F34E}', color: 'green', totalProducts: 40 },
+    { id: 'dairy-cheese', name: 'Milch & K\u00E4se', emoji: '\u{1F9C0}', color: 'blue', totalProducts: 13 },
+    { id: 'bread-bakery', name: 'Brot & Geb\u00E4ck', emoji: '\u{1F35E}', color: 'yellow', totalProducts: 10 },
+    { id: 'meat-fish', name: 'Fleisch & Fisch', emoji: '\u{1F969}', color: 'red', totalProducts: 12 },
+    { id: 'ingredients-spices', name: 'Zutaten & Gew\u00FCrze', emoji: '\u{1F9C2}', color: 'purple', totalProducts: 26 },
+    { id: 'drugstore-household', name: 'Drogerie & Haushalt', emoji: '\u{1F9F4}', color: 'cyan', totalProducts: 20 }
   ];
 
   const CHEVRON_COLORS = {
@@ -1066,7 +1066,7 @@
   };
 
   // ===== State =====
-  let erledigtExpanded = false;
+  let completedExpanded = false;
 
   function loadItems() {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -1082,14 +1082,14 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }
 
-  function loadErledigt() {
-    const stored = localStorage.getItem(ERLEDIGT_KEY);
+  function loadCompleted() {
+    const stored = localStorage.getItem(COMPLETED_KEY);
     if (!stored) return [];
     try { return JSON.parse(stored); } catch (e) { return []; }
   }
 
-  function saveErledigt(items) {
-    localStorage.setItem(ERLEDIGT_KEY, JSON.stringify(items));
+  function saveCompleted(items) {
+    localStorage.setItem(COMPLETED_KEY, JSON.stringify(items));
   }
 
   function formatQty(item) {
@@ -1101,9 +1101,9 @@
   // ===== Progress =====
   function updateProgress() {
     const activeItems = loadItems();
-    const erledigtItems = loadErledigt();
-    const total = activeItems.length + erledigtItems.length;
-    const done = erledigtItems.length;
+    const completedItems = loadCompleted();
+    const total = activeItems.length + completedItems.length;
+    const done = completedItems.length;
     const pct = total > 0 ? Math.round((done / total) * 100) : 0;
     const progressSection = document.getElementById('progressSection');
 
@@ -1115,24 +1115,24 @@
       document.getElementById('progressPercent').textContent = pct + '%';
       document.getElementById('progressFill').style.width = pct + '%';
     }
-    document.getElementById('warenkorbCount').textContent = total + ' Artikel';
+    document.getElementById('cartCount').textContent = total + ' Artikel';
   }
 
   // ===== Active Grid =====
   function renderActiveGrid() {
     const activeItems = loadItems();
-    const erledigtItems = loadErledigt();
+    const completedItems = loadCompleted();
     const grid = document.getElementById('activeGrid');
 
-    if (activeItems.length === 0 && erledigtItems.length > 0) {
+    if (activeItems.length === 0 && completedItems.length > 0) {
       // All done — celebration
       grid.style.display = 'none';
       document.getElementById('progressSection').style.display = 'none';
-      document.getElementById('erledigtSection').style.display = 'none';
+      document.getElementById('completedSection').style.display = 'none';
 
       const celebration = document.getElementById('celebrationContainer');
       document.getElementById('celebrationSubtitle').textContent =
-        'Alle ' + erledigtItems.length + ' Artikel erledigt';
+        'Alle ' + completedItems.length + ' Artikel erledigt';
       celebration.classList.add('visible');
       spawnConfetti();
       return;
@@ -1143,10 +1143,10 @@
     document.getElementById('celebrationContainer').classList.remove('visible');
 
     if (activeItems.length === 0) {
-      grid.innerHTML = '<div class="warenkorb-empty">Noch keine Produkte ausgewählt</div>';
+      grid.innerHTML = '<div class="cart-empty">Noch keine Produkte ausgew\u00E4hlt</div>';
     } else {
       grid.innerHTML = activeItems.map(function(item) {
-        return '<div class="warenkorb-tile" onclick="checkOffItem(\'' + item.id + '\')" data-id="' + item.id + '">' +
+        return '<div class="cart-tile" onclick="checkOffItem(\'' + item.id + '\')" data-id="' + item.id + '">' +
           '<span class="tile-qty">x' + formatQty(item) + '</span>' +
           '<span class="tile-emoji">' + item.emoji + '</span>' +
           '<span class="tile-name">' + item.name + '</span>' +
@@ -1155,23 +1155,23 @@
     }
   }
 
-  // ===== Erledigt Section =====
-  function renderErledigtSection() {
-    const erledigtItems = loadErledigt();
-    const section = document.getElementById('erledigtSection');
-    const toggle = document.getElementById('erledigtToggle');
-    const grid = document.getElementById('erledigtGrid');
-    const badge = document.getElementById('erledigtCountBadge');
+  // ===== Completed Section =====
+  function renderCompletedSection() {
+    const completedItems = loadCompleted();
+    const section = document.getElementById('completedSection');
+    const toggle = document.getElementById('completedToggle');
+    const grid = document.getElementById('completedGrid');
+    const badge = document.getElementById('completedCountBadge');
 
-    if (erledigtItems.length === 0) {
+    if (completedItems.length === 0) {
       section.style.display = 'none';
       return;
     }
 
     section.style.display = '';
-    badge.textContent = erledigtItems.length;
+    badge.textContent = completedItems.length;
 
-    if (erledigtExpanded) {
+    if (completedExpanded) {
       toggle.classList.add('expanded');
       grid.classList.add('expanded');
     } else {
@@ -1179,8 +1179,8 @@
       grid.classList.remove('expanded');
     }
 
-    grid.innerHTML = erledigtItems.map(function(item) {
-      return '<div class="erledigt-tile" onclick="restoreItem(\'' + item.id + '\')" data-id="' + item.id + '">' +
+    grid.innerHTML = completedItems.map(function(item) {
+      return '<div class="completed-tile" onclick="restoreItem(\'' + item.id + '\')" data-id="' + item.id + '">' +
         '<span class="tile-qty">x' + formatQty(item) + '</span>' +
         '<span class="tile-emoji">' + item.emoji + '</span>' +
         '<span class="tile-name">' + item.name + '</span>' +
@@ -1195,7 +1195,7 @@
     if (idx === -1) return;
 
     const item = items[idx];
-    const tileEl = document.querySelector('.warenkorb-tile[data-id="' + itemId + '"]');
+    const tileEl = document.querySelector('.cart-tile[data-id="' + itemId + '"]');
     if (tileEl) tileEl.classList.add('checking');
 
     if (navigator.vibrate) navigator.vibrate(15);
@@ -1204,39 +1204,39 @@
       items.splice(idx, 1);
       saveItems(items);
 
-      const erledigt = loadErledigt();
-      erledigt.unshift(item);
-      saveErledigt(erledigt);
+      const completed = loadCompleted();
+      completed.unshift(item);
+      saveCompleted(completed);
 
       updateProgress();
       renderActiveGrid();
-      renderErledigtSection();
+      renderCompletedSection();
       updateCategoryBadges();
 
       // Auto-expand on first check
-      if (erledigt.length === 1 && !erledigtExpanded) {
-        erledigtExpanded = true;
-        renderErledigtSection();
+      if (completed.length === 1 && !completedExpanded) {
+        completedExpanded = true;
+        renderCompletedSection();
       }
 
-      // Animate incoming erledigt tile
-      const erledigtTile = document.querySelector('.erledigt-tile[data-id="' + itemId + '"]');
-      if (erledigtTile) {
-        erledigtTile.classList.add('incoming');
-        setTimeout(function() { erledigtTile.classList.remove('incoming'); }, 400);
+      // Animate incoming completed tile
+      const completedTile = document.querySelector('.completed-tile[data-id="' + itemId + '"]');
+      if (completedTile) {
+        completedTile.classList.add('incoming');
+        setTimeout(function() { completedTile.classList.remove('incoming'); }, 400);
       }
     }, 350);
   }
 
   // ===== Restore =====
   function restoreItem(itemId) {
-    const erledigt = loadErledigt();
-    const idx = erledigt.findIndex(function(i) { return i.id === itemId; });
+    const completed = loadCompleted();
+    const idx = completed.findIndex(function(i) { return i.id === itemId; });
     if (idx === -1) return;
 
-    const item = erledigt[idx];
-    erledigt.splice(idx, 1);
-    saveErledigt(erledigt);
+    const item = completed[idx];
+    completed.splice(idx, 1);
+    saveCompleted(completed);
 
     const items = loadItems();
     items.push(item);
@@ -1246,10 +1246,10 @@
 
     updateProgress();
     renderActiveGrid();
-    renderErledigtSection();
+    renderCompletedSection();
     updateCategoryBadges();
 
-    const restoredTile = document.querySelector('.warenkorb-tile[data-id="' + itemId + '"]');
+    const restoredTile = document.querySelector('.cart-tile[data-id="' + itemId + '"]');
     if (restoredTile) {
       restoredTile.classList.add('restoring');
       setTimeout(function() { restoredTile.classList.remove('restoring'); }, 350);
@@ -1259,12 +1259,12 @@
   // ===== Reset =====
   function resetList() {
     saveItems([]);
-    saveErledigt([]);
-    erledigtExpanded = false;
+    saveCompleted([]);
+    completedExpanded = false;
 
     updateProgress();
     renderActiveGrid();
-    renderErledigtSection();
+    renderCompletedSection();
     updateCategoryBadges();
   }
 
@@ -1291,15 +1291,15 @@
   // ===== Category Badges =====
   function updateCategoryBadges() {
     const items = loadItems();
-    const erledigt = loadErledigt();
-    const allItems = items.concat(erledigt);
+    const completed = loadCompleted();
+    const allItems = items.concat(completed);
 
     CATEGORIES.forEach(function(cat) {
       const catItems = allItems.filter(function(item) { return item.cat === cat.id; });
       const badge = document.querySelector('[data-cat-badge="' + cat.id + '"]');
       if (badge) {
         if (catItems.length > 0) {
-          badge.textContent = catItems.length + ' gewählt';
+          badge.textContent = catItems.length + ' gew\u00E4hlt';
           badge.classList.add('visible');
         } else {
           badge.classList.remove('visible');
@@ -1311,16 +1311,16 @@
   // ===== Categories =====
   function renderCategories() {
     const items = loadItems();
-    const erledigt = loadErledigt();
-    const allItems = items.concat(erledigt);
+    const completed = loadCompleted();
+    const allItems = items.concat(completed);
     const listEl = document.getElementById('categoryList');
 
     listEl.innerHTML = CATEGORIES.map(function(cat) {
       const catItems = allItems.filter(function(item) { return item.cat === cat.id; });
       const badgeClass = catItems.length > 0 ? 'category-badge visible' : 'category-badge';
-      const badgeText = catItems.length > 0 ? catItems.length + ' gewählt' : '';
+      const badgeText = catItems.length > 0 ? catItems.length + ' gew\u00E4hlt' : '';
 
-      return '<a class="category-card" href="kategorie.html?liste=' + LIST_ID + '&cat=' + cat.id + '" data-cat="' + cat.id + '">' +
+      return '<a class="category-card" href="category.html?list=' + LIST_ID + '&cat=' + cat.id + '" data-cat="' + cat.id + '">' +
         '<div class="category-icon ' + cat.color + '">' + cat.emoji + '</div>' +
         '<div class="category-info">' +
           '<div class="category-name">' + cat.name + '</div>' +
@@ -1336,10 +1336,10 @@
     }).join('');
   }
 
-  // ===== Erledigt Toggle =====
-  document.getElementById('erledigtToggle').addEventListener('click', function() {
-    erledigtExpanded = !erledigtExpanded;
-    renderErledigtSection();
+  // ===== Completed Toggle =====
+  document.getElementById('completedToggle').addEventListener('click', function() {
+    completedExpanded = !completedExpanded;
+    renderCompletedSection();
   });
 
   // ===== Init =====
@@ -1347,20 +1347,20 @@
   renderCategories();
   updateProgress();
   renderActiveGrid();
-  renderErledigtSection();
+  renderCompletedSection();
 
   // Re-render when returning from category page
   window.addEventListener('focus', function() {
     renderCategories();
     updateProgress();
     renderActiveGrid();
-    renderErledigtSection();
+    renderCompletedSection();
   });
   window.addEventListener('pageshow', function() {
     renderCategories();
     updateProgress();
     renderActiveGrid();
-    renderErledigtSection();
+    renderCompletedSection();
   });
 </script>
 
