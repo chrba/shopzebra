@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopZebra - Rezept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ===== Theme Variables ===== */
+  [data-theme="dark"] {
+    --body-bg: #0a0a0e;
+    --screen-bg: #121216;
+    --screen-gradient: none;
+    --surface: rgba(255,255,255,0.04);
+    --surface-hover: rgba(255,255,255,0.06);
+    --surface-border: rgba(255,255,255,0.06);
+    --teal: #4E9DA6;
+    --orange: #E8923A;
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255,255,255,0.5);
+    --text-dim: rgba(255,255,255,0.35);
+    --card-bg: rgba(255,255,255,0.03);
+    --card-border: rgba(255,255,255,0.06);
+    --card-blur: 0px;
+    --chip-bg: rgba(255,255,255,0.06);
+    --chip-border: rgba(255,255,255,0.08);
+    --chip-blur: 0px;
+    --frame-shadow: 0 0 60px rgba(0,0,0,0.5), 0 0 120px rgba(78,157,166,0.05);
+    --frame-border: 1px solid rgba(255,255,255,0.08);
+    --icon-radius: 50%;
+    --green-bg: rgba(107,191,107,0.12);
+    --green-glow: 0 0 20px rgba(107,191,107,0.3);
+    --red-bg: rgba(224,123,123,0.12);
+    --red-glow: 0 0 20px rgba(224,123,123,0.3);
+    --sheet-bg: #1a1a20;
+  }
+
+  [data-theme="glass"] {
+    --body-bg: #1a1a2e;
+    --screen-bg: #0a0a12;
+    --screen-gradient:
+      radial-gradient(ellipse at 20% 80%, rgba(120, 50, 180, 0.35) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(50, 120, 180, 0.3) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 50%, rgba(180, 50, 120, 0.2) 0%, transparent 60%),
+      radial-gradient(ellipse at 10% 20%, rgba(139, 92, 246, 0.2) 0%, transparent 50%),
+      radial-gradient(ellipse at 90% 80%, rgba(59, 130, 246, 0.18) 0%, transparent 50%);
+    --surface: rgba(255,255,255,0.06);
+    --surface-hover: rgba(255,255,255,0.09);
+    --surface-border: rgba(255,255,255,0.1);
+    --teal: #4E9DA6;
+    --orange: #E8923A;
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255,255,255,0.5);
+    --text-dim: rgba(255,255,255,0.35);
+    --card-bg: rgba(255,255,255,0.06);
+    --card-border: rgba(255,255,255,0.1);
+    --card-blur: blur(20px);
+    --chip-bg: rgba(255,255,255,0.06);
+    --chip-border: rgba(255,255,255,0.08);
+    --chip-blur: blur(12px);
+    --frame-shadow: 0 0 0 2px rgba(255,255,255,0.08), 0 40px 80px rgba(0,0,0,0.6), 0 0 120px rgba(139,92,246,0.15), 0 0 80px rgba(236,72,153,0.1);
+    --frame-border: none;
+    --icon-radius: 14px;
+    --green-bg: rgba(80,180,80,0.15);
+    --green-glow: 0 0 20px rgba(80,180,80,0.2);
+    --red-bg: rgba(236,72,153,0.15);
+    --red-glow: 0 0 20px rgba(236,72,153,0.2);
+    --sheet-bg: rgba(20,20,35,0.95);
+  }
+
+  /* ===== Reset ===== */
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ===== Transitions ===== */
+  body,
+  .phone-frame,
+  .screen,
+  .status-bar,
+  .card,
+  .chip,
+  .btn-primary,
+  .btn-secondary,
+  .portion-btn,
+  .emoji-circle,
+  .step-number {
+    transition: background 0.4s ease, background-color 0.4s ease, border-color 0.3s ease, box-shadow 0.4s ease, border-radius 0.3s ease;
+  }
+
+  /* ===== Body ===== */
+  body {
+    background: var(--body-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    color: var(--text-primary);
+  }
+
+  /* ===== Phone Frame ===== */
+  .phone-frame {
+    width: 390px;
+    height: 844px;
+    background: var(--screen-bg);
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    border: var(--frame-border);
+    box-shadow: var(--frame-shadow);
+  }
+
+  /* ===== Screen ===== */
+  .screen {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 40px;
+    scrollbar-width: none;
+    background-color: var(--screen-bg);
+    background-image: var(--screen-gradient);
+  }
+  .screen::-webkit-scrollbar { display: none; }
+
+  /* ===== Status Bar ===== */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 28px 8px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--screen-bg);
+  }
+  .status-time {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--text-primary);
+  }
+  .status-icons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .status-icons svg {
+    width: 16px;
+    height: 16px;
+    fill: white;
+  }
+
+  /* ===== Theme Toggle ===== */
+  .theme-toggle {
+    width: 20px;
+    height: 20px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+    padding: 0;
+    margin: 0 6px;
+  }
+  .theme-toggle:hover {
+    opacity: 0.85;
+  }
+  .theme-toggle svg {
+    width: 16px;
+    height: 16px;
+    fill: white;
+  }
+
+  /* ===== Header ===== */
+  .header {
+    padding: 8px 20px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* ===== Back Link ===== */
+  .nav-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: var(--teal);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+  .nav-back svg { width: 20px; height: 20px; fill: var(--teal); }
+
+  .header-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.2px;
+  }
+
+  .header-spacer {
+    width: 80px;
+  }
+
+  /* ===== Recipe Hero ===== */
+  .recipe-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 20px 20px;
+  }
+
+  .emoji-circle {
+    width: 96px;
+    height: 96px;
+    border-radius: var(--icon-radius);
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 72px;
+    line-height: 1;
+    margin-bottom: 14px;
+    backdrop-filter: var(--chip-blur);
+    -webkit-backdrop-filter: var(--chip-blur);
+    cursor: pointer;
+    position: relative;
+    transition: background 0.3s ease, border-radius 0.3s ease, transform 0.2s ease;
+  }
+  .emoji-circle:hover { transform: scale(1.05); }
+  .emoji-circle::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--teal);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z'/%3E%3C/svg%3E");
+    background-size: 14px;
+    background-repeat: no-repeat;
+    background-position: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  /* ===== Bottom Sheet Overlay ===== */
+  .sheet-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 90;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .sheet-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .bottom-sheet {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    z-index: 100;
+    background: var(--sheet-bg);
+    border-radius: 28px 28px 0 0;
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border-top: 1px solid var(--surface-border);
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    max-height: 75%;
+    display: flex;
+    flex-direction: column;
+  }
+  .bottom-sheet.active { transform: translateY(0); }
+
+  .sheet-handle {
+    width: 36px; height: 4px; border-radius: 2px;
+    background: rgba(255,255,255,0.2);
+    margin: 10px auto 0; flex-shrink: 0;
+  }
+  .sheet-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px 12px; flex-shrink: 0;
+  }
+  .sheet-title { font-size: 18px; font-weight: 700; }
+  .sheet-close {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--surface); border: 1px solid var(--surface-border);
+    color: var(--text-secondary); font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .sheet-search { padding: 0 20px 12px; flex-shrink: 0; }
+  .search-input {
+    width: 100%; padding: 10px 14px 10px 38px; border-radius: 14px;
+    background: var(--surface); border: 1px solid var(--surface-border);
+    color: var(--text-primary); font-size: 14px; font-weight: 500;
+    font-family: inherit; outline: none; transition: border-color 0.2s ease;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='rgba(255,255,255,0.3)'%3E%3Cpath d='M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z'/%3E%3C/svg%3E");
+    background-size: 18px; background-repeat: no-repeat; background-position: 12px center;
+  }
+  .search-input::placeholder { color: var(--text-dim); }
+  .search-input:focus { border-color: var(--teal); }
+
+  .no-results {
+    text-align: center; padding: 32px 20px; color: var(--text-dim);
+    font-size: 14px; font-weight: 500; display: none;
+  }
+
+  .pill-tabs {
+    display: flex; gap: 6px; padding: 0 20px 14px;
+    overflow-x: auto; scrollbar-width: none; flex-shrink: 0;
+  }
+  .pill-tabs::-webkit-scrollbar { display: none; }
+  .pill-tab {
+    flex-shrink: 0; padding: 7px 14px; font-size: 12px; font-weight: 600;
+    color: var(--text-dim); background: var(--surface);
+    border: 1px solid var(--surface-border); border-radius: 20px;
+    cursor: pointer; font-family: inherit; transition: all 0.2s ease; white-space: nowrap;
+  }
+  .pill-tab:hover { color: var(--text-secondary); background: var(--surface-hover); }
+  .pill-tab.active { color: #fff; background: var(--teal); border-color: var(--teal); }
+
+  .sheet-scroll {
+    flex: 1; overflow-y: auto; padding: 0 20px 30px; scrollbar-width: none;
+  }
+  .sheet-scroll::-webkit-scrollbar { display: none; }
+  .sheet-cat-label {
+    font-size: 11px; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 10px; margin-top: 16px;
+  }
+  .sheet-cat-label:first-child { margin-top: 0; }
+  .sheet-grid {
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px;
+  }
+  .sheet-emoji {
+    aspect-ratio: 1; border: 2px solid transparent; border-radius: 14px;
+    background: transparent; font-size: 28px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+    padding: 0;
+  }
+  .sheet-emoji:hover { background: var(--surface-hover); transform: scale(1.12); }
+  .sheet-emoji:active { transform: scale(0.92); }
+  .sheet-emoji.selected {
+    border-color: var(--teal);
+    background: rgba(78,157,166,0.15);
+    box-shadow: 0 0 12px rgba(78,157,166,0.2);
+  }
+
+  .recipe-name {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text-primary);
+    text-align: center;
+    letter-spacing: -0.3px;
+    margin-bottom: 12px;
+  }
+
+  /* ===== Meta Chips ===== */
+  .meta-chips {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .chip {
+    background: var(--chip-bg);
+    border: 1px solid var(--chip-border);
+    border-radius: 16px;
+    padding: 7px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    backdrop-filter: var(--chip-blur);
+    -webkit-backdrop-filter: var(--chip-blur);
+  }
+
+  /* ===== Portions Adjuster ===== */
+  .portions-adjuster {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .portion-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    color: var(--teal);
+    font-size: 22px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+    transition: all 0.2s ease;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .portion-btn:hover {
+    background: var(--surface-hover);
+  }
+  .portion-btn:active {
+    transform: scale(0.93);
+  }
+  .portion-btn:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+  .portion-btn:disabled:active {
+    transform: none;
+  }
+
+  .portion-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+  }
+
+  .portion-number {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1;
+  }
+
+  .portion-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  /* ===== Section Labels ===== */
+  .section-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    padding: 0 20px;
+    margin-bottom: 10px;
+  }
+
+  /* ===== Ingredients Card ===== */
+  .ingredients-section {
+    padding: 0 20px;
+    margin-bottom: 24px;
+  }
+
+  .card {
+    border-radius: 22px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    backdrop-filter: var(--card-blur);
+    -webkit-backdrop-filter: var(--card-blur);
+    overflow: hidden;
+  }
+
+  .ingredient-row {
+    display: flex;
+    align-items: center;
+    padding: 14px 18px;
+    gap: 12px;
+  }
+  .ingredient-row + .ingredient-row {
+    border-top: 1px solid var(--surface-border);
+  }
+
+  .ingredient-qty {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--teal);
+    min-width: 70px;
+    flex-shrink: 0;
+  }
+
+  .ingredient-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    flex: 1;
+  }
+
+  /* ===== Zubereitung Section ===== */
+  .zubereitung-section {
+    padding: 0 20px;
+    margin-bottom: 32px;
+  }
+
+  .steps-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .step-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .step-number {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--teal);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .step-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    line-height: 1.6;
+    padding-top: 5px;
+  }
+
+  /* ===== Action Buttons ===== */
+  .action-buttons {
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .btn-primary {
+    display: block;
+    width: 100%;
+    padding: 18px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, var(--teal), #3A8A92);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: inherit;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    box-shadow: 0 4px 20px rgba(78,157,166,0.3);
+    transition: all 0.25s ease;
+    letter-spacing: 0.2px;
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 28px rgba(78,157,166,0.4);
+  }
+  .btn-primary:active {
+    transform: scale(0.98);
+  }
+
+  .btn-secondary {
+    display: block;
+    width: 100%;
+    padding: 18px;
+    border-radius: 20px;
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    color: var(--text-primary);
+    font-size: 16px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.25s ease;
+    letter-spacing: 0.2px;
+  }
+  .btn-secondary:hover {
+    background: var(--surface-hover);
+    transform: translateY(-1px);
+  }
+  .btn-secondary:active {
+    transform: scale(0.98);
+  }
+
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <div class="screen">
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-time">9:41</div>
+      <div class="status-icons">
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle theme"></button>
+        <svg viewBox="0 0 16 16"><path d="M1.5 4.5C4 2 7.5 1 8 1s4 1 6.5 3.5l-1.2 1.2C11.2 3.6 9 2.5 8 2.5S4.8 3.6 2.7 5.7L1.5 4.5zM4 7.3C5.3 6 6.8 5.2 8 5.2s2.7.8 4 2.1L10.8 8.5C9.8 7.5 9 7 8 7s-1.8.5-2.8 1.5L4 7.3zM6.5 10c.8-.8 1.2-1 1.5-1s.7.2 1.5 1L8 11.5 6.5 10z"/></svg>
+        <svg viewBox="0 0 16 16"><path d="M1 4h2v8H1V4zm3.5 2h2v6h-2V6zM8 3h2v9H8V3zm3.5 1h2v8h-2V4z"/></svg>
+        <svg viewBox="0 0 24 14"><rect x="0.5" y="0.5" width="20" height="13" rx="2.5" stroke="white" stroke-opacity="0.35" fill="none"/><path opacity="0.4" d="M22 5v4a2 2 0 000-4z" fill="white"/><rect x="2" y="2" width="15" height="9" rx="1.5" fill="white"/></svg>
+      </div>
+    </div>
+
+    <!-- Header with back navigation -->
+    <div class="header">
+      <a class="nav-back" href="rezepte.html">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        Rezepte
+      </a>
+      <span class="header-title">Rezept</span>
+      <span class="header-spacer"></span>
+    </div>
+
+    <!-- Recipe Hero -->
+    <div class="recipe-hero">
+      <div class="emoji-circle" id="recipeEmoji" onclick="openSheet()"></div>
+      <h1 class="recipe-name" id="recipeName"></h1>
+    </div>
+
+    <!-- Meta Chips -->
+    <div class="meta-chips">
+      <span class="chip" id="chipPortionen"></span>
+      <span class="chip" id="chipTime"></span>
+    </div>
+
+    <!-- Portions Adjuster -->
+    <div class="portions-adjuster">
+      <button class="portion-btn" id="btnMinus" onclick="adjustPortions(-1)">-</button>
+      <div class="portion-display">
+        <span class="portion-number" id="portionNumber"></span>
+        <span class="portion-label">Portionen</span>
+      </div>
+      <button class="portion-btn" id="btnPlus" onclick="adjustPortions(1)">+</button>
+    </div>
+
+    <!-- Zutaten Section -->
+    <div class="ingredients-section">
+      <div class="section-label">Zutaten</div>
+      <div class="card" id="ingredientsCard"></div>
+    </div>
+
+    <!-- Zubereitung Section -->
+    <div class="zubereitung-section">
+      <div class="section-label">Zubereitung</div>
+      <div class="steps-list" id="stepsList"></div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+      <a class="btn-primary" id="btnEinkaufsliste" href="#">Zum Essensplan</a>
+    </div>
+  </div>
+
+  <!-- Emoji Picker Overlay -->
+  <div class="sheet-overlay" id="sheetOverlay" onclick="closeSheet()"></div>
+
+  <!-- Emoji Picker Bottom Sheet -->
+  <div class="bottom-sheet" id="bottomSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <span class="sheet-title">Icon wählen</span>
+      <button class="sheet-close" onclick="closeSheet()">✕</button>
+    </div>
+    <div class="sheet-search">
+      <input class="search-input" id="searchInput" type="text" placeholder="Suchen… z.B. Pizza, Curry" oninput="filterEmojis()">
+    </div>
+    <div class="pill-tabs" id="pillTabs"></div>
+    <div class="sheet-scroll" id="sheetScroll"></div>
+    <div class="no-results" id="noResults">Kein passendes Icon gefunden</div>
+  </div>
+</div>
+
+<script>
+  // ===== Theme Toggle =====
+  var MOON_SVG = '<svg viewBox="0 0 24 24" fill="white"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>';
+  var SUN_SVG = '<svg viewBox="0 0 24 24" fill="white"><path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79 1.42-1.41zM4 10.5H1v2h3v-2zm9-9.95h-2V3.5h2V.55zm7.45 3.91l-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zm-3.21 13.7l1.79 1.8 1.41-1.41-1.8-1.79-1.4 1.4zM20 10.5v2h3v-2h-3zm-8-5c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm-1 16.95h2V19.5h-2v2.95zm-7.45-3.91l1.41 1.41 1.79-1.8-1.41-1.41-1.79 1.8z"/></svg>';
+  function getTheme() { return localStorage.getItem('shopzebra_theme') || 'dark'; }
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('shopzebra_theme', t);
+    document.getElementById('themeToggle').innerHTML = t === 'dark' ? MOON_SVG : SUN_SVG;
+  }
+  function toggleTheme() { applyTheme(getTheme() === 'dark' ? 'glass' : 'dark'); }
+  applyTheme(getTheme());
+
+  // ===== Recipe Data =====
+  var RECIPES = {
+    bolognese: {
+      id: 'bolognese',
+      emoji: '\u{1F35D}',
+      name: 'Spaghetti Bolognese',
+      portions: 4,
+      time: '30 Min',
+      ingredients: [
+        { qty: 500, unit: 'g', name: 'Spaghetti' },
+        { qty: 400, unit: 'g', name: 'Hackfleisch' },
+        { qty: 2, unit: '', name: 'Zwiebeln' },
+        { qty: 2, unit: '', name: 'Knoblauchzehen' },
+        { qty: 400, unit: 'ml', name: 'Passierte Tomaten' },
+        { qty: 2, unit: 'EL', name: 'Oliven\u00F6l' },
+        { qty: 1, unit: 'TL', name: 'Salz' },
+        { qty: 1, unit: 'TL', name: 'Pfeffer' },
+        { qty: 1, unit: 'TL', name: 'Oregano' }
+      ],
+      steps: [
+        'Zwiebeln und Knoblauch fein w\u00FCrfeln',
+        'Oliven\u00F6l in einer Pfanne erhitzen',
+        'Hackfleisch anbraten und kr\u00FCmelig braten',
+        'Zwiebeln und Knoblauch hinzuf\u00FCgen',
+        'Passierte Tomaten dazugeben',
+        'Mit Salz, Pfeffer und Oregano w\u00FCrzen',
+        '20 Minuten k\u00F6cheln lassen',
+        'Spaghetti nach Packungsanleitung kochen'
+      ]
+    },
+    curry: {
+      id: 'curry',
+      emoji: '\u{1F35B}',
+      name: 'Gem\u00FCsecurry',
+      portions: 4,
+      time: '35 Min',
+      ingredients: [
+        { qty: 400, unit: 'ml', name: 'Kokosmilch' },
+        { qty: 2, unit: 'EL', name: 'Currypaste' },
+        { qty: 1, unit: '', name: 'Paprika' },
+        { qty: 1, unit: '', name: 'Zucchini' },
+        { qty: 200, unit: 'g', name: 'Kichererbsen' },
+        { qty: 300, unit: 'g', name: 'Basmatireis' },
+        { qty: 1, unit: '', name: 'Zwiebel' },
+        { qty: 2, unit: 'EL', name: 'Sojasauce' },
+        { qty: 1, unit: 'TL', name: 'Kurkuma' }
+      ],
+      steps: [
+        'Zwiebel w\u00FCrfeln und in \u00D6l anbraten',
+        'Currypaste hinzuf\u00FCgen und kurz anr\u00F6sten',
+        'Gem\u00FCse in St\u00FCcke schneiden und dazugeben',
+        'Kokosmilch und Sojasauce einr\u00FChren',
+        'Kichererbsen hinzuf\u00FCgen',
+        'Mit Kurkuma w\u00FCrzen und 15 Min k\u00F6cheln',
+        'Reis nach Packungsanleitung kochen',
+        'Curry mit Reis servieren'
+      ]
+    },
+    haehnchen: {
+      id: 'haehnchen',
+      emoji: '\u{1F357}',
+      name: 'H\u00E4hnchen mit Reis',
+      portions: 4,
+      time: '40 Min',
+      ingredients: [
+        { qty: 600, unit: 'g', name: 'H\u00E4hnchenbrust' },
+        { qty: 300, unit: 'g', name: 'Reis' },
+        { qty: 2, unit: 'EL', name: 'Oliven\u00F6l' },
+        { qty: 1, unit: 'TL', name: 'Paprikapulver' },
+        { qty: 1, unit: '', name: 'Zitrone' },
+        { qty: 2, unit: '', name: 'Knoblauchzehen' },
+        { qty: 200, unit: 'g', name: 'Brokkoli' },
+        { qty: 1, unit: 'TL', name: 'Salz' },
+        { qty: 1, unit: 'TL', name: 'Pfeffer' }
+      ],
+      steps: [
+        'H\u00E4hnchenbrust mit Paprika, Salz und Pfeffer w\u00FCrzen',
+        'Oliven\u00F6l in einer Pfanne erhitzen',
+        'H\u00E4hnchen von beiden Seiten goldbraun braten',
+        'Knoblauch pressen und dazugeben',
+        'Mit Zitronensaft abl\u00F6schen',
+        'Brokkoli d\u00E4mpfen bis bissfest',
+        'Reis nach Packungsanleitung kochen',
+        'Alles zusammen anrichten'
+      ]
+    },
+    pizza: {
+      id: 'pizza',
+      emoji: '\u{1F355}',
+      name: 'Pizza (selbstgemacht)',
+      portions: 4,
+      time: '60 Min',
+      ingredients: [
+        { qty: 500, unit: 'g', name: 'Mehl' },
+        { qty: 1, unit: 'Pck', name: 'Trockenhefe' },
+        { qty: 250, unit: 'ml', name: 'Warmes Wasser' },
+        { qty: 2, unit: 'EL', name: 'Oliven\u00F6l' },
+        { qty: 200, unit: 'ml', name: 'Tomatensauce' },
+        { qty: 250, unit: 'g', name: 'Mozzarella' },
+        { qty: 1, unit: 'TL', name: 'Salz' },
+        { qty: 1, unit: 'TL', name: 'Oregano' },
+        { qty: 100, unit: 'g', name: 'Schinken' }
+      ],
+      steps: [
+        'Mehl, Hefe, Salz und Wasser zu einem Teig kneten',
+        'Teig 30 Minuten gehen lassen',
+        'Ofen auf 250\u00B0C vorheizen',
+        'Teig ausrollen und auf Backblech legen',
+        'Tomatensauce gleichm\u00E4\u00DFig verteilen',
+        'Mozzarella in Scheiben schneiden und verteilen',
+        'Mit Schinken und Oregano belegen',
+        '12\u201315 Minuten backen bis goldbraun'
+      ]
+    },
+    suppe: {
+      id: 'suppe',
+      emoji: '\u{1F372}',
+      name: 'K\u00FCrbissuppe',
+      portions: 4,
+      time: '35 Min',
+      ingredients: [
+        { qty: 800, unit: 'g', name: 'Hokkaidok\u00FCrbis' },
+        { qty: 1, unit: '', name: 'Zwiebel' },
+        { qty: 2, unit: '', name: 'Knoblauchzehen' },
+        { qty: 500, unit: 'ml', name: 'Gem\u00FCsebr\u00FChe' },
+        { qty: 200, unit: 'ml', name: 'Sahne' },
+        { qty: 2, unit: 'EL', name: 'Oliven\u00F6l' },
+        { qty: 1, unit: 'TL', name: 'Ingwer (gerieben)' },
+        { qty: 1, unit: 'TL', name: 'Salz' },
+        { qty: 1, unit: 'Prise', name: 'Muskatnuss' }
+      ],
+      steps: [
+        'K\u00FCrbis waschen, entkernen und in St\u00FCcke schneiden',
+        'Zwiebel und Knoblauch fein w\u00FCrfeln',
+        'Oliven\u00F6l erhitzen, Zwiebel und Knoblauch andünsten',
+        'K\u00FCrbisst\u00FCcke und Ingwer hinzuf\u00FCgen',
+        'Mit Gem\u00FCsebr\u00FChe ablöschen und 20 Min kochen',
+        'Suppe p\u00FCrieren bis cremig',
+        'Sahne einr\u00FChren und mit Salz und Muskat abschmecken',
+        'Hei\u00DF servieren, optional mit K\u00FCrbiskernen garnieren'
+      ]
+    },
+    lachs: {
+      id: 'lachs',
+      emoji: '\u{1F41F}',
+      name: 'Lachs mit Gem\u00FCse',
+      portions: 4,
+      time: '25 Min',
+      ingredients: [
+        { qty: 4, unit: '', name: 'Lachsfilets (\u00E0 150g)' },
+        { qty: 300, unit: 'g', name: 'Gr\u00FCner Spargel' },
+        { qty: 200, unit: 'g', name: 'Cherrytomaten' },
+        { qty: 2, unit: 'EL', name: 'Oliven\u00F6l' },
+        { qty: 1, unit: '', name: 'Zitrone' },
+        { qty: 2, unit: '', name: 'Knoblauchzehen' },
+        { qty: 1, unit: 'TL', name: 'Salz' },
+        { qty: 1, unit: 'TL', name: 'Pfeffer' },
+        { qty: 1, unit: 'EL', name: 'Butter' }
+      ],
+      steps: [
+        'Ofen auf 200\u00B0C vorheizen',
+        'Lachs mit Salz und Pfeffer w\u00FCrzen',
+        'Spargel waschen und untere Enden abschneiden',
+        'Gem\u00FCse mit Oliven\u00F6l und Knoblauch auf Blech verteilen',
+        'Lachs auf das Gem\u00FCse legen',
+        'Mit Zitronenscheiben belegen',
+        'Butterflocken auf den Lachs geben',
+        '15\u201318 Minuten im Ofen garen'
+      ]
+    }
+  };
+
+  // ===== State =====
+  var currentPortions = 4;
+  var basePortions = 4;
+  var currentRecipe = null;
+
+  // ===== Init =====
+  function init() {
+    var params = new URLSearchParams(window.location.search);
+    var recipeId = params.get('id') || 'bolognese';
+    currentRecipe = RECIPES[recipeId] || RECIPES['bolognese'];
+    basePortions = currentRecipe.portions;
+    currentPortions = basePortions;
+
+    render();
+  }
+
+  function render() {
+    // Emoji
+    document.getElementById('recipeEmoji').textContent = currentRecipe.emoji;
+
+    // Name
+    document.getElementById('recipeName').textContent = currentRecipe.name;
+
+    // Chips
+    document.getElementById('chipPortionen').textContent = currentPortions + ' Portionen';
+    document.getElementById('chipTime').textContent = currentRecipe.time;
+
+    // Portions
+    document.getElementById('portionNumber').textContent = currentPortions;
+    document.getElementById('btnMinus').disabled = currentPortions <= 1;
+
+    // Ingredients
+    var ingredientsHtml = '';
+    var scale = currentPortions / basePortions;
+    for (var i = 0; i < currentRecipe.ingredients.length; i++) {
+      var ing = currentRecipe.ingredients[i];
+      var scaledQty = ing.qty * scale;
+      var displayQty = formatQuantity(scaledQty);
+      var qtyText = displayQty + (ing.unit ? ' ' + ing.unit : '');
+      ingredientsHtml += '<div class="ingredient-row">' +
+        '<span class="ingredient-qty">' + qtyText + '</span>' +
+        '<span class="ingredient-name">' + ing.name + '</span>' +
+        '</div>';
+    }
+    document.getElementById('ingredientsCard').innerHTML = ingredientsHtml;
+
+    // Steps
+    var stepsHtml = '';
+    for (var j = 0; j < currentRecipe.steps.length; j++) {
+      stepsHtml += '<div class="step-item">' +
+        '<div class="step-number">' + (j + 1) + '</div>' +
+        '<div class="step-text">' + currentRecipe.steps[j] + '</div>' +
+        '</div>';
+    }
+    document.getElementById('stepsList').innerHTML = stepsHtml;
+
+    // Buttons
+    document.getElementById('btnEinkaufsliste').href = 'planen.html?add=' + currentRecipe.id;
+
+    // Emoji sheet
+    buildSheet();
+  }
+
+  function formatQuantity(qty) {
+    if (qty === Math.floor(qty)) {
+      return String(Math.floor(qty));
+    }
+    // Round to one decimal
+    var rounded = Math.round(qty * 10) / 10;
+    if (rounded === Math.floor(rounded)) {
+      return String(Math.floor(rounded));
+    }
+    return String(rounded);
+  }
+
+  function adjustPortions(delta) {
+    var newPortions = currentPortions + delta;
+    if (newPortions < 1) return;
+    currentPortions = newPortions;
+    render();
+  }
+
+  // ===== Emoji Picker (Bottom Sheet with Search) =====
+  var EMOJI_CATEGORIES = {
+    'Gerichte': [
+      {e:'🍝',k:'pasta spaghetti nudeln'},{e:'🍛',k:'curry reis'},{e:'🍲',k:'eintopf suppe topf'},
+      {e:'🥘',k:'pfanne schmortopf paella'},{e:'🍜',k:'ramen nudelsuppe asiatisch'},{e:'🫕',k:'fondue käse'},
+      {e:'🥣',k:'müsli bowl schüssel porridge'},{e:'🍱',k:'bento japanisch'},{e:'🍚',k:'reis schale'},
+      {e:'🍙',k:'onigiri reisbällchen'},{e:'🍘',k:'reiskuchen'}
+    ],
+    'Fast Food': [
+      {e:'🍕',k:'pizza'},{e:'🍔',k:'burger hamburger'},{e:'🌭',k:'hotdog würstchen'},
+      {e:'🍟',k:'pommes frites'},{e:'🥪',k:'sandwich brot'},{e:'🌮',k:'taco mexikanisch'},
+      {e:'🌯',k:'burrito wrap'},{e:'🥙',k:'pita döner kebab falafel'},{e:'🧆',k:'falafel bällchen'},
+      {e:'🥟',k:'dumpling maultasche'},{e:'🥠',k:'glückskeks'}
+    ],
+    'Fleisch & Fisch': [
+      {e:'🍗',k:'hähnchen huhn keule'},{e:'🍖',k:'fleisch knochen rippe'},{e:'🥩',k:'steak rind fleisch'},
+      {e:'🥓',k:'speck bacon'},{e:'🍣',k:'sushi lachs fisch'},{e:'🍤',k:'garnele shrimp'},
+      {e:'🐟',k:'fisch lachs forelle'},{e:'🍳',k:'ei spiegelei bratei'},{e:'🥚',k:'ei'}
+    ],
+    'Obst': [
+      {e:'🍎',k:'apfel rot'},{e:'🍐',k:'birne'},{e:'🍊',k:'orange mandarine'},{e:'🍋',k:'zitrone'},
+      {e:'🍌',k:'banane'},{e:'🍉',k:'wassermelone melone'},{e:'🍇',k:'trauben weintrauben'},
+      {e:'🍓',k:'erdbeere'},{e:'🫐',k:'blaubeere heidelbeere'},{e:'🍒',k:'kirsche'},
+      {e:'🍑',k:'pfirsich'},{e:'🥭',k:'mango'},{e:'🍍',k:'ananas'},{e:'🥝',k:'kiwi'},{e:'🥥',k:'kokosnuss kokos'}
+    ],
+    'Gemüse': [
+      {e:'🥕',k:'möhre karotte'},{e:'🌽',k:'mais'},{e:'🥦',k:'brokkoli'},{e:'🥬',k:'salat blattgemüse'},
+      {e:'🥒',k:'gurke'},{e:'🍆',k:'aubergine'},{e:'🫑',k:'paprika'},{e:'🌶️',k:'chili scharf'},
+      {e:'🍅',k:'tomate'},{e:'🥑',k:'avocado'},{e:'🧄',k:'knoblauch'},{e:'🧅',k:'zwiebel'},
+      {e:'🍄',k:'pilz champignon'},{e:'🥔',k:'kartoffel'}
+    ],
+    'Brot & Gebäck': [
+      {e:'🍞',k:'brot toast'},{e:'🥐',k:'croissant'},{e:'🥖',k:'baguette'},{e:'🥨',k:'brezel'},
+      {e:'🥯',k:'bagel'},{e:'🧇',k:'waffel'},{e:'🥞',k:'pancake pfannkuchen'},{e:'🧀',k:'käse'}
+    ],
+    'Süßes': [
+      {e:'🧁',k:'cupcake muffin'},{e:'🍰',k:'kuchen torte'},{e:'🎂',k:'geburtstagskuchen torte'},
+      {e:'🥧',k:'pie kuchen'},{e:'🍩',k:'donut'},{e:'🍪',k:'keks cookie'},{e:'🍫',k:'schokolade'},
+      {e:'🍬',k:'bonbon'},{e:'🍭',k:'lolli lollipop'},{e:'🍮',k:'pudding'},{e:'🍯',k:'honig'},
+      {e:'🍦',k:'eis eiscreme'},{e:'🍨',k:'eis becher'}
+    ],
+    'Getränke': [
+      {e:'☕',k:'kaffee'},{e:'🍵',k:'tee'},{e:'🥛',k:'milch'},{e:'🧋',k:'bubble tea boba'},
+      {e:'🥤',k:'limo softdrink'},{e:'🍺',k:'bier'},{e:'🍷',k:'wein rotwein'},{e:'🧃',k:'saft'}
+    ],
+  };
+
+  var activeCategory = 'Gerichte';
+
+  function buildSheet() {
+    var catNames = Object.keys(EMOJI_CATEGORIES);
+    var pillsHtml = '';
+    for (var c = 0; c < catNames.length; c++) {
+      var cat = catNames[c];
+      var active = cat === activeCategory ? ' active' : '';
+      pillsHtml += '<button class="pill-tab' + active + '" data-cat="' + cat + '" onclick="filterCategory(\'' + cat + '\')">' + cat + '</button>';
+    }
+    document.getElementById('pillTabs').innerHTML = pillsHtml;
+    renderSheetGrid('');
+  }
+
+  function renderSheetGrid(query) {
+    var catNames = Object.keys(EMOJI_CATEGORIES);
+    var html = '';
+    var totalMatches = 0;
+    query = (query || '').toLowerCase().trim();
+
+    for (var c = 0; c < catNames.length; c++) {
+      var cat = catNames[c];
+      var items = EMOJI_CATEGORIES[cat];
+      var matched = [];
+      for (var i = 0; i < items.length; i++) {
+        if (!query || items[i].k.indexOf(query) !== -1 || cat.toLowerCase().indexOf(query) !== -1) {
+          matched.push(items[i]);
+        }
+      }
+      if (matched.length === 0) continue;
+      totalMatches += matched.length;
+
+      html += '<div class="sheet-cat-label" id="sheet-cat-' + c + '">' + cat + '</div>';
+      html += '<div class="sheet-grid">';
+      for (var j = 0; j < matched.length; j++) {
+        var sel = matched[j].e === currentRecipe.emoji ? ' selected' : '';
+        html += '<button class="sheet-emoji' + sel + '" onclick="pickEmoji(this, \'' + matched[j].e + '\')">' + matched[j].e + '</button>';
+      }
+      html += '</div>';
+    }
+
+    document.getElementById('sheetScroll').innerHTML = html;
+    document.getElementById('noResults').style.display = totalMatches === 0 ? 'block' : 'none';
+    document.getElementById('pillTabs').style.display = query ? 'none' : 'flex';
+  }
+
+  function filterEmojis() {
+    renderSheetGrid(document.getElementById('searchInput').value);
+  }
+
+  function filterCategory(cat) {
+    activeCategory = cat;
+    var pills = document.querySelectorAll('.pill-tab');
+    for (var i = 0; i < pills.length; i++) {
+      pills[i].classList.toggle('active', pills[i].getAttribute('data-cat') === cat);
+    }
+    var catNames = Object.keys(EMOJI_CATEGORIES);
+    var idx = catNames.indexOf(cat);
+    var el = document.getElementById('sheet-cat-' + idx);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function openSheet() {
+    document.getElementById('searchInput').value = '';
+    buildSheet();
+    document.getElementById('bottomSheet').classList.add('active');
+    document.getElementById('sheetOverlay').classList.add('active');
+    setTimeout(function() { document.getElementById('searchInput').focus(); }, 350);
+  }
+
+  function closeSheet() {
+    document.getElementById('bottomSheet').classList.remove('active');
+    document.getElementById('sheetOverlay').classList.remove('active');
+  }
+
+  function pickEmoji(btn, emoji) {
+    currentRecipe.emoji = emoji;
+    document.getElementById('recipeEmoji').textContent = emoji;
+    var allBtns = document.querySelectorAll('.sheet-emoji');
+    for (var i = 0; i < allBtns.length; i++) allBtns[i].classList.remove('selected');
+    btn.classList.add('selected');
+    setTimeout(closeSheet, 250);
+  }
+
+  init();
+</script>
+
+</body>
+</html>

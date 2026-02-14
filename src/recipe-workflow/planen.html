@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopZebra - Essensplan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ========================================
+     Essensplan: Simple Meal List
+     ======================================== */
+
+  /* ===== Theme: Dark ===== */
+  [data-theme="dark"] {
+    --body-bg: #0a0a0e;
+    --screen-bg: #121216;
+    --screen-gradient: none;
+    --surface: rgba(255,255,255,0.04);
+    --surface-hover: rgba(255,255,255,0.06);
+    --surface-border: rgba(255,255,255,0.06);
+    --teal: #4E9DA6;
+    --orange: #E8923A;
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255,255,255,0.5);
+    --text-dim: rgba(255,255,255,0.35);
+    --card-bg: rgba(255,255,255,0.03);
+    --card-border: rgba(255,255,255,0.06);
+    --card-blur: 0px;
+    --chip-bg: rgba(255,255,255,0.06);
+    --chip-border: rgba(255,255,255,0.08);
+    --chip-blur: 0px;
+    --frame-shadow: 0 0 60px rgba(0,0,0,0.5), 0 0 120px rgba(78,157,166,0.05);
+    --frame-border: 1px solid rgba(255,255,255,0.08);
+    --icon-radius: 50%;
+    --nav-bg: rgba(18,18,22,0.85);
+    --nav-blur: blur(20px);
+    --nav-border: rgba(255,255,255,0.06);
+    --badge-bg: var(--orange);
+    --badge-color: #fff;
+    --badge-border: none;
+    --badge-shadow: 0 0 8px rgba(232,146,58,0.3);
+    --cat-card-before-opacity: 0;
+  }
+
+  /* ===== Theme: Glass ===== */
+  [data-theme="glass"] {
+    --body-bg: #1a1a2e;
+    --screen-bg: #0a0a12;
+    --screen-gradient:
+      radial-gradient(ellipse at 20% 80%, rgba(120, 50, 180, 0.35) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(50, 120, 180, 0.3) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 50%, rgba(180, 50, 120, 0.2) 0%, transparent 60%),
+      radial-gradient(ellipse at 10% 20%, rgba(139, 92, 246, 0.2) 0%, transparent 50%),
+      radial-gradient(ellipse at 90% 80%, rgba(59, 130, 246, 0.18) 0%, transparent 50%);
+    --surface: rgba(255,255,255,0.06);
+    --surface-hover: rgba(255,255,255,0.09);
+    --surface-border: rgba(255,255,255,0.1);
+    --teal: #4E9DA6;
+    --orange: #E8923A;
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255,255,255,0.5);
+    --text-dim: rgba(255,255,255,0.35);
+    --card-bg: rgba(255,255,255,0.06);
+    --card-border: rgba(255,255,255,0.1);
+    --card-blur: blur(20px);
+    --chip-bg: rgba(255,255,255,0.06);
+    --chip-border: rgba(255,255,255,0.08);
+    --chip-blur: blur(12px);
+    --frame-shadow: 0 0 0 2px rgba(255,255,255,0.08), 0 40px 80px rgba(0,0,0,0.6), 0 0 120px rgba(139,92,246,0.15), 0 0 80px rgba(236,72,153,0.1);
+    --frame-border: none;
+    --icon-radius: 14px;
+    --nav-bg: rgba(10,10,18,0.7);
+    --nav-blur: blur(24px);
+    --nav-border: rgba(255,255,255,0.06);
+    --badge-bg: rgba(232,146,58,0.2);
+    --badge-color: #E8923A;
+    --badge-border: 1px solid rgba(232,146,58,0.25);
+    --badge-shadow: none;
+    --cat-card-before-opacity: 1;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body, .phone-frame, .screen, .meal-card, .bottom-nav {
+    transition: background 0.4s ease, background-color 0.4s ease, border-color 0.3s ease, box-shadow 0.4s ease, color 0.3s ease;
+  }
+
+  body {
+    background: var(--body-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    color: var(--text-primary);
+  }
+
+  .phone-frame {
+    width: 390px;
+    height: 844px;
+    background: var(--screen-bg);
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    border: var(--frame-border);
+    box-shadow: var(--frame-shadow);
+  }
+
+  .screen {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 170px;
+    scrollbar-width: none;
+    background-color: var(--screen-bg);
+    background-image: var(--screen-gradient);
+  }
+  .screen::-webkit-scrollbar { display: none; }
+
+  /* ===== Status Bar ===== */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 28px 8px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--screen-bg);
+  }
+  .status-time { font-size: 15px; font-weight: 700; letter-spacing: 0.5px; color: var(--text-primary); }
+  .status-icons { display: flex; align-items: center; gap: 6px; }
+  .status-icons svg { width: 16px; height: 16px; fill: white; }
+
+  .theme-toggle {
+    width: 20px; height: 20px; background: transparent; border: none;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    opacity: 0.5; padding: 0; margin: 0 6px; transition: opacity 0.2s ease;
+  }
+  .theme-toggle:hover { opacity: 0.85; }
+  .theme-toggle svg { width: 16px; height: 16px; fill: white; }
+
+  /* ===== Header ===== */
+  .header {
+    text-align: center;
+    padding: 16px 24px 8px;
+  }
+  .header-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+  }
+  .header-sub {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-top: 4px;
+  }
+
+  /* ===== Meal List ===== */
+  .meal-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px 20px;
+  }
+
+  .meal-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 22px;
+    backdrop-filter: var(--card-blur);
+    -webkit-backdrop-filter: var(--card-blur);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: all 0.25s ease;
+    position: relative;
+  }
+  .meal-card:hover {
+    background: var(--surface-hover);
+  }
+
+  .meal-emoji {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--icon-radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+    background: var(--surface);
+    transition: border-radius 0.3s ease;
+  }
+
+  .meal-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .meal-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .meal-meta {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  .meal-remove {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--icon-radius);
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+  }
+  .meal-remove:hover {
+    background: var(--surface-hover);
+  }
+  .meal-remove:active {
+    transform: scale(0.92);
+  }
+  .meal-remove svg {
+    width: 16px;
+    height: 16px;
+    fill: var(--text-dim);
+  }
+
+  /* ===== Add Meal Button ===== */
+  .add-meal-card {
+    background: transparent;
+    border: 1.5px dashed var(--teal);
+    border-radius: 22px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    min-height: 68px;
+  }
+  .add-meal-card:hover {
+    background: rgba(78,157,166,0.06);
+  }
+  .add-meal-card:active {
+    transform: scale(0.98);
+  }
+  .add-meal-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--icon-radius);
+    background: rgba(78,157,166,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .add-meal-icon svg {
+    width: 20px;
+    height: 20px;
+    fill: var(--teal);
+  }
+  .add-meal-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--teal);
+  }
+
+  /* ===== Empty State ===== */
+  .empty-state {
+    text-align: center;
+    padding: 40px 32px;
+  }
+  .empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+  .empty-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+  .empty-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  /* ===== Recipe Picker Modal ===== */
+  .modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 200;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.open {
+    display: flex;
+  }
+  .modal-sheet {
+    width: 100%;
+    max-height: 70%;
+    background: var(--screen-bg);
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    border: 1px solid var(--card-border);
+    border-bottom: none;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 20px 12px;
+    border-bottom: 1px solid var(--card-border);
+  }
+  .modal-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .modal-close {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--icon-radius);
+    background: var(--surface);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .modal-close svg {
+    width: 18px;
+    height: 18px;
+    fill: var(--text-secondary);
+  }
+  .modal-list {
+    overflow-y: auto;
+    padding: 12px 20px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .modal-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .modal-item:hover {
+    background: var(--surface-hover);
+  }
+  .modal-item:active {
+    transform: scale(0.98);
+  }
+  .modal-item-emoji {
+    font-size: 22px;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--icon-radius);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .modal-item-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .modal-item-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .modal-item-meta {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 1px;
+  }
+
+  /* ===== CTA Section ===== */
+  .cta-section {
+    position: absolute;
+    bottom: 76px;
+    left: 0;
+    right: 0;
+    padding: 16px 20px;
+    z-index: 90;
+    background: linear-gradient(to top, var(--screen-bg) 60%, transparent 100%);
+  }
+  .cta-btn {
+    display: block;
+    width: 100%;
+    padding: 18px;
+    border: none;
+    border-radius: 20px;
+    background: linear-gradient(135deg, var(--teal), #3a8a92);
+    color: #fff;
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    text-decoration: none;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(78,157,166,0.3);
+  }
+  .cta-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 28px rgba(78,157,166,0.4);
+  }
+  .cta-btn:active {
+    transform: scale(0.98);
+  }
+  .cta-btn:disabled,
+  .cta-btn.disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
+    box-shadow: none;
+  }
+  .cta-sub {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-dim);
+    margin-top: 8px;
+  }
+
+  /* ===== Bottom Nav ===== */
+  .bottom-nav {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: var(--nav-bg);
+    backdrop-filter: var(--nav-blur);
+    -webkit-backdrop-filter: var(--nav-blur);
+    border-top: 1px solid var(--nav-border);
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-start;
+    padding: 12px 16px 32px;
+    z-index: 100;
+  }
+  .nav-item {
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    text-decoration: none; color: var(--text-dim); font-size: 10px; font-weight: 600;
+    position: relative; cursor: pointer; min-width: 56px; transition: color 0.2s;
+  }
+  .nav-item.active { color: var(--teal); }
+  .nav-item.active::after {
+    content: ''; position: absolute; top: -12px; left: 50%;
+    transform: translateX(-50%); width: 24px; height: 3px;
+    background: var(--teal); border-radius: 2px;
+    box-shadow: 0 0 15px rgba(78,157,166,0.4), 0 0 30px rgba(78,157,166,0.15);
+  }
+  .nav-item svg { width: 24px; height: 24px; fill: currentColor; }
+  .nav-badge {
+    position: absolute; top: -4px; right: 4px;
+    width: 18px; height: 18px; background: var(--orange);
+    color: #fff; font-size: 10px; font-weight: 700;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 12px rgba(232,146,58,0.5);
+  }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <div class="screen">
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-time">9:41</div>
+      <div class="status-icons">
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle theme"></button>
+        <svg viewBox="0 0 16 16"><path d="M1.5 4.5C4 2 7.5 1 8 1s4 1 6.5 3.5l-1.2 1.2C11.2 3.6 9 2.5 8 2.5S4.8 3.6 2.7 5.7L1.5 4.5zM4 7.3C5.3 6 6.8 5.2 8 5.2s2.7.8 4 2.1L10.8 8.5C9.8 7.5 9 7 8 7s-1.8.5-2.8 1.5L4 7.3zM6.5 10c.8-.8 1.2-1 1.5-1s.7.2 1.5 1L8 11.5 6.5 10z"/></svg>
+        <svg viewBox="0 0 16 16"><path d="M1 4h2v8H1V4zm3.5 2h2v6h-2V6zM8 3h2v9H8V3zm3.5 1h2v8h-2V4z"/></svg>
+        <svg viewBox="0 0 24 14"><rect x="0.5" y="0.5" width="20" height="13" rx="2.5" stroke="white" stroke-opacity="0.35" fill="none"/><path opacity="0.4" d="M22 5v4a2 2 0 000-4z" fill="white"/><rect x="2" y="2" width="15" height="9" rx="1.5" fill="white"/></svg>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+      <h1 class="header-title">Essensplan</h1>
+      <div class="header-sub" id="headerSub">4 Gerichte geplant</div>
+    </div>
+
+    <!-- Meal List -->
+    <div class="meal-list" id="mealList"></div>
+
+  </div>
+
+  <!-- Recipe Picker Modal -->
+  <div class="modal-overlay" id="pickerModal">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <div class="modal-title">Rezept hinzuf&uuml;gen</div>
+        <button class="modal-close" id="modalClose" aria-label="Schlie&szlig;en">
+          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+      <div class="modal-list" id="modalList"></div>
+    </div>
+  </div>
+
+  <!-- CTA Section -->
+  <div class="cta-section">
+    <a class="cta-btn" id="ctaBtn" href="zutaten-checkout.html">Einkaufsliste erstellen</a>
+    <div class="cta-sub" id="ctaSub"></div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <a class="nav-item" href="../listen.html">
+      <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+      <span>Listen</span>
+    </a>
+    <a class="nav-item active" href="planen.html">
+      <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/></svg>
+      <span>Planen</span>
+    </a>
+    <a class="nav-item" href="rezepte.html">
+      <svg viewBox="0 0 24 24"><path d="M8.1 13.34l2.83-2.83L3.91 3.5a4.008 4.008 0 000 5.66l4.19 4.18zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3.7 19.87l1.41 1.41L12 14.41l6.88 6.88 1.41-1.41L13.41 13l1.47-1.47z"/></svg>
+      <span>Rezepte</span>
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
+      <span>Aktivit&auml;t</span>
+      <div class="nav-badge">3</div>
+    </a>
+  </div>
+</div>
+
+<script>
+  // ===== Theme =====
+  var MOON_SVG = '<svg viewBox="0 0 24 24" fill="white"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>';
+  var SUN_SVG = '<svg viewBox="0 0 24 24" fill="white"><path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79 1.42-1.41zM4 10.5H1v2h3v-2zm9-9.95h-2V3.5h2V.55zm7.45 3.91l-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zm-3.21 13.7l1.79 1.8 1.41-1.41-1.8-1.79-1.4 1.4zM20 10.5v2h3v-2h-3zm-8-5c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm-1 16.95h2V19.5h-2v2.95zm-7.45-3.91l1.41 1.41 1.79-1.8-1.41-1.41-1.79 1.8z"/></svg>';
+  function getTheme() { return localStorage.getItem('shopzebra_theme') || 'dark'; }
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('shopzebra_theme', t);
+    document.getElementById('themeToggle').innerHTML = t === 'dark' ? MOON_SVG : SUN_SVG;
+  }
+  function toggleTheme() { applyTheme(getTheme() === 'dark' ? 'glass' : 'dark'); }
+  applyTheme(getTheme());
+
+  // ===== Data =====
+  var PLAN_KEY = 'shopzebra_essensplan';
+
+  var DEMO_RECIPES = [
+    { id: 'bolognese', name: 'Spaghetti Bolognese', emoji: '\uD83C\uDF5D', portions: 4, time: '30 Min' },
+    { id: 'curry', name: 'Gem\u00FCsecurry', emoji: '\uD83C\uDF5B', portions: 4, time: '25 Min' },
+    { id: 'haehnchen', name: 'H\u00E4hnchen mit Reis', emoji: '\uD83C\uDF57', portions: 4, time: '35 Min' },
+    { id: 'pizza', name: 'Pizza Margherita', emoji: '\uD83C\uDF55', portions: 4, time: '45 Min' },
+    { id: 'kartoffelsuppe', name: 'Kartoffelsuppe', emoji: '\uD83E\uDD63', portions: 4, time: '30 Min' },
+    { id: 'lachs', name: 'Lachs mit Gem\u00FCse', emoji: '\uD83D\uDC1F', portions: 2, time: '25 Min' },
+    { id: 'risotto', name: 'Pilzrisotto', emoji: '\uD83C\uDF44', portions: 4, time: '35 Min' },
+    { id: 'salat', name: 'Caesar Salad', emoji: '\uD83E\uDD57', portions: 2, time: '15 Min' }
+  ];
+
+  var DEFAULT_MEALS = [
+    { id: 'bolognese', name: 'Spaghetti Bolognese', emoji: '\uD83C\uDF5D', portions: 4, time: '30 Min' },
+    { id: 'curry', name: 'Gem\u00FCsecurry', emoji: '\uD83C\uDF5B', portions: 4, time: '25 Min' },
+    { id: 'haehnchen', name: 'H\u00E4hnchen mit Reis', emoji: '\uD83C\uDF57', portions: 4, time: '35 Min' },
+    { id: 'pizza', name: 'Pizza Margherita', emoji: '\uD83C\uDF55', portions: 4, time: '45 Min' }
+  ];
+
+  function loadMeals() {
+    try {
+      var data = JSON.parse(localStorage.getItem(PLAN_KEY));
+      if (Array.isArray(data)) return data;
+    } catch(e) {}
+    return null;
+  }
+
+  function saveMeals(meals) {
+    localStorage.setItem(PLAN_KEY, JSON.stringify(meals));
+  }
+
+  function getMeals() {
+    var saved = loadMeals();
+    if (saved) return saved;
+    return JSON.parse(JSON.stringify(DEFAULT_MEALS));
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function render() {
+    var meals = getMeals();
+    var listEl = document.getElementById('mealList');
+    var html = '';
+
+    if (meals.length === 0) {
+      html += '<div class="empty-state">';
+      html += '<div class="empty-icon">\uD83C\uDF7D\uFE0F</div>';
+      html += '<div class="empty-title">Noch keine Gerichte geplant</div>';
+      html += '<div class="empty-text">F\u00fcge Rezepte hinzu, die du kochen m\u00f6chtest. Daraus wird automatisch deine Einkaufsliste.</div>';
+      html += '</div>';
+    }
+
+    meals.forEach(function(meal, index) {
+      html += '<div class="meal-card" data-index="' + index + '">';
+      html += '<div class="meal-emoji">' + meal.emoji + '</div>';
+      html += '<div class="meal-info">';
+      html += '<div class="meal-name">' + escapeHtml(meal.name) + '</div>';
+      html += '<div class="meal-meta">' + meal.portions + ' Portionen \u00b7 ' + escapeHtml(meal.time) + '</div>';
+      html += '</div>';
+      html += '<button class="meal-remove" data-index="' + index + '" aria-label="Entfernen">';
+      html += '<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
+      html += '</button>';
+      html += '</div>';
+    });
+
+    // Add button
+    html += '<div class="add-meal-card" id="addMealBtn">';
+    html += '<div class="add-meal-icon"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></div>';
+    html += '<div class="add-meal-text">Rezept hinzuf\u00fcgen</div>';
+    html += '</div>';
+
+    listEl.innerHTML = html;
+
+    // Update header
+    var count = meals.length;
+    document.getElementById('headerSub').textContent = count === 0
+      ? 'Keine Gerichte geplant'
+      : count + ' Gericht' + (count !== 1 ? 'e' : '') + ' geplant';
+
+    // Update CTA
+    var btn = document.getElementById('ctaBtn');
+    var sub = document.getElementById('ctaSub');
+    if (count === 0) {
+      btn.classList.add('disabled');
+      btn.removeAttribute('href');
+      sub.textContent = 'F\u00fcge Rezepte hinzu, um eine Einkaufsliste zu erstellen';
+    } else {
+      btn.classList.remove('disabled');
+      btn.setAttribute('href', 'zutaten-checkout.html');
+      sub.textContent = 'Aus ' + count + ' Rezept' + (count !== 1 ? 'en' : '');
+    }
+  }
+
+  render();
+
+  // ===== Event Handlers =====
+
+  // Remove meal
+  document.getElementById('mealList').addEventListener('click', function(e) {
+    var removeBtn = e.target.closest('.meal-remove');
+    if (removeBtn) {
+      e.stopPropagation();
+      var index = parseInt(removeBtn.getAttribute('data-index'));
+      var meals = getMeals();
+      meals.splice(index, 1);
+      saveMeals(meals);
+      render();
+      return;
+    }
+
+    // Open picker
+    var addBtn = e.target.closest('.add-meal-card');
+    if (addBtn) {
+      openPicker();
+    }
+  });
+
+  // ===== Recipe Picker =====
+  function openPicker() {
+    var meals = getMeals();
+    var usedIds = meals.map(function(m) { return m.id; });
+
+    var modalList = document.getElementById('modalList');
+    var html = '';
+
+    DEMO_RECIPES.forEach(function(recipe) {
+      var alreadyAdded = usedIds.indexOf(recipe.id) !== -1;
+      html += '<div class="modal-item' + (alreadyAdded ? '' : '') + '" data-id="' + recipe.id + '" style="' + (alreadyAdded ? 'opacity: 0.35; pointer-events: none;' : '') + '">';
+      html += '<div class="modal-item-emoji">' + recipe.emoji + '</div>';
+      html += '<div class="modal-item-info">';
+      html += '<div class="modal-item-name">' + escapeHtml(recipe.name) + '</div>';
+      html += '<div class="modal-item-meta">' + recipe.portions + ' Portionen \u00b7 ' + escapeHtml(recipe.time) + (alreadyAdded ? ' \u00b7 bereits hinzugef\u00fcgt' : '') + '</div>';
+      html += '</div>';
+      html += '</div>';
+    });
+
+    modalList.innerHTML = html;
+    document.getElementById('pickerModal').classList.add('open');
+  }
+
+  function closePicker() {
+    document.getElementById('pickerModal').classList.remove('open');
+  }
+
+  document.getElementById('modalClose').addEventListener('click', closePicker);
+
+  document.getElementById('pickerModal').addEventListener('click', function(e) {
+    if (e.target === this) closePicker();
+  });
+
+  document.getElementById('modalList').addEventListener('click', function(e) {
+    var item = e.target.closest('.modal-item');
+    if (!item) return;
+
+    var recipeId = item.getAttribute('data-id');
+    var recipe = DEMO_RECIPES.find(function(r) { return r.id === recipeId; });
+    if (!recipe) return;
+
+    var meals = getMeals();
+    meals.push({ id: recipe.id, name: recipe.name, emoji: recipe.emoji, portions: recipe.portions, time: recipe.time });
+    saveMeals(meals);
+    closePicker();
+    render();
+  });
+
+  // Re-render on pageshow
+  window.addEventListener('pageshow', render);
+</script>
+
+</body>
+</html>

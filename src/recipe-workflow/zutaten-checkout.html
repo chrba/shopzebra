@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopZebra - Zutaten-Checkout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ========================================
+     Zutaten-Checkout: Ingredient Selection
+     ======================================== */
+
+  /* ===== Theme: Dark ===== */
+  [data-theme="dark"] {
+    --body-bg: #0a0a0e;
+    --screen-bg: #121216;
+    --screen-gradient: none;
+    --surface: rgba(255,255,255,0.04);
+    --surface-hover: rgba(255,255,255,0.06);
+    --surface-border: rgba(255,255,255,0.06);
+    --teal: #4E9DA6;
+    --orange: #E8923A;
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255,255,255,0.5);
+    --text-dim: rgba(255,255,255,0.35);
+    --card-bg: rgba(255,255,255,0.03);
+    --card-border: rgba(255,255,255,0.06);
+    --card-blur: 0px;
+    --chip-bg: rgba(255,255,255,0.06);
+    --chip-border: rgba(255,255,255,0.08);
+    --chip-blur: 0px;
+    --frame-shadow: 0 0 60px rgba(0,0,0,0.5), 0 0 120px rgba(78,157,166,0.05);
+    --frame-border: 1px solid rgba(255,255,255,0.08);
+    --icon-radius: 50%;
+  }
+
+  /* ===== Theme: Glass ===== */
+  [data-theme="glass"] {
+    --body-bg: #1a1a2e;
+    --screen-bg: #0a0a12;
+    --screen-gradient:
+      radial-gradient(ellipse at 20% 80%, rgba(120, 50, 180, 0.35) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(50, 120, 180, 0.3) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 50%, rgba(180, 50, 120, 0.2) 0%, transparent 60%),
+      radial-gradient(ellipse at 10% 20%, rgba(139, 92, 246, 0.2) 0%, transparent 50%),
+      radial-gradient(ellipse at 90% 80%, rgba(59, 130, 246, 0.18) 0%, transparent 50%);
+    --surface: rgba(255,255,255,0.06);
+    --surface-hover: rgba(255,255,255,0.09);
+    --surface-border: rgba(255,255,255,0.1);
+    --teal: #4E9DA6;
+    --orange: #E8923A;
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255,255,255,0.5);
+    --text-dim: rgba(255,255,255,0.35);
+    --card-bg: rgba(255,255,255,0.06);
+    --card-border: rgba(255,255,255,0.1);
+    --card-blur: blur(20px);
+    --chip-bg: rgba(255,255,255,0.06);
+    --chip-border: rgba(255,255,255,0.08);
+    --chip-blur: blur(12px);
+    --frame-shadow: 0 0 0 2px rgba(255,255,255,0.08), 0 40px 80px rgba(0,0,0,0.6), 0 0 120px rgba(139,92,246,0.15), 0 0 80px rgba(236,72,153,0.1);
+    --frame-border: none;
+    --icon-radius: 14px;
+  }
+
+  /* ===== Reset ===== */
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ===== Transitions ===== */
+  body,
+  .phone-frame,
+  .screen,
+  .status-bar,
+  .ingredient-row,
+  .checkbox,
+  .list-selector,
+  .cta-btn {
+    transition: background 0.4s ease, background-color 0.4s ease, border-color 0.3s ease, box-shadow 0.4s ease, border-radius 0.3s ease;
+  }
+
+  /* ===== Body ===== */
+  body {
+    background: var(--body-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    color: var(--text-primary);
+  }
+
+  /* ===== Phone Frame ===== */
+  .phone-frame {
+    width: 390px;
+    height: 844px;
+    background: var(--screen-bg);
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    border: var(--frame-border);
+    box-shadow: var(--frame-shadow);
+  }
+
+  /* ===== Screen ===== */
+  .screen {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 100px;
+    scrollbar-width: none;
+    background-color: var(--screen-bg);
+    background-image: var(--screen-gradient);
+  }
+  .screen::-webkit-scrollbar { display: none; }
+
+  /* ===== Status Bar ===== */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 28px 8px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--screen-bg);
+  }
+  .status-time {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--text-primary);
+  }
+  .status-icons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .status-icons svg {
+    width: 16px;
+    height: 16px;
+    fill: white;
+  }
+
+  /* ===== Theme Toggle ===== */
+  .theme-toggle {
+    width: 20px;
+    height: 20px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+    padding: 0;
+    margin: 0 6px;
+  }
+  .theme-toggle:hover {
+    opacity: 0.85;
+  }
+  .theme-toggle svg {
+    width: 16px;
+    height: 16px;
+    fill: white;
+  }
+
+  /* ===== Header ===== */
+  .header {
+    padding: 8px 20px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* ===== Back Link ===== */
+  .nav-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: var(--teal);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+  .nav-back svg { width: 20px; height: 20px; fill: var(--teal); }
+
+  .header-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.2px;
+  }
+
+  .header-spacer {
+    width: 80px;
+  }
+
+  /* ===== Subtitle ===== */
+  .page-subtitle {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-dim);
+    padding: 0 20px 16px;
+  }
+
+  /* ===== Summary Chips ===== */
+  .summary-chips {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    padding: 0 20px 20px;
+  }
+  .chip {
+    background: var(--chip-bg);
+    border: 1px solid var(--chip-border);
+    border-radius: 16px;
+    padding: 7px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    backdrop-filter: var(--chip-blur);
+    -webkit-backdrop-filter: var(--chip-blur);
+  }
+
+  /* ===== List Header (toggle all) ===== */
+  .list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px 10px;
+  }
+  .list-header-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+  }
+  .toggle-all {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--teal);
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: inherit;
+    padding: 0;
+  }
+  .toggle-all:hover {
+    opacity: 0.8;
+  }
+
+  /* ===== Ingredients List ===== */
+  .ingredients-list {
+    padding: 0 20px;
+    margin-bottom: 24px;
+  }
+
+  .ingredient-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--surface-border);
+    cursor: pointer;
+    transition: opacity 0.25s ease;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .ingredient-row:last-child {
+    border-bottom: none;
+  }
+  .ingredient-row:active {
+    opacity: 0.7;
+  }
+  .ingredient-row.deselected {
+    opacity: 0.45;
+  }
+  .ingredient-row.deselected .ingredient-name {
+    text-decoration: line-through;
+  }
+
+  /* ===== Checkbox ===== */
+  .checkbox {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+    transition: all 0.2s ease;
+  }
+  .checkbox.checked {
+    background: var(--teal);
+  }
+  .checkbox.checked svg {
+    width: 14px;
+    height: 14px;
+    fill: #fff;
+  }
+  .checkbox.unchecked {
+    background: transparent;
+    border: 2px solid var(--surface-border);
+  }
+
+  /* ===== Ingredient Content ===== */
+  .ingredient-content {
+    flex: 1;
+    min-width: 0;
+  }
+  .ingredient-top {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .ingredient-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    transition: text-decoration 0.2s ease;
+  }
+  .ingredient-qty {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--teal);
+  }
+  .ingredient-source {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 3px;
+    line-height: 1.4;
+  }
+  .merge-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    background: rgba(78,157,166,0.15);
+    color: var(--teal);
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  /* ===== List Selector ===== */
+  .list-selector-section {
+    padding: 0 20px;
+    margin-bottom: 24px;
+  }
+  .list-selector-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-bottom: 10px;
+  }
+  .list-selector {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 22px;
+    padding: 16px;
+    backdrop-filter: var(--card-blur);
+    -webkit-backdrop-filter: var(--card-blur);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+  .list-selector:hover {
+    background: var(--surface-hover);
+  }
+  .list-selector-text {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .list-selector-arrow {
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-right: 4px;
+  }
+
+  /* ===== CTA (Sticky Bottom) ===== */
+  .cta-area {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 16px 20px 40px;
+    background: var(--screen-bg);
+    z-index: 100;
+  }
+  .cta-btn {
+    display: block;
+    width: 100%;
+    padding: 18px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, var(--teal), #3A8A92);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: inherit;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(78,157,166,0.3);
+    transition: all 0.25s ease;
+    letter-spacing: 0.2px;
+  }
+  .cta-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 28px rgba(78,157,166,0.4);
+  }
+  .cta-btn:active {
+    transform: scale(0.98);
+  }
+
+  /* ===== Toast ===== */
+  .toast {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--card-border);
+    border-left: 3px solid var(--teal);
+    border-radius: 16px;
+    padding: 14px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    z-index: 200;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .toast.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <div class="screen">
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-time">9:41</div>
+      <div class="status-icons">
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle theme"></button>
+        <svg viewBox="0 0 16 16"><path d="M1.5 4.5C4 2 7.5 1 8 1s4 1 6.5 3.5l-1.2 1.2C11.2 3.6 9 2.5 8 2.5S4.8 3.6 2.7 5.7L1.5 4.5zM4 7.3C5.3 6 6.8 5.2 8 5.2s2.7.8 4 2.1L10.8 8.5C9.8 7.5 9 7 8 7s-1.8.5-2.8 1.5L4 7.3zM6.5 10c.8-.8 1.2-1 1.5-1s.7.2 1.5 1L8 11.5 6.5 10z"/></svg>
+        <svg viewBox="0 0 16 16"><path d="M1 4h2v8H1V4zm3.5 2h2v6h-2V6zM8 3h2v9H8V3zm3.5 1h2v8h-2V4z"/></svg>
+        <svg viewBox="0 0 24 14"><rect x="0.5" y="0.5" width="20" height="13" rx="2.5" stroke="white" stroke-opacity="0.35" fill="none"/><path opacity="0.4" d="M22 5v4a2 2 0 000-4z" fill="white"/><rect x="2" y="2" width="15" height="9" rx="1.5" fill="white"/></svg>
+      </div>
+    </div>
+
+    <!-- Header with back navigation -->
+    <div class="header">
+      <a class="nav-back" href="planen.html">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        Planen
+      </a>
+      <span class="header-title">Zutaten-Checkout</span>
+      <span class="header-spacer"></span>
+    </div>
+
+    <!-- Subtitle -->
+    <div class="page-subtitle">Zutaten f&uuml;r Mo&ndash;Fr &middot; KW 7</div>
+
+    <!-- Summary Chips -->
+    <div class="summary-chips">
+      <span class="chip" id="chipZutaten">14 Zutaten</span>
+      <span class="chip">4 Rezepte</span>
+    </div>
+
+    <!-- List Header -->
+    <div class="list-header">
+      <span class="list-header-label">Zutaten</span>
+      <button class="toggle-all" id="toggleAll" onclick="toggleAllItems()">Alle abw&auml;hlen</button>
+    </div>
+
+    <!-- Ingredients List -->
+    <div class="ingredients-list" id="ingredientsList"></div>
+
+    <!-- List Selector -->
+    <div class="list-selector-section">
+      <div class="list-selector-label">Auf welche Liste?</div>
+      <div class="list-selector">
+        <span class="list-selector-text">&darr; REWE Wocheneinkauf</span>
+        <span class="list-selector-arrow">&#9660;</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CTA (sticky bottom) -->
+  <div class="cta-area">
+    <button class="cta-btn" id="ctaBtn" onclick="submitCheckout()">Ausgew&auml;hlte hinzuf&uuml;gen (14)</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ===== Theme Toggle =====
+  var MOON_SVG = '<svg viewBox="0 0 24 24" fill="white"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>';
+  var SUN_SVG = '<svg viewBox="0 0 24 24" fill="white"><path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79 1.42-1.41zM4 10.5H1v2h3v-2zm9-9.95h-2V3.5h2V.55zm7.45 3.91l-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zm-3.21 13.7l1.79 1.8 1.41-1.41-1.8-1.79-1.4 1.4zM20 10.5v2h3v-2h-3zm-8-5c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm-1 16.95h2V19.5h-2v2.95zm-7.45-3.91l1.41 1.41 1.79-1.8-1.41-1.41-1.79 1.8z"/></svg>';
+  function getTheme() { return localStorage.getItem('shopzebra_theme') || 'dark'; }
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('shopzebra_theme', t);
+    document.getElementById('themeToggle').innerHTML = t === 'dark' ? MOON_SVG : SUN_SVG;
+  }
+  function toggleTheme() { applyTheme(getTheme() === 'dark' ? 'glass' : 'dark'); }
+  applyTheme(getTheme());
+
+  // ===== Checkmark SVG =====
+  var CHECK_SVG = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>';
+
+  // ===== Ingredient Data =====
+  var ingredients = [
+    {
+      id: 0,
+      name: 'Spaghetti',
+      qty: '500g',
+      source: 'Bolognese (Mo)',
+      merged: false,
+      selected: true
+    },
+    {
+      id: 1,
+      name: 'Hackfleisch',
+      qty: '400g',
+      source: 'Bolognese (Mo)',
+      merged: false,
+      selected: true
+    },
+    {
+      id: 2,
+      name: 'Zwiebeln',
+      qty: '3 St',
+      source: 'Bolognese (Mo) 2St, Curry (Di) 1St',
+      merged: true,
+      mergeCount: 2,
+      selected: true
+    },
+    {
+      id: 3,
+      name: 'Knoblauchzehen',
+      qty: '4 St',
+      source: 'Bolognese (Mo) 2St, Curry (Di) 2St',
+      merged: true,
+      mergeCount: 2,
+      selected: true
+    },
+    {
+      id: 4,
+      name: 'Passierte Tomaten',
+      qty: '400ml',
+      source: 'Bolognese (Mo)',
+      merged: false,
+      selected: true
+    },
+    {
+      id: 5,
+      name: 'Oliven\u00F6l',
+      qty: '4 EL',
+      source: 'Bolognese (Mo) 2EL, Pizza (Fr) 2EL',
+      merged: true,
+      mergeCount: 2,
+      selected: true
+    },
+    {
+      id: 6,
+      name: 'Kokosmilch',
+      qty: '1 Dose',
+      source: 'Curry (Di)',
+      merged: false,
+      selected: true
+    },
+    {
+      id: 7,
+      name: 'Currypaste',
+      qty: '2 EL',
+      source: 'Curry (Di)',
+      merged: false,
+      selected: true
+    },
+    {
+      id: 8,
+      name: 'Gem\u00FCse-Mix',
+      qty: '500g',
+      source: 'Curry (Di)',
+      merged: false,
+      selected: true
+    },
+    {
+      id: 9,
+      name: 'Reis',
+      qty: '300g',
+      source: 'Curry (Di), H\u00E4hnchen (Do)',
+      merged: true,
+      mergeCount: 2,
+      selected: true
+    },
+    {
+      id: 10,
+      name: 'H\u00E4hnchenbrust',
+      qty: '400g',
+      source: 'H\u00E4hnchen (Do)',
+      merged: false,
+      selected: true
+    },
+    {
+      id: 11,
+      name: 'Pizzateig',
+      qty: '1 Pck',
+      source: 'Pizza (Fr)',
+      merged: false,
+      selected: true
+    },
+    {
+      id: 12,
+      name: 'Mozzarella',
+      qty: '2 Pck',
+      source: 'Pizza (Fr)',
+      merged: false,
+      selected: true
+    },
+    {
+      id: 13,
+      name: 'Tomatensauce',
+      qty: '200ml',
+      source: 'Pizza (Fr)',
+      merged: false,
+      selected: true
+    }
+  ];
+
+  // ===== Render =====
+  function render() {
+    var list = document.getElementById('ingredientsList');
+    var html = '';
+
+    for (var i = 0; i < ingredients.length; i++) {
+      var ing = ingredients[i];
+      var rowClass = 'ingredient-row' + (ing.selected ? '' : ' deselected');
+      var checkboxClass = 'checkbox ' + (ing.selected ? 'checked' : 'unchecked');
+      var checkboxContent = ing.selected ? CHECK_SVG : '';
+
+      html += '<div class="' + rowClass + '" onclick="toggleItem(' + ing.id + ')">';
+      html += '  <div class="' + checkboxClass + '">' + checkboxContent + '</div>';
+      html += '  <div class="ingredient-content">';
+      html += '    <div class="ingredient-top">';
+      html += '      <span class="ingredient-name">' + escapeHtml(ing.name) + '</span>';
+      html += '      <span class="ingredient-qty">' + escapeHtml(ing.qty) + '</span>';
+      if (ing.merged) {
+        html += '      <span class="merge-badge">' + ing.mergeCount + ' Rezepte</span>';
+      }
+      html += '    </div>';
+      html += '    <div class="ingredient-source">' + escapeHtml(ing.source) + '</div>';
+      html += '  </div>';
+      html += '</div>';
+    }
+
+    list.innerHTML = html;
+    updateCount();
+    updateToggleAllLabel();
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // ===== Toggle Single Item =====
+  function toggleItem(id) {
+    for (var i = 0; i < ingredients.length; i++) {
+      if (ingredients[i].id === id) {
+        ingredients[i].selected = !ingredients[i].selected;
+        break;
+      }
+    }
+    render();
+  }
+
+  // ===== Toggle All =====
+  function toggleAllItems() {
+    var selectedCount = getSelectedCount();
+    var newState = selectedCount < ingredients.length;
+
+    for (var i = 0; i < ingredients.length; i++) {
+      ingredients[i].selected = newState;
+    }
+    render();
+  }
+
+  // ===== Count =====
+  function getSelectedCount() {
+    var count = 0;
+    for (var i = 0; i < ingredients.length; i++) {
+      if (ingredients[i].selected) count++;
+    }
+    return count;
+  }
+
+  function updateCount() {
+    var count = getSelectedCount();
+    document.getElementById('ctaBtn').textContent = 'Ausgew\u00E4hlte hinzuf\u00FCgen (' + count + ')';
+    document.getElementById('chipZutaten').textContent = count + ' Zutaten';
+  }
+
+  function updateToggleAllLabel() {
+    var btn = document.getElementById('toggleAll');
+    var selectedCount = getSelectedCount();
+    if (selectedCount === ingredients.length) {
+      btn.innerHTML = 'Alle abw&auml;hlen';
+    } else {
+      btn.innerHTML = 'Alle ausw&auml;hlen';
+    }
+  }
+
+  // ===== Submit Checkout =====
+  function submitCheckout() {
+    var count = getSelectedCount();
+    if (count === 0) return;
+
+    var toast = document.getElementById('toast');
+    toast.textContent = count + ' Zutaten zur REWE Liste hinzugef\u00FCgt!';
+    toast.classList.add('visible');
+
+    setTimeout(function() {
+      toast.classList.remove('visible');
+    }, 1200);
+
+    setTimeout(function() {
+      window.location.href = 'planen.html';
+    }, 1500);
+  }
+
+  // ===== Init =====
+  render();
+</script>
+
+</body>
+</html>
