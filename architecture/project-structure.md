@@ -15,29 +15,20 @@ shopzebra/
 │   │   │   ├── features/      # Domänen (shopping-list, meal-plan, recipes, ...)
 │   │   │   ├── ui/            # Design-System Primitives
 │   │   │   └── sync/          # Event Sourcing Middleware, Offline-Queue
+│   │   ├── design/            # HTML/CSS Prototypen (Referenz)
 │   │   ├── package.json
 │   │   ├── vite.config.ts
 │   │   └── capacitor.config.ts
 │   │
-│   └── infrastructure/        # CDK (TypeScript)
-│       ├── lib/               # Stack-Definitionen
-│       ├── bin/               # CDK App Entry
-│       ├── package.json
-│       └── cdk.json
+│   └── infrastructure/        # CDK (TypeScript) — kommt später
 │
-├── services/                  # Rust Cargo Workspace
-│   ├── Cargo.toml             # Workspace root
-│   ├── api/                   # Lambda-Binaries für REST API
-│   │   ├── Cargo.toml
-│   │   └── src/
-│   └── ...                    # Weitere Crates bei Bedarf, benannt nach Domäne oder Zweck
-│
-├── design/                    # HTML/CSS Prototypen (Referenz, nicht deployed)
+├── services/                  # Rust Cargo Workspace — kommt später
 │
 ├── architecture/              # Architektur-Docs
+│   └── archive/               # Alte Entscheidungen
 │
 ├── turbo.json                 # Turborepo Config
-├── pnpm-workspace.yaml        # pnpm Workspace (apps/mobile + apps/infrastructure)
+├── pnpm-workspace.yaml        # pnpm Workspace
 ├── package.json               # Root package.json
 └── CLAUDE.md
 ```
@@ -56,24 +47,17 @@ Interne Struktur folgt der Feature-basierten Organisation aus `react-best-practi
 - `src/ui/` — Design-System Primitives (Button, Modal, ProgressBar)
 - `src/sync/` — Event Sourcing Middleware, AppSync Events, Offline-Queue
 
-### `apps/infrastructure/` — CDK (TypeScript)
+### `apps/infrastructure/` — CDK (TypeScript) — kommt später
 
-AWS-Infrastruktur als Code. Deployed CloudFormation Stacks via CDK. Referenziert Build-Artefakte aus `services/` für Lambda-Deployments.
+AWS-Infrastruktur als Code. Deployed CloudFormation Stacks via CDK. Referenziert Build-Artefakte aus `services/` für Lambda-Deployments. Wird angelegt, sobald das Backend entwickelt wird.
 
-Aktuell ein Stack, kann bei Bedarf auf mehrere Stacks aufgeteilt werden.
+### `services/` — Rust Backend — kommt später
 
-### `services/` — Rust Backend
+Cargo Workspace mit Lambda-Funktionen. Jede Lambda ist ein eigenes Binary, gebaut mit cargo-lambda. Wird angelegt, sobald die API-Schicht implementiert wird.
 
-Cargo Workspace mit Lambda-Funktionen. Jede Lambda ist ein eigenes Binary, gebaut mit cargo-lambda.
+### `apps/mobile/design/` — Prototypen
 
-- `api/` — REST API Lambdas (Event-Endpunkte, Listen-Endpunkte)
-- Weitere Crates werden bei Bedarf extrahiert — benannt nach Domäne oder Zweck, kein `shared/`- oder `common/`-Crate
-
-Wird **nicht** von Turborepo verwaltet — Rust-Builds laufen separat via `cargo-lambda build`. CDK (`apps/infrastructure/`) referenziert die kompilierten Artefakte.
-
-### `design/` — Prototypen
-
-HTML/CSS-Prototypen als visuelle Referenz für die React-Implementierung. Werden nicht deployed, haben keine Build-Pipeline. Aktueller Inhalt stammt aus dem ursprünglichen `src/`-Ordner.
+HTML/CSS-Prototypen als visuelle Referenz für die React-Implementierung. Werden nicht deployed, haben keine Build-Pipeline. Leben bei der App, weil sie deren Design dokumentieren.
 
 ---
 
@@ -81,12 +65,12 @@ HTML/CSS-Prototypen als visuelle Referenz für die React-Implementierung. Werden
 
 | Tool | Scope | Zweck |
 |------|-------|-------|
-| **pnpm** | `apps/mobile`, `apps/infrastructure` | Package Manager mit Workspace-Support |
-| **Turborepo** | `apps/mobile`, `apps/infrastructure` | Build-Orchestrierung und Caching für TypeScript-Packages |
-| **Cargo** | `services/` | Rust Workspace, Build und Dependency Management |
-| **cargo-lambda** | `services/` | Kompiliert Rust-Binaries für AWS Lambda (ARM64) |
+| **pnpm** | `apps/*` | Package Manager mit Workspace-Support |
+| **Turborepo** | `apps/*` | Build-Orchestrierung und Caching für TypeScript-Packages |
 | **Vite** | `apps/mobile` | Dev-Server und Production-Build für React |
-| **CDK** | `apps/infrastructure` | Infrastructure as Code, deployed via `cdk deploy` |
+| **Cargo** | `services/` | Rust Workspace, Build und Dependency Management — kommt später |
+| **cargo-lambda** | `services/` | Kompiliert Rust-Binaries für AWS Lambda (ARM64) — kommt später |
+| **CDK** | `apps/infrastructure` | Infrastructure as Code — kommt später |
 
 ---
 
