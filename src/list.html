@@ -35,16 +35,16 @@
     --nav-blur: blur(20px);
     --nav-border: rgba(255,255,255,0.06);
     --logo-filter: drop-shadow(0 0 10px rgba(78,157,166,0.3));
-    --cart-border: none;
-    --cart-before: linear-gradient(135deg, var(--teal), var(--orange));
-    --cart-before-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    --cart-border: 1px solid rgba(255,255,255,0.08);
+    --cart-before: none;
+    --cart-before-mask: none;
     --cart-before-top: 0;
     --cart-before-right: 0;
-    --cart-before-width: auto;
-    --cart-before-height: auto;
-    --cart-before-radius: 22px;
-    --cart-before-inset: 0;
-    --cart-before-padding: 1px;
+    --cart-before-width: 0;
+    --cart-before-height: 0;
+    --cart-before-radius: 0;
+    --cart-before-inset: auto;
+    --cart-before-padding: 0;
     --badge-bg: var(--orange);
     --badge-color: #fff;
     --badge-border: none;
@@ -443,24 +443,6 @@
     transform: scale(0.95);
   }
 
-  .cart-tile.checking {
-    animation: tileCheckOff 0.4s ease forwards;
-  }
-  @keyframes tileCheckOff {
-    0% { transform: scale(1); opacity: 1; }
-    30% { transform: scale(0.85); opacity: 0.7; }
-    60% { transform: scale(0.9); opacity: 0.4; }
-    100% { transform: scale(0.8); opacity: 0; max-height: 0; padding: 0; margin: 0; overflow: hidden; }
-  }
-
-  .cart-tile.restoring {
-    animation: tileRestore 0.35s ease forwards;
-  }
-  @keyframes tileRestore {
-    0% { transform: scale(0.8); opacity: 0; }
-    60% { transform: scale(1.05); opacity: 0.8; }
-    100% { transform: scale(1); opacity: 1; }
-  }
 
   .tile-qty {
     position: absolute;
@@ -608,15 +590,6 @@
   }
   .completed-tile .tile-qty {
     opacity: 0.5;
-  }
-
-  .completed-tile.incoming {
-    animation: completedIncoming 0.4s ease forwards;
-  }
-  @keyframes completedIncoming {
-    0% { transform: scale(0.5) translateY(-20px); opacity: 0; }
-    60% { transform: scale(1.05) translateY(0); opacity: 0.5; }
-    100% { transform: scale(1) translateY(0); opacity: 0.45; }
   }
 
   /* ===== Celebration State ===== */
@@ -1195,37 +1168,26 @@
     if (idx === -1) return;
 
     const item = items[idx];
-    const tileEl = document.querySelector('.cart-tile[data-id="' + itemId + '"]');
-    if (tileEl) tileEl.classList.add('checking');
 
     if (navigator.vibrate) navigator.vibrate(15);
 
-    setTimeout(function() {
-      items.splice(idx, 1);
-      saveItems(items);
+    items.splice(idx, 1);
+    saveItems(items);
 
-      const completed = loadCompleted();
-      completed.unshift(item);
-      saveCompleted(completed);
+    const completed = loadCompleted();
+    completed.unshift(item);
+    saveCompleted(completed);
 
-      updateProgress();
-      renderActiveGrid();
+    updateProgress();
+    renderActiveGrid();
+    renderCompletedSection();
+    updateCategoryBadges();
+
+    // Auto-expand on first check
+    if (completed.length === 1 && !completedExpanded) {
+      completedExpanded = true;
       renderCompletedSection();
-      updateCategoryBadges();
-
-      // Auto-expand on first check
-      if (completed.length === 1 && !completedExpanded) {
-        completedExpanded = true;
-        renderCompletedSection();
-      }
-
-      // Animate incoming completed tile
-      const completedTile = document.querySelector('.completed-tile[data-id="' + itemId + '"]');
-      if (completedTile) {
-        completedTile.classList.add('incoming');
-        setTimeout(function() { completedTile.classList.remove('incoming'); }, 400);
-      }
-    }, 350);
+    }
   }
 
   // ===== Restore =====
@@ -1249,11 +1211,6 @@
     renderCompletedSection();
     updateCategoryBadges();
 
-    const restoredTile = document.querySelector('.cart-tile[data-id="' + itemId + '"]');
-    if (restoredTile) {
-      restoredTile.classList.add('restoring');
-      setTimeout(function() { restoredTile.classList.remove('restoring'); }, 350);
-    }
   }
 
   // ===== Reset =====
