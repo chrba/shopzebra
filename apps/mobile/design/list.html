@@ -62,12 +62,24 @@
     --purple-glow: 0 0 20px rgba(160,123,204,0.3);
     --cyan-bg: rgba(78,200,220,0.12);
     --cyan-glow: 0 0 20px rgba(78,200,220,0.3);
+    --orange-bg: rgba(232,160,70,0.12);
+    --orange-glow: 0 0 20px rgba(232,160,70,0.3);
+    --pink-bg: rgba(236,112,162,0.12);
+    --pink-glow: 0 0 20px rgba(236,112,162,0.3);
+    --indigo-bg: rgba(99,102,241,0.12);
+    --indigo-glow: 0 0 20px rgba(99,102,241,0.3);
+    --ice-bg: rgba(103,210,235,0.12);
+    --ice-glow: 0 0 20px rgba(103,210,235,0.3);
     --chevron-green: #6BBF6B;
     --chevron-blue: #5BA8D5;
     --chevron-yellow: #E8C44A;
     --chevron-red: #E07B7B;
     --chevron-purple: #A07BCC;
     --chevron-cyan: #4EC8DC;
+    --chevron-orange: #E8A046;
+    --chevron-pink: #EC70A2;
+    --chevron-indigo: #6366F1;
+    --chevron-ice: #67D2EB;
     --progress-bg: rgba(255,255,255,0.06);
     --progress-fill: linear-gradient(90deg, var(--teal), #6BC5A0);
     --completed-bg: rgba(255,255,255,0.02);
@@ -133,12 +145,24 @@
     --purple-glow: 0 0 20px rgba(139,92,246,0.2);
     --cyan-bg: rgba(78,200,220,0.15);
     --cyan-glow: 0 0 20px rgba(78,200,220,0.2);
+    --orange-bg: rgba(232,160,70,0.15);
+    --orange-glow: 0 0 20px rgba(232,160,70,0.2);
+    --pink-bg: rgba(236,112,162,0.15);
+    --pink-glow: 0 0 20px rgba(236,112,162,0.2);
+    --indigo-bg: rgba(99,102,241,0.15);
+    --indigo-glow: 0 0 20px rgba(99,102,241,0.2);
+    --ice-bg: rgba(103,210,235,0.15);
+    --ice-glow: 0 0 20px rgba(103,210,235,0.2);
     --chevron-green: rgba(255,255,255,0.25);
     --chevron-blue: rgba(255,255,255,0.25);
     --chevron-yellow: rgba(255,255,255,0.25);
     --chevron-red: rgba(255,255,255,0.25);
     --chevron-purple: rgba(255,255,255,0.25);
     --chevron-cyan: rgba(255,255,255,0.25);
+    --chevron-orange: rgba(255,255,255,0.25);
+    --chevron-pink: rgba(255,255,255,0.25);
+    --chevron-indigo: rgba(255,255,255,0.25);
+    --chevron-ice: rgba(255,255,255,0.25);
     --progress-bg: rgba(255,255,255,0.08);
     --progress-fill: linear-gradient(90deg, var(--teal), #6BC5A0);
     --completed-bg: rgba(255,255,255,0.03);
@@ -764,6 +788,18 @@
   .category-card[data-cat="drugstore-household"]::before {
     background: radial-gradient(circle, rgba(78,200,220,0.15) 0%, transparent 70%);
   }
+  .category-card[data-cat="beverages"]::before {
+    background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%);
+  }
+  .category-card[data-cat="breakfast-cereals"]::before {
+    background: radial-gradient(circle, rgba(232,160,70,0.15) 0%, transparent 70%);
+  }
+  .category-card[data-cat="sweets-snacks"]::before {
+    background: radial-gradient(circle, rgba(236,112,162,0.15) 0%, transparent 70%);
+  }
+  .category-card[data-cat="frozen"]::before {
+    background: radial-gradient(circle, rgba(103,210,235,0.15) 0%, transparent 70%);
+  }
 
   .category-icon {
     width: 52px;
@@ -784,6 +820,10 @@
   .category-icon.red { background: var(--red-bg); box-shadow: var(--red-glow); }
   .category-icon.purple { background: var(--purple-bg); box-shadow: var(--purple-glow); }
   .category-icon.cyan { background: var(--cyan-bg); box-shadow: var(--cyan-glow); }
+  .category-icon.orange { background: var(--orange-bg); box-shadow: var(--orange-glow); }
+  .category-icon.pink { background: var(--pink-bg); box-shadow: var(--pink-glow); }
+  .category-icon.indigo { background: var(--indigo-bg); box-shadow: var(--indigo-glow); }
+  .category-icon.ice { background: var(--ice-bg); box-shadow: var(--ice-glow); }
 
   .category-info {
     flex: 1;
@@ -869,6 +909,435 @@
     border-radius: 50%; display: flex; align-items: center; justify-content: center;
     box-shadow: 0 0 12px rgba(232,146,58,0.5);
   }
+
+  /* ===== Global Search ===== */
+  .search-section {
+    padding: 0 20px 16px;
+  }
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.05);
+    border: 1.5px solid rgba(255,255,255,0.08);
+    transition: all 0.3s ease;
+  }
+  .search-bar:focus-within {
+    border-color: var(--teal);
+    background: rgba(78,157,166,0.05);
+  }
+  .search-bar svg { width: 18px; height: 18px; fill: var(--text-dim); flex-shrink: 0; }
+  .search-bar input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-size: 15px;
+    font-family: inherit;
+  }
+  .search-bar input::placeholder { color: var(--text-dim); }
+  .search-clear {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: rgba(255,255,255,0.1); border: none;
+    display: none; align-items: center; justify-content: center;
+    cursor: pointer; padding: 0;
+  }
+  .search-clear.visible { display: flex; }
+  .search-clear svg { width: 12px; height: 12px; fill: var(--text-secondary); }
+
+  /* ===== Search Results ===== */
+  .search-results {
+    padding: 0 20px;
+    display: none;
+  }
+  .search-results.visible { display: block; }
+  .search-results-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-bottom: 14px;
+  }
+  .search-results-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .search-tile {
+    position: relative;
+    padding: 12px 4px 10px;
+    border-radius: 16px;
+    background: var(--surface);
+    border: 1.5px solid var(--surface-border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    user-select: none;
+    -webkit-user-select: none;
+    min-height: 90px;
+  }
+  .search-tile:active { transform: scale(0.95); }
+  .search-tile.on-list {
+    border-color: var(--teal);
+    background: rgba(78,157,166,0.06);
+    box-shadow: 0 0 15px rgba(78,157,166,0.15);
+  }
+  .search-tile-emoji { font-size: 28px; line-height: 1; }
+  .search-tile.on-list .search-tile-emoji { transform: scale(1.05); }
+  .search-tile-name {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-align: center;
+    line-height: 1.2;
+    padding: 0 4px;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .search-tile.on-list .search-tile-name { color: var(--text-primary); }
+  .search-tile-cat {
+    font-size: 8px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-align: center;
+  }
+  .search-tile-check {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--teal);
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .search-tile.on-list .search-tile-check { display: flex; }
+  .search-tile-check svg { width: 10px; height: 10px; fill: #fff; }
+
+  .search-no-results {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 0;
+    gap: 8px;
+  }
+  .search-no-results-emoji { font-size: 36px; }
+  .search-no-results-text { font-size: 14px; color: var(--text-secondary); }
+
+  /* ===== Detail Sheet (long-press overlay) ===== */
+  .list-sheet-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .list-sheet-backdrop.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .list-sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--screen-bg);
+    border-radius: 20px 20px 0 0;
+    z-index: 210;
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    display: flex;
+    flex-direction: column;
+  }
+  .list-sheet-backdrop.visible .list-sheet {
+    transform: translateY(0);
+  }
+  .list-sheet-handle {
+    width: 36px;
+    height: 4px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 2px;
+    margin: 10px auto 0;
+    flex-shrink: 0;
+  }
+  .list-sheet-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px 12px;
+    flex-shrink: 0;
+  }
+  .list-sheet-emoji { font-size: 32px; line-height: 1; }
+  .list-sheet-title-group { flex: 1; min-width: 0; }
+  .list-sheet-title { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+  .list-sheet-subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .list-sheet-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .list-sheet-avatar.visible { display: flex; }
+  .list-sheet-content {
+    padding: 0 16px 34px;
+  }
+  .list-sheet-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 12px 4px 8px;
+  }
+  .list-sheet-qty-chips {
+    display: flex;
+    gap: 8px;
+    padding: 0 0 8px;
+  }
+  .list-sheet-qty-chip {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1.5px solid var(--surface-border);
+    color: var(--text-secondary);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .list-sheet-qty-chip:active { transform: scale(0.95); }
+  .list-sheet-qty-chip.selected {
+    border-color: var(--teal);
+    background: rgba(78,157,166,0.12);
+    color: var(--teal);
+    font-weight: 700;
+  }
+  .list-sheet-qty-custom {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1.5px dashed var(--surface-border);
+    color: var(--text-secondary);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    text-align: center;
+    outline: none;
+    transition: all 0.2s;
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  .list-sheet-qty-custom::-webkit-outer-spin-button,
+  .list-sheet-qty-custom::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .list-sheet-qty-custom:focus {
+    border-color: var(--teal);
+    border-style: solid;
+    color: var(--teal);
+  }
+  .list-sheet-qty-custom.has-value {
+    border-color: var(--teal);
+    border-style: solid;
+    background: rgba(78,157,166,0.12);
+    color: var(--teal);
+    font-weight: 700;
+  }
+  .list-sheet-note-input {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1.5px solid var(--surface-border);
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s, color 0.2s;
+    margin-bottom: 2px;
+    resize: none;
+    overflow: hidden;
+    line-height: 1.4;
+    min-height: 38px;
+    max-height: 58px;
+  }
+  .list-sheet-note-input:focus {
+    border-color: var(--teal);
+    color: var(--text-primary);
+  }
+  .list-sheet-note-input::placeholder { color: var(--text-dim); }
+  .list-sheet-note-char-count {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-align: right;
+    padding: 0 4px 6px;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .list-sheet-note-input:focus + .list-sheet-note-char-count {
+    opacity: 1;
+  }
+
+  .tile-note-icon {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 12px;
+    height: 12px;
+    opacity: 0.35;
+  }
+  .tile-note-icon svg {
+    width: 12px;
+    height: 12px;
+    fill: var(--text-secondary);
+  }
+
+  .list-sheet-remove-btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 14px;
+    border: 1.5px solid rgba(224,123,123,0.25);
+    background: rgba(224,123,123,0.08);
+    color: #E07B7B;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 12px;
+  }
+  .list-sheet-remove-btn:active { transform: scale(0.98); opacity: 0.8; }
+
+  .list-sheet-variant-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 0 8px;
+  }
+  .list-sheet-variant-chip {
+    padding: 8px 14px;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1.5px solid var(--surface-border);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .list-sheet-variant-chip:active { transform: scale(0.95); }
+  .list-sheet-variant-chip.selected {
+    border-color: var(--teal);
+    background: rgba(78,157,166,0.12);
+    color: var(--text-primary);
+  }
+
+  .list-sheet-custom-variant-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0 8px;
+  }
+  .list-sheet-custom-variant-row input {
+    flex: 1;
+    padding: 8px 14px;
+    border-radius: 12px;
+    border: 1.5px dashed var(--surface-border);
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .list-sheet-custom-variant-row input:focus { border-color: var(--teal); }
+  .list-sheet-custom-variant-row input::placeholder { color: var(--text-dim); }
+  .list-sheet-custom-variant-add-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: var(--teal);
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    opacity: 0.3;
+    pointer-events: none;
+    flex-shrink: 0;
+  }
+  .list-sheet-custom-variant-add-btn.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .list-sheet-custom-variant-add-btn:active { transform: scale(0.9); }
+
+  .tile-avatar {
+    position: absolute;
+    bottom: 3px;
+    left: 3px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 7px;
+    font-weight: 700;
+    background: rgba(255,255,255,0.06);
+    color: var(--text-dim);
+    z-index: 2;
+  }
+  .completed-tile .tile-avatar {
+    opacity: 0.4;
+  }
+
+  .tile-status-line {
+    font-size: 8px;
+    font-weight: 600;
+    color: var(--teal);
+    text-align: center;
+    max-width: 100%;
+    padding: 0 4px;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 </style>
 </head>
 <body>
@@ -946,10 +1415,43 @@
       </div>
     </div>
 
+    <!-- Global Search -->
+    <div class="search-section">
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <input type="text" id="globalSearchInput" placeholder="Produkt suchen..." oninput="handleGlobalSearch()">
+        <button class="search-clear" id="globalSearchClear" onclick="clearGlobalSearch()">
+          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Search Results -->
+    <div class="search-results" id="searchResults">
+      <div class="search-results-label" id="searchResultsLabel"></div>
+      <div class="search-results-grid" id="searchResultsGrid"></div>
+    </div>
+
     <!-- Categories -->
-    <div class="categories-section">
+    <div class="categories-section" id="categoriesSection">
       <div class="categories-label">Kategorien</div>
       <div class="category-list" id="categoryList"></div>
+    </div>
+  </div>
+
+  <!-- Detail Sheet (long-press overlay) -->
+  <div class="list-sheet-backdrop" id="listSheetBackdrop" onclick="closeListSheet()">
+    <div class="list-sheet" onclick="event.stopPropagation()">
+      <div class="list-sheet-handle"></div>
+      <div class="list-sheet-header">
+        <div class="list-sheet-emoji" id="listSheetEmoji"></div>
+        <div class="list-sheet-title-group">
+          <div class="list-sheet-title" id="listSheetTitle"></div>
+          <div class="list-sheet-subtitle" id="listSheetSubtitle"></div>
+        </div>
+        <div class="list-sheet-avatar" id="listSheetAvatar"></div>
+      </div>
+      <div class="list-sheet-content" id="listSheetContent"></div>
     </div>
   </div>
 
@@ -1002,48 +1504,434 @@
   const STORAGE_KEY = 'shopzebra_items_' + LIST_ID;
   const COMPLETED_KEY = 'shopzebra_completed_' + LIST_ID;
 
+  // ===== Family Members =====
+  const CURRENT_USER = 'Du';
+  const FAMILY_MEMBERS = {
+    'Du':    { initial: 'D', color: '#4E9DA6' },
+    'Mama':  { initial: 'M', color: '#EC70A2' },
+    'Papa':  { initial: 'P', color: '#6366F1' },
+    'Lisa':  { initial: 'L', color: '#E8A046' }
+  };
+
   // ===== Default Items =====
   const DEFAULT_ITEMS = [
-    { id: 'apples', emoji: '\u{1F34E}', name: '\u00C4pfel', qty: 2, unit: 'kg', cat: 'fruits-vegetables' },
-    { id: 'bananas', emoji: '\u{1F34C}', name: 'Bananen', qty: 6, unit: 'St', cat: 'fruits-vegetables' },
-    { id: 'tomatoes', emoji: '\u{1F345}', name: 'Tomaten', qty: 1, unit: 'kg', cat: 'fruits-vegetables' },
-    { id: 'potatoes', emoji: '\u{1F954}', name: 'Kartoffeln', qty: 2, unit: 'kg', cat: 'fruits-vegetables' },
-    { id: 'cucumber', emoji: '\u{1F952}', name: 'Gurke', qty: 2, unit: 'St', cat: 'fruits-vegetables' },
-    { id: 'bell-pepper', emoji: '\u{1FAD1}', name: 'Paprika', qty: 3, unit: 'St', cat: 'fruits-vegetables' },
-    { id: 'onions', emoji: '\u{1F9C5}', name: 'Zwiebeln', qty: 1, unit: 'Netz', cat: 'fruits-vegetables' },
-    { id: 'lettuce', emoji: '\u{1F957}', name: 'Salat', qty: 1, unit: 'Kopf', cat: 'fruits-vegetables' },
-    { id: 'milk', emoji: '\u{1F95B}', name: 'Milch', qty: 2, unit: 'L', cat: 'dairy-cheese' },
-    { id: 'gouda', emoji: '\u{1F9C0}', name: 'Gouda', qty: 1, unit: 'Pck', cat: 'dairy-cheese' },
-    { id: 'yogurt', emoji: '\u{1F963}', name: 'Joghurt', qty: 4, unit: 'St', cat: 'dairy-cheese' },
-    { id: 'butter', emoji: '\u{1F9C8}', name: 'Butter', qty: 1, unit: 'St', cat: 'dairy-cheese' },
-    { id: 'bread', emoji: '\u{1F35E}', name: 'Brot', qty: 1, unit: 'Pck', cat: 'bread-bakery' },
-    { id: 'rolls', emoji: '\u{1F96F}', name: 'Br\u00F6tchen', qty: 6, unit: 'St', cat: 'bread-bakery' },
-    { id: 'ground-meat', emoji: '\u{1F969}', name: 'Hackfleisch', qty: 1, unit: '500g', cat: 'meat-fish' },
-    { id: 'chicken', emoji: '\u{1F357}', name: 'H\u00E4hnchenbrust', qty: 1, unit: '400g', cat: 'meat-fish' },
-    { id: 'salmon', emoji: '\u{1F41F}', name: 'Lachs', qty: 1, unit: '200g', cat: 'meat-fish' },
-    { id: 'pasta', emoji: '\u{1F35D}', name: 'Nudeln', qty: 2, unit: 'Pck', cat: 'ingredients-spices' },
-    { id: 'rice', emoji: '\u{1F35A}', name: 'Reis', qty: 1, unit: 'Pck', cat: 'ingredients-spices' },
-    { id: 'cooking-oil', emoji: '\u{1FAD2}', name: 'Speise\u00F6l', qty: 1, unit: 'Fl', cat: 'ingredients-spices' },
-    { id: 'tomato-puree', emoji: '\u{1F96B}', name: 'Passierte Tomaten', qty: 2, unit: 'Pck', cat: 'ingredients-spices' },
-    { id: 'soy-sauce', emoji: '\u{1F962}', name: 'Sojasauce', qty: 1, unit: 'Fl', cat: 'ingredients-spices' }
+    { id: 'apples', emoji: '\u{1F34E}', name: '\u00C4pfel', qty: 2, unit: 'kg', cat: 'fruits-vegetables', addedBy: 'Du' },
+    { id: 'bananas', emoji: '\u{1F34C}', name: 'Bananen', qty: 6, unit: 'St', cat: 'fruits-vegetables', addedBy: 'Du' },
+    { id: 'tomatoes', emoji: '\u{1F345}', name: 'Tomaten', qty: 1, unit: 'kg', cat: 'fruits-vegetables', addedBy: 'Mama' },
+    { id: 'potatoes', emoji: '\u{1F954}', name: 'Kartoffeln', qty: 2, unit: 'kg', cat: 'fruits-vegetables', addedBy: 'Du' },
+    { id: 'cucumber', emoji: '\u{1F952}', name: 'Gurke', qty: 2, unit: 'St', cat: 'fruits-vegetables', addedBy: 'Du' },
+    { id: 'bell-pepper', emoji: '\u{1FAD1}', name: 'Paprika', qty: 3, unit: 'St', cat: 'fruits-vegetables', addedBy: 'Mama' },
+    { id: 'onions', emoji: '\u{1F9C5}', name: 'Zwiebeln', qty: 1, unit: 'Netz', cat: 'fruits-vegetables', addedBy: 'Du' },
+    { id: 'lettuce', emoji: '\u{1F957}', name: 'Salat', qty: 1, unit: 'Kopf', cat: 'fruits-vegetables', addedBy: 'Du' },
+    { id: 'milk', emoji: '\u{1F95B}', name: 'Milch', qty: 2, unit: 'L', cat: 'dairy-cheese', addedBy: 'Mama' },
+    { id: 'gouda', emoji: '\u{1F9C0}', name: 'Gouda', qty: 1, unit: 'Pck', cat: 'dairy-cheese', addedBy: 'Du' },
+    { id: 'yogurt', emoji: '\u{1F963}', name: 'Joghurt', qty: 4, unit: 'St', cat: 'dairy-cheese', addedBy: 'Mama' },
+    { id: 'butter', emoji: '\u{1F9C8}', name: 'Butter', qty: 1, unit: 'St', cat: 'dairy-cheese', addedBy: 'Du' },
+    { id: 'bread', emoji: '\u{1F35E}', name: 'Brot', qty: 1, unit: 'Pck', cat: 'bread-bakery', addedBy: 'Du' },
+    { id: 'rolls', emoji: '\u{1F96F}', name: 'Br\u00F6tchen', qty: 6, unit: 'St', cat: 'bread-bakery', addedBy: 'Papa' },
+    { id: 'ground-meat', emoji: '\u{1F969}', name: 'Hackfleisch', qty: 1, unit: '500g', cat: 'meat-fish', addedBy: 'Papa' },
+    { id: 'chicken', emoji: '\u{1F357}', name: 'H\u00E4hnchenbrust', qty: 1, unit: '400g', cat: 'meat-fish', addedBy: 'Du' },
+    { id: 'salmon', emoji: '\u{1F41F}', name: 'Lachs', qty: 1, unit: '200g', cat: 'meat-fish', addedBy: 'Papa' },
+    { id: 'pasta', emoji: '\u{1F35D}', name: 'Nudeln', qty: 2, unit: 'Pck', cat: 'ingredients-spices', addedBy: 'Lisa' },
+    { id: 'rice', emoji: '\u{1F35A}', name: 'Reis', qty: 1, unit: 'Pck', cat: 'ingredients-spices', addedBy: 'Du' },
+    { id: 'cooking-oil', emoji: '\u{1FAD2}', name: 'Speise\u00F6l', qty: 1, unit: 'Fl', cat: 'ingredients-spices', addedBy: 'Du' },
+    { id: 'tomato-puree', emoji: '\u{1F96B}', name: 'Passierte Tomaten', qty: 2, unit: 'Pck', cat: 'ingredients-spices', addedBy: 'Mama' },
+    { id: 'soy-sauce', emoji: '\u{1F962}', name: 'Sojasauce', qty: 1, unit: 'Fl', cat: 'ingredients-spices', addedBy: 'Du' }
   ];
 
   const CATEGORIES = [
-    { id: 'fruits-vegetables', name: 'Obst & Gem\u00FCse', emoji: '\u{1F34E}', color: 'green', totalProducts: 40 },
+    { id: 'fruits-vegetables', name: 'Obst & Gem\u00FCse', emoji: '\u{1F34E}', color: 'green', totalProducts: 41 },
     { id: 'dairy-cheese', name: 'Milch & K\u00E4se', emoji: '\u{1F9C0}', color: 'blue', totalProducts: 13 },
     { id: 'bread-bakery', name: 'Brot & Geb\u00E4ck', emoji: '\u{1F35E}', color: 'yellow', totalProducts: 10 },
     { id: 'meat-fish', name: 'Fleisch & Fisch', emoji: '\u{1F969}', color: 'red', totalProducts: 12 },
-    { id: 'ingredients-spices', name: 'Zutaten & Gew\u00FCrze', emoji: '\u{1F9C2}', color: 'purple', totalProducts: 26 },
+    { id: 'ingredients-spices', name: 'Zutaten & Gew\u00FCrze', emoji: '\u{1F9C2}', color: 'purple', totalProducts: 39 },
+    { id: 'beverages', name: 'Getr\u00E4nke', emoji: '\u{1F964}', color: 'indigo', totalProducts: 13 },
+    { id: 'breakfast-cereals', name: 'Fr\u00FChst\u00FCck & Cerealien', emoji: '\u{1F963}', color: 'orange', totalProducts: 10 },
+    { id: 'sweets-snacks', name: 'S\u00FC\u00DFes & Snacks', emoji: '\u{1F36B}', color: 'pink', totalProducts: 12 },
+    { id: 'frozen', name: 'Tiefk\u00FChl', emoji: '\u{1F9CA}', color: 'ice', totalProducts: 8 },
     { id: 'drugstore-household', name: 'Drogerie & Haushalt', emoji: '\u{1F9F4}', color: 'cyan', totalProducts: 20 }
   ];
 
   const CHEVRON_COLORS = {
     green: 'var(--chevron-green)', blue: 'var(--chevron-blue)', yellow: 'var(--chevron-yellow)',
-    red: 'var(--chevron-red)', purple: 'var(--chevron-purple)', cyan: 'var(--chevron-cyan)'
+    red: 'var(--chevron-red)', purple: 'var(--chevron-purple)', cyan: 'var(--chevron-cyan)',
+    orange: 'var(--chevron-orange)', pink: 'var(--chevron-pink)', indigo: 'var(--chevron-indigo)', ice: 'var(--chevron-ice)'
   };
+
+  // ===== All Products (for global search) =====
+  const CATEGORY_SHORT_NAMES = {
+    'fruits-vegetables': 'Obst & Gem\u00FCse',
+    'dairy-cheese': 'Milch & K\u00E4se',
+    'bread-bakery': 'Brot & Geb\u00E4ck',
+    'meat-fish': 'Fleisch & Fisch',
+    'ingredients-spices': 'Zutaten & Gew\u00FCrze',
+    'beverages': 'Getr\u00E4nke',
+    'breakfast-cereals': 'Fr\u00FChst\u00FCck & Cerealien',
+    'sweets-snacks': 'S\u00FC\u00DFes & Snacks',
+    'frozen': 'Tiefk\u00FChl',
+    'drugstore-household': 'Drogerie & Haushalt'
+  };
+
+  const ALL_PRODUCTS = [
+    // Obst & Gem\u00FCse
+    { id: 'pineapple', emoji: '\u{1F34D}', name: 'Ananas', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'apples', emoji: '\u{1F34E}', name: '\u00C4pfel', unit: 'kg', cat: 'fruits-vegetables' },
+    { id: 'avocado', emoji: '\u{1F951}', name: 'Avocado', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'bananas', emoji: '\u{1F34C}', name: 'Bananen', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'berries', emoji: '\u{1F353}', name: 'Beeren', unit: 'Schale', cat: 'fruits-vegetables' },
+    { id: 'pears', emoji: '\u{1F350}', name: 'Birnen', unit: 'kg', cat: 'fruits-vegetables' },
+    { id: 'pomegranate', emoji: '\u{1F34F}', name: 'Granatapfel', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'cherries', emoji: '\u{1F352}', name: 'Kirschen', unit: 'Schale', cat: 'fruits-vegetables' },
+    { id: 'kiwi', emoji: '\u{1F95D}', name: 'Kiwi', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'coconut', emoji: '\u{1F965}', name: 'Kokosnuss', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'mango', emoji: '\u{1F96D}', name: 'Mango', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'melon', emoji: '\u{1F348}', name: 'Melone', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'stone-fruit', emoji: '\u{1F351}', name: 'Steinobst', unit: 'kg', cat: 'fruits-vegetables' },
+    { id: 'grapes', emoji: '\u{1F347}', name: 'Trauben', unit: 'kg', cat: 'fruits-vegetables' },
+    { id: 'citrus-fruits', emoji: '\u{1F34A}', name: 'Zitrusfr\u00FCchte', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'eggplant', emoji: '\u{1F346}', name: 'Aubergine', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'beans', emoji: '\u{1FAD8}', name: 'Bohnen', unit: '250g', cat: 'fruits-vegetables' },
+    { id: 'broccoli', emoji: '\u{1F966}', name: 'Brokkoli', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'peas', emoji: '\u{1FADB}', name: 'Erbsen', unit: '250g', cat: 'fruits-vegetables' },
+    { id: 'fennel', emoji: '\u{1F331}', name: 'Fenchel', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'cucumber', emoji: '\u{1F952}', name: 'Gurke', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'ginger', emoji: '\u{1FADA}', name: 'Ingwer', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'potatoes', emoji: '\u{1F954}', name: 'Kartoffeln', unit: 'kg', cat: 'fruits-vegetables' },
+    { id: 'garlic', emoji: '\u{1F9C4}', name: 'Knoblauch', unit: 'Knolle', cat: 'fruits-vegetables' },
+    { id: 'cabbage', emoji: '\u{1F96C}', name: 'Kohl', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'pumpkin', emoji: '\u{1F383}', name: 'K\u00FCrbis', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'leek', emoji: '\u{1F3F7}\u{FE0F}', name: 'Lauch', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'corn', emoji: '\u{1F33D}', name: 'Mais', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'carrots', emoji: '\u{1F955}', name: 'M\u00F6hren', unit: 'kg', cat: 'fruits-vegetables' },
+    { id: 'bell-pepper', emoji: '\u{1FAD1}', name: 'Paprika', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'mushrooms', emoji: '\u{1F344}', name: 'Pilze', unit: '200g', cat: 'fruits-vegetables' },
+    { id: 'radishes', emoji: '\u{1F3F7}\u{FE0F}', name: 'Radieschen', unit: 'Bund', cat: 'fruits-vegetables' },
+    { id: 'beetroot', emoji: '\u{1F3F7}\u{FE0F}', name: 'Rote Beete', unit: 'Bund', cat: 'fruits-vegetables' },
+    { id: 'lettuce', emoji: '\u{1F957}', name: 'Salat', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'celery', emoji: '\u{1FAB4}', name: 'Sellerie', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'asparagus', emoji: '\u{1F3F7}\u{FE0F}', name: 'Spargel', unit: 'Bund', cat: 'fruits-vegetables' },
+    { id: 'spinach', emoji: '\u{1F343}', name: 'Spinat', unit: 'Beutel', cat: 'fruits-vegetables' },
+    { id: 'tomatoes', emoji: '\u{1F345}', name: 'Tomaten', unit: 'kg', cat: 'fruits-vegetables' },
+    { id: 'zucchini', emoji: '\u{1F3F7}\u{FE0F}', name: 'Zucchini', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'onions', emoji: '\u{1F9C5}', name: 'Zwiebeln', unit: 'Netz', cat: 'fruits-vegetables' },
+    { id: 'herbs', emoji: '\u{1F33F}', name: 'Kr\u00E4uter', unit: 'Bund', cat: 'fruits-vegetables' },
+    // Milch & K\u00E4se
+    { id: 'milk', emoji: '\u{1F95B}', name: 'Milch', unit: 'L', cat: 'dairy-cheese' },
+    { id: 'butter', emoji: '\u{1F9C8}', name: 'Butter', unit: 'St', cat: 'dairy-cheese' },
+    { id: 'cheese-slices', emoji: '\u{1F9C0}', name: 'K\u00E4se Scheiben', unit: 'Pck', cat: 'dairy-cheese' },
+    { id: 'cheese-block', emoji: '\u{1F9C0}', name: 'K\u00E4se St\u00FCck', unit: 'St', cat: 'dairy-cheese' },
+    { id: 'cream-cheese', emoji: '\u{1F95B}', name: 'Frischk\u00E4se', unit: 'Becher', cat: 'dairy-cheese' },
+    { id: 'yogurt', emoji: '\u{1F963}', name: 'Joghurt', unit: 'Becher', cat: 'dairy-cheese' },
+    { id: 'quark', emoji: '\u{1F95B}', name: 'Quark', unit: 'Becher', cat: 'dairy-cheese' },
+    { id: 'cream', emoji: '\u{1F95B}', name: 'Sahne', unit: 'Becher', cat: 'dairy-cheese' },
+    { id: 'eggs', emoji: '\u{1F95A}', name: 'Eier', unit: 'Pck', cat: 'dairy-cheese' },
+    { id: 'plant-milk', emoji: '\u{1F95B}', name: 'Pflanzenmilch', unit: 'L', cat: 'dairy-cheese' },
+    { id: 'pudding', emoji: '\u{1F36E}', name: 'Pudding', unit: 'Becher', cat: 'dairy-cheese' },
+    { id: 'margarine', emoji: '\u{1F9C8}', name: 'Margarine', unit: 'Becher', cat: 'dairy-cheese' },
+    { id: 'tofu', emoji: '\u{1F9C8}', name: 'Tofu', unit: 'Pck', cat: 'dairy-cheese' },
+    // Brot & Geb\u00E4ck
+    { id: 'bread', emoji: '\u{1F35E}', name: 'Brot', unit: 'St', cat: 'bread-bakery' },
+    { id: 'rolls', emoji: '\u{1F35E}', name: 'Br\u00F6tchen', unit: 'St', cat: 'bread-bakery' },
+    { id: 'toast', emoji: '\u{1F35E}', name: 'Toast', unit: 'Pck', cat: 'bread-bakery' },
+    { id: 'croissant', emoji: '\u{1F950}', name: 'Croissant', unit: 'St', cat: 'bread-bakery' },
+    { id: 'baguette', emoji: '\u{1F956}', name: 'Baguette', unit: 'St', cat: 'bread-bakery' },
+    { id: 'pretzel', emoji: '\u{1F968}', name: 'Brezel', unit: 'St', cat: 'bread-bakery' },
+    { id: 'cake', emoji: '\u{1F370}', name: 'Kuchen', unit: 'St', cat: 'bread-bakery' },
+    { id: 'tortillas', emoji: '\u{1FAD3}', name: 'Tortillas', unit: 'Pck', cat: 'bread-bakery' },
+    { id: 'crispbread', emoji: '\u{1F35E}', name: 'Kn\u00E4ckebrot', unit: 'Pck', cat: 'bread-bakery' },
+    { id: 'flour', emoji: '\u{1F33E}', name: 'Mehl', unit: 'kg', cat: 'bread-bakery' },
+    // Fleisch & Fisch
+    { id: 'chicken', emoji: '\u{1F357}', name: 'H\u00E4hnchen', unit: 'g', cat: 'meat-fish' },
+    { id: 'beef', emoji: '\u{1F969}', name: 'Rind', unit: 'g', cat: 'meat-fish' },
+    { id: 'pork', emoji: '\u{1F969}', name: 'Schwein', unit: 'g', cat: 'meat-fish' },
+    { id: 'mixed-ground-meat', emoji: '\u{1F356}', name: 'Hackfleisch gemischt', unit: 'g', cat: 'meat-fish' },
+    { id: 'sausage', emoji: '\u{1F953}', name: 'Wurst', unit: 'Pck', cat: 'meat-fish' },
+    { id: 'bacon', emoji: '\u{1F953}', name: 'Bacon', unit: 'Pck', cat: 'meat-fish' },
+    { id: 'salmon', emoji: '\u{1F99E}', name: 'Lachs', unit: 'g', cat: 'meat-fish' },
+    { id: 'tuna', emoji: '\u{1F41F}', name: 'Thunfisch', unit: 'Dose', cat: 'meat-fish' },
+    { id: 'shrimp', emoji: '\u{1F990}', name: 'Garnelen', unit: 'g', cat: 'meat-fish' },
+    { id: 'fish-sticks', emoji: '\u{1F41F}', name: 'Fischst\u00E4bchen', unit: 'Pck', cat: 'meat-fish' },
+    { id: 'trout', emoji: '\u{1F41F}', name: 'Forelle', unit: 'St', cat: 'meat-fish' },
+    { id: 'meat-substitute', emoji: '\u{1F331}', name: 'Fleischersatz', unit: 'Pck', cat: 'meat-fish' },
+    // Zutaten & Gew\u00FCrze
+    { id: 'salt', emoji: '\u{1F9C2}', name: 'Salz', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'pepper', emoji: '\u{1F3F7}\u{FE0F}', name: 'Pfeffer', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'olive-oil', emoji: '\u{1FAD2}', name: 'Oliven\u00F6l', unit: 'Fl', cat: 'ingredients-spices' },
+    { id: 'sunflower-oil', emoji: '\u{1FAD2}', name: 'Sonnenblumen\u00F6l', unit: 'Fl', cat: 'ingredients-spices' },
+    { id: 'vinegar', emoji: '\u{1FAD2}', name: 'Essig', unit: 'Fl', cat: 'ingredients-spices' },
+    { id: 'sugar', emoji: '\u{1F3F7}\u{FE0F}', name: 'Zucker', unit: 'kg', cat: 'ingredients-spices' },
+    { id: 'mustard', emoji: '\u{1F3F7}\u{FE0F}', name: 'Senf', unit: 'Glas', cat: 'ingredients-spices' },
+    { id: 'ketchup', emoji: '\u{1F3F7}\u{FE0F}', name: 'Ketchup', unit: 'Fl', cat: 'ingredients-spices' },
+    { id: 'mayo', emoji: '\u{1F3F7}\u{FE0F}', name: 'Mayonnaise', unit: 'Glas', cat: 'ingredients-spices' },
+    { id: 'soy-sauce', emoji: '\u{1F3F7}\u{FE0F}', name: 'Sojasauce', unit: 'Fl', cat: 'ingredients-spices' },
+    { id: 'pasta', emoji: '\u{1F35D}', name: 'Nudeln', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'rice', emoji: '\u{1F35A}', name: 'Reis', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'tomato-puree', emoji: '\u{1F345}', name: 'Passierte Tomaten', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'tomato-paste', emoji: '\u{1F345}', name: 'Tomatenmark', unit: 'Tube', cat: 'ingredients-spices' },
+    { id: 'coconut-milk-can', emoji: '\u{1F965}', name: 'Kokosmilch', unit: 'Dose', cat: 'ingredients-spices' },
+    { id: 'broth', emoji: '\u{1F372}', name: 'Br\u00FChe', unit: 'Glas', cat: 'ingredients-spices' },
+    { id: 'spices', emoji: '\u{1F3F7}\u{FE0F}', name: 'Gew\u00FCrze', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'baking-powder', emoji: '\u{1F3F7}\u{FE0F}', name: 'Backpulver', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'yeast', emoji: '\u{1F3F7}\u{FE0F}', name: 'Hefe', unit: 'W\u00FCrfel', cat: 'ingredients-spices' },
+    { id: 'nuts', emoji: '\u{1F95C}', name: 'N\u00FCsse', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'breadcrumbs', emoji: '\u{1F35E}', name: 'Paniermehl', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'oatmeal', emoji: '\u{1F33E}', name: 'Haferflocken', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'canned-corn', emoji: '\u{1F33D}', name: 'Mais (Dose)', unit: 'Dose', cat: 'ingredients-spices' },
+    { id: 'canned-beans', emoji: '\u{1FAD8}', name: 'Bohnen (Dose)', unit: 'Dose', cat: 'ingredients-spices' },
+    { id: 'lentils', emoji: '\u{1F3F7}\u{FE0F}', name: 'Linsen', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'couscous', emoji: '\u{1F35A}', name: 'Couscous', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'quinoa', emoji: '\u{1F33E}', name: 'Quinoa', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'bulgur', emoji: '\u{1F33E}', name: 'Bulgur', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'asian-noodles', emoji: '\u{1F35C}', name: 'Asia-Nudeln', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'tortellini', emoji: '\u{1F95F}', name: 'Tortellini', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'pesto', emoji: '\u{1F33F}', name: 'Pesto', unit: 'Glas', cat: 'ingredients-spices' },
+    { id: 'canned-tomatoes', emoji: '\u{1F345}', name: 'Dosentomaten', unit: 'Dose', cat: 'ingredients-spices' },
+    { id: 'olives', emoji: '\u{1FAD2}', name: 'Oliven', unit: 'Glas', cat: 'ingredients-spices' },
+    { id: 'pickles', emoji: '\u{1F952}', name: 'Gew\u00FCrzgurken', unit: 'Glas', cat: 'ingredients-spices' },
+    { id: 'sauerkraut', emoji: '\u{1F96C}', name: 'Sauerkraut', unit: 'Dose', cat: 'ingredients-spices' },
+    { id: 'curry-paste', emoji: '\u{1F35B}', name: 'Currypaste', unit: 'Glas', cat: 'ingredients-spices' },
+    { id: 'hot-sauce', emoji: '\u{1F336}\u{FE0F}', name: 'Scharfe Sauce', unit: 'Fl', cat: 'ingredients-spices' },
+    { id: 'bbq-sauce', emoji: '\u{1F356}', name: 'BBQ Sauce', unit: 'Fl', cat: 'ingredients-spices' },
+    { id: 'worcester-sauce', emoji: '\u{1F3F7}\u{FE0F}', name: 'Worcestersauce', unit: 'Fl', cat: 'ingredients-spices' },
+    // Getr\u00E4nke
+    { id: 'water', emoji: '\u{1F4A7}', name: 'Wasser', unit: 'Fl', cat: 'beverages' },
+    { id: 'juice', emoji: '\u{1F9C3}', name: 'Saft', unit: 'L', cat: 'beverages' },
+    { id: 'softdrinks', emoji: '\u{1F964}', name: 'Softdrinks', unit: 'Fl', cat: 'beverages' },
+    { id: 'lemonade', emoji: '\u{1F34B}', name: 'Limonade', unit: 'Fl', cat: 'beverages' },
+    { id: 'iced-tea', emoji: '\u{1F9CA}', name: 'Eistee', unit: 'Fl', cat: 'beverages' },
+    { id: 'energy-drinks', emoji: '\u{26A1}', name: 'Energydrinks', unit: 'Dose', cat: 'beverages' },
+    { id: 'coffee', emoji: '\u{2615}', name: 'Kaffee', unit: 'Pck', cat: 'beverages' },
+    { id: 'tea', emoji: '\u{1F375}', name: 'Tee', unit: 'Pck', cat: 'beverages' },
+    { id: 'cocoa', emoji: '\u{2615}', name: 'Kakao', unit: 'Dose', cat: 'beverages' },
+    { id: 'beer', emoji: '\u{1F37A}', name: 'Bier', unit: 'Fl', cat: 'beverages' },
+    { id: 'wine', emoji: '\u{1F377}', name: 'Wein', unit: 'Fl', cat: 'beverages' },
+    { id: 'sparkling-wine', emoji: '\u{1F942}', name: 'Sekt & Prosecco', unit: 'Fl', cat: 'beverages' },
+    { id: 'spirits', emoji: '\u{1F943}', name: 'Spirituosen', unit: 'Fl', cat: 'beverages' },
+    // Fr\u00FChst\u00FCck & Cerealien
+    { id: 'muesli', emoji: '\u{1F963}', name: 'M\u00FCsli', unit: 'Pck', cat: 'breakfast-cereals' },
+    { id: 'cornflakes', emoji: '\u{1F963}', name: 'Cornflakes', unit: 'Pck', cat: 'breakfast-cereals' },
+    { id: 'porridge', emoji: '\u{1F963}', name: 'Porridge', unit: 'Pck', cat: 'breakfast-cereals' },
+    { id: 'cereal-bars', emoji: '\u{1F36B}', name: 'Riegel', unit: 'Pck', cat: 'breakfast-cereals' },
+    { id: 'jam', emoji: '\u{1F353}', name: 'Marmelade', unit: 'Glas', cat: 'breakfast-cereals' },
+    { id: 'honey', emoji: '\u{1F36F}', name: 'Honig', unit: 'Glas', cat: 'breakfast-cereals' },
+    { id: 'chocolate-spread', emoji: '\u{1F36B}', name: 'Nuss-Nougat-Creme', unit: 'Glas', cat: 'breakfast-cereals' },
+    { id: 'peanut-butter', emoji: '\u{1F95C}', name: 'Erdnussbutter', unit: 'Glas', cat: 'breakfast-cereals' },
+    { id: 'syrup', emoji: '\u{1F341}', name: 'Sirup', unit: 'Fl', cat: 'breakfast-cereals' },
+    { id: 'fruit-puree', emoji: '\u{1F34E}', name: 'Fruchtmus', unit: 'Glas', cat: 'breakfast-cereals' },
+    // S\u00FC\u00DFes & Snacks
+    { id: 'chocolate', emoji: '\u{1F36B}', name: 'Schokolade', unit: 'Tafel', cat: 'sweets-snacks' },
+    { id: 'cookies', emoji: '\u{1F36A}', name: 'Kekse', unit: 'Pck', cat: 'sweets-snacks' },
+    { id: 'chips', emoji: '\u{1F954}', name: 'Chips', unit: 'T\u00FCte', cat: 'sweets-snacks' },
+    { id: 'gummy-bears', emoji: '\u{1F36C}', name: 'Fruchtgummi', unit: 'T\u00FCte', cat: 'sweets-snacks' },
+    { id: 'ice-cream', emoji: '\u{1F368}', name: 'Eis', unit: 'Pck', cat: 'sweets-snacks' },
+    { id: 'popcorn', emoji: '\u{1F37F}', name: 'Popcorn', unit: 'T\u00FCte', cat: 'sweets-snacks' },
+    { id: 'salty-snacks', emoji: '\u{1F968}', name: 'Salzgeb\u00E4ck', unit: 'T\u00FCte', cat: 'sweets-snacks' },
+    { id: 'wafers', emoji: '\u{1F9C7}', name: 'Waffeln', unit: 'Pck', cat: 'sweets-snacks' },
+    { id: 'candy', emoji: '\u{1F36C}', name: 'Bonbons', unit: 'T\u00FCte', cat: 'sweets-snacks' },
+    { id: 'trail-mix', emoji: '\u{1F95C}', name: 'Studentenfutter', unit: 'T\u00FCte', cat: 'sweets-snacks' },
+    { id: 'dried-fruits', emoji: '\u{1F347}', name: 'Trockenobst', unit: 'Pck', cat: 'sweets-snacks' },
+    { id: 'pralines', emoji: '\u{1F36C}', name: 'Pralinen', unit: 'Pck', cat: 'sweets-snacks' },
+    // Tiefk\u00FChl
+    { id: 'frozen-pizza', emoji: '\u{1F355}', name: 'TK Pizza', unit: 'Pck', cat: 'frozen' },
+    { id: 'fries', emoji: '\u{1F35F}', name: 'Pommes & Co', unit: 'Pck', cat: 'frozen' },
+    { id: 'frozen-vegetables', emoji: '\u{1F966}', name: 'TK Gem\u00FCse', unit: 'Pck', cat: 'frozen' },
+    { id: 'frozen-fruit', emoji: '\u{1F353}', name: 'TK Obst', unit: 'Pck', cat: 'frozen' },
+    { id: 'frozen-meals', emoji: '\u{1F372}', name: 'TK Fertiggerichte', unit: 'Pck', cat: 'frozen' },
+    { id: 'frozen-rolls', emoji: '\u{1F950}', name: 'Aufbackbr\u00F6tchen', unit: 'Pck', cat: 'frozen' },
+    { id: 'frozen-fish', emoji: '\u{1F41F}', name: 'TK Fisch', unit: 'Pck', cat: 'frozen' },
+    { id: 'frozen-herbs', emoji: '\u{1F33F}', name: 'TK Kr\u00E4uter', unit: 'Pck', cat: 'frozen' },
+    // Drogerie & Haushalt
+    { id: 'toilet-paper', emoji: '\u{1F9FB}', name: 'Toilettenpapier', unit: 'Pck', cat: 'drugstore-household' },
+    { id: 'paper-towels', emoji: '\u{1F9FB}', name: 'K\u00FCchenpapier', unit: 'Pck', cat: 'drugstore-household' },
+    { id: 'dish-soap', emoji: '\u{1F9F4}', name: 'Sp\u00FClmittel', unit: 'Fl', cat: 'drugstore-household' },
+    { id: 'laundry-detergent', emoji: '\u{1F9F4}', name: 'Waschmittel', unit: 'Fl', cat: 'drugstore-household' },
+    { id: 'fabric-softener', emoji: '\u{1F9F4}', name: 'Weichsp\u00FCler', unit: 'Fl', cat: 'drugstore-household' },
+    { id: 'all-purpose-cleaner', emoji: '\u{1F9F4}', name: 'Allzweckreiniger', unit: 'Fl', cat: 'drugstore-household' },
+    { id: 'trash-bags', emoji: '\u{1F5D1}\u{FE0F}', name: 'M\u00FCllbeutel', unit: 'Rolle', cat: 'drugstore-household' },
+    { id: 'aluminum-foil', emoji: '\u{1F3F7}\u{FE0F}', name: 'Alufolie', unit: 'Rolle', cat: 'drugstore-household' },
+    { id: 'cling-wrap', emoji: '\u{1F3F7}\u{FE0F}', name: 'Frischhaltefolie', unit: 'Rolle', cat: 'drugstore-household' },
+    { id: 'sponges', emoji: '\u{1F9FD}', name: 'Schw\u00E4mme', unit: 'Pck', cat: 'drugstore-household' },
+    { id: 'toothpaste', emoji: '\u{1FAA5}', name: 'Zahnpasta', unit: 'Tube', cat: 'drugstore-household' },
+    { id: 'toothbrush', emoji: '\u{1FAA5}', name: 'Zahnb\u00FCrste', unit: 'St', cat: 'drugstore-household' },
+    { id: 'shampoo', emoji: '\u{1F9F4}', name: 'Shampoo', unit: 'Fl', cat: 'drugstore-household' },
+    { id: 'shower-gel', emoji: '\u{1F6BF}', name: 'Duschgel', unit: 'Fl', cat: 'drugstore-household' },
+    { id: 'hand-soap', emoji: '\u{1F9FC}', name: 'Handseife', unit: 'St', cat: 'drugstore-household' },
+    { id: 'deodorant', emoji: '\u{1F3F7}\u{FE0F}', name: 'Deo', unit: 'St', cat: 'drugstore-household' },
+    { id: 'tissues', emoji: '\u{1F3F7}\u{FE0F}', name: 'Taschent\u00FCcher', unit: 'Pck', cat: 'drugstore-household' },
+    { id: 'batteries', emoji: '\u{1F50B}', name: 'Batterien', unit: 'Pck', cat: 'drugstore-household' },
+    { id: 'candles', emoji: '\u{1F56F}\u{FE0F}', name: 'Kerzen', unit: 'Pck', cat: 'drugstore-household' },
+    { id: 'dishwasher-tabs', emoji: '\u{1F3F7}\u{FE0F}', name: 'Sp\u00FCltabs', unit: 'Pck', cat: 'drugstore-household' }
+  ];
+
+  // ===== Product Variants (from category data) =====
+  var PRODUCT_VARIANTS = {
+    'apples': ['Elstar', 'Braeburn', 'Gala', 'Granny Smith', 'Pink Lady', 'Golden Delicious', 'Jonagold'],
+    'berries': ['Erdbeeren', 'Blaubeeren', 'Himbeeren', 'Brombeeren', 'Johannisbeeren', 'Stachelbeeren'],
+    'pears': ['Conference', 'Williams', 'Abate'],
+    'melon': ['Wassermelone', 'Honigmelone', 'Galiamelone', 'Cantaloupemelone'],
+    'stone-fruit': ['Pfirsiche', 'Nektarinen', 'Aprikosen', 'Pflaumen', 'Mirabellen'],
+    'grapes': ['Wei\u00DFe kernlos', 'Rote kernlos', 'Wei\u00DFe', 'Rote'],
+    'citrus-fruits': ['Orangen', 'Zitronen', 'Limetten', 'Mandarinen', 'Clementinen', 'Grapefruit', 'Blutorangen'],
+    'beans': ['Gr\u00FCne Bohnen', 'Kidney-Bohnen', 'Wei\u00DFe Bohnen'],
+    'peas': ['Zuckererbsen', 'Erbsen TK', 'Erbsen frisch'],
+    'cucumber': ['Salatgurke', 'Minigurken', 'Schmorgurke'],
+    'potatoes': ['Festkochend', 'Mehligkochend', 'Vorwiegend festkochend', 'Drillinge', 'S\u00FC\u00DFkartoffeln'],
+    'cabbage': ['Rotkohl', 'Wei\u00DFkohl', 'Spitzkohl', 'Chinakohl', 'Wirsing', 'Rosenkohl', 'Blumenkohl', 'Kohlrabi', 'Gr\u00FCnkohl'],
+    'pumpkin': ['Hokkaido', 'Butternut', 'Muskatk\u00FCrbis', 'Spaghettik\u00FCrbis'],
+    'bell-pepper': ['Rot', 'Gelb', 'Gr\u00FCn', 'Orange', 'Spitzpaprika'],
+    'mushrooms': ['Champignons', 'Kr\u00E4uterseitlinge', 'Austernpilze', 'Shiitake', 'Pfifferlinge'],
+    'lettuce': ['Kopfsalat', 'Eisbergsalat', 'Feldsalat', 'Rucola', 'Romana', 'Lollo Rosso', 'Batavia'],
+    'celery': ['Knollensellerie', 'Staudensellerie'],
+    'asparagus': ['Wei\u00DFer Spargel', 'Gr\u00FCner Spargel'],
+    'tomatoes': ['Rispentomaten', 'Cherrytomaten', 'Roma', 'Fleischtomaten', 'Cocktailtomaten'],
+    'onions': ['Gelbe Zwiebeln', 'Rote Zwiebeln', 'Schalotten', 'Fr\u00FChlingszwiebeln'],
+    'herbs': ['Basilikum', 'Petersilie', 'Schnittlauch', 'Dill', 'Koriander', 'Minze', 'Rosmarin', 'Thymian', 'Oregano', 'Salbei'],
+    'milk': ['1,5% fettarm', '3,5% Vollmilch', 'Laktosefrei', 'H-Milch', 'Frischmilch'],
+    'butter': ['Deutsche Markenbutter', 'Irische Butter', 'Sauerrahmbutter'],
+    'cheese-slices': ['Gouda', 'Emmentaler', 'Edamer', 'Butterk\u00E4se', 'Maasdamer', 'Tilsiter'],
+    'cheese-block': ['Parmesan', 'Gruy\u00E8re', 'Cheddar', 'Brie', 'Camembert', 'Mozzarella', 'Feta', 'Bergk\u00E4se'],
+    'cream-cheese': ['Natur', 'Kr\u00E4uter', 'Philadelphia', 'Doppelrahmstufe'],
+    'yogurt': ['Naturjoghurt', 'Griechisch', 'Fruchtjoghurt', 'Skyr', 'Trinkjoghurt'],
+    'quark': ['Magerquark', 'Speisequark 20%', 'Speisequark 40%', 'Kr\u00E4uterquark'],
+    'cream': ['Schlagsahne', 'Saure Sahne', 'Cr\u00E8me fra\u00eeche', 'Schmand', 'Kochsahne'],
+    'eggs': ['6er Freiland', '10er Freiland', '6er Bio', '10er Bio'],
+    'plant-milk': ['Hafermilch', 'Sojamilch', 'Mandelmilch', 'Kokosmilch', 'Reismilch'],
+    'pudding': ['Schoko', 'Vanille', 'Griessbrei', 'Milchreis'],
+    'margarine': ['Rama', 'L\u00E4tta', 'Becel'],
+    'tofu': ['Natur', 'Ger\u00E4uchert', 'Seidentofu', 'Mariniert'],
+    'bread': ['Vollkorn', 'Mischbrot', 'Roggenbrot', 'Dinkel', 'Weizenbrot', 'Sauerteig', 'Pumpernickel'],
+    'rolls': ['Normal', 'Vollkorn', 'K\u00F6rnerbr\u00F6tchen', 'Laugen', 'Ciabatta'],
+    'toast': ['Weizen', 'Vollkorn', 'Buttermilch', 'K\u00F6rner'],
+    'cake': ['Apfelkuchen', 'K\u00E4sekuchen', 'Marmorkuchen', 'Streuselkuchen'],
+    'tortillas': ['Weizen', 'Vollkorn', 'Mais'],
+    'flour': ['Weizenmehl 405', 'Weizenmehl 550', 'Dinkelmehl', 'Vollkornmehl'],
+    'chicken': ['Brust', 'Schenkel', 'Fl\u00FCgel', 'Ganzes H\u00E4hnchen', 'Hackfleisch'],
+    'beef': ['Hackfleisch', 'Steak', 'Gulasch', 'Rouladen', 'Filet'],
+    'pork': ['Hackfleisch', 'Schnitzel', 'Filet', 'Kotelett', 'Gulasch', 'Bauch'],
+    'sausage': ['Salami', 'Schinken', 'Mortadella', 'Leberwurst', 'Lyoner', 'Wiener W\u00FCrstchen'],
+    'salmon': ['Frisch', 'R\u00E4ucherlachs', 'TK Filet'],
+    'tuna': ['In \u00D6l', 'In Wasser', 'Im eigenen Saft'],
+    'shrimp': ['Frisch', 'TK', 'Riesengarnelen'],
+    'meat-substitute': ['Beyond Burger', 'Veganes Hack', 'Vegane Nuggets', 'Seitan', 'Tempeh'],
+    'olive-oil': ['Extra Vergine', 'Zum Braten'],
+    'vinegar': ['Balsamico', 'Wei\u00DFweinessig', 'Apfelessig'],
+    'sugar': ['Wei\u00DF', 'Braun', 'Puderzucker', 'Vanillezucker'],
+    'mustard': ['Mittelscharf', 'S\u00FC\u00DF', 'Dijon'],
+    'pasta': ['Spaghetti', 'Penne', 'Fusilli', 'Farfalle', 'Tagliatelle', 'Lasagneplatten'],
+    'rice': ['Basmati', 'Jasmin', 'Langkorn', 'Risotto', 'Sushi-Reis'],
+    'broth': ['Gem\u00FCse', 'H\u00FChner', 'Rinder'],
+    'spices': ['Paprika', 'Curry', 'Kurkuma', 'Zimt', 'Muskat', 'Kreuzk\u00FCmmel', 'Chilliflocken', 'Oregano getr.'],
+    'yeast': ['Frische Hefe', 'Trockenhefe'],
+    'nuts': ['Waln\u00FCsse', 'Mandeln', 'Haseln\u00FCsse', 'Cashews', 'Erdn\u00FCsse', 'Pinienkerne'],
+    'oatmeal': ['Zart', 'Kernig'],
+    'canned-beans': ['Kidneybohnen', 'Kichererbsen', 'Wei\u00DFe Bohnen'],
+    'lentils': ['Rote Linsen', 'Belugalinsen', 'Tellerlinsen'],
+    'asian-noodles': ['Glasnudeln', 'Reisnudeln', 'Udon', 'Mie-Nudeln'],
+    'tortellini': ['K\u00E4se', 'Fleisch', 'Spinat'],
+    'pesto': ['Basilikum', 'Rosso', 'Rucola'],
+    'canned-tomatoes': ['Gehackt', 'Ganz', 'St\u00FCckig'],
+    'olives': ['Gr\u00FCn', 'Schwarz', 'Kalamata'],
+    'curry-paste': ['Rot', 'Gelb', 'Gr\u00FCn'],
+    'hot-sauce': ['Sambal Oelek', 'Sriracha', 'Tabasco', 'Harissa'],
+    'laundry-detergent': ['Fl\u00FCssig', 'Pulver', 'Pods/Caps'],
+    'batteries': ['AA', 'AAA', '9V'],
+    'water': ['Still', 'Medium', 'Sprudel'],
+    'juice': ['Apfelsaft', 'Orangensaft', 'Multivitamin', 'Traubensaft', 'Tomatensaft', 'Apfelschorle'],
+    'softdrinks': ['Cola', 'Fanta', 'Sprite', 'Spezi', 'Schwip Schwap'],
+    'lemonade': ['Zitrone', 'Bionade', 'Fritz-Limo', 'Almdudler'],
+    'iced-tea': ['Pfirsich', 'Zitrone', 'Waldbeere'],
+    'coffee': ['Filterkaffee', 'Espresso Bohnen', 'Pads', 'Kapseln', 'Instant', 'Ganze Bohne'],
+    'tea': ['Schwarztee', 'Gr\u00FCntee', 'Kr\u00E4utertee', 'Fr\u00FCchtetee', 'Kamille', 'Pfefferminze', 'Rooibos', 'Ingwertee'],
+    'cocoa': ['Kakaopulver', 'Trinkschokolade', 'Ovomaltine'],
+    'beer': ['Pils', 'Weizen', 'Helles', 'Alkoholfrei', 'Radler', 'Kellerbier'],
+    'wine': ['Rotwein', 'Wei\u00DFwein', 'Ros\u00E9'],
+    'sparkling-wine': ['Sekt', 'Prosecco', 'Champagner'],
+    'spirits': ['Gin', 'Wodka', 'Rum', 'Whisky', 'Lik\u00F6r'],
+    'muesli': ['Fr\u00FCchtem\u00FCsli', 'Schokom\u00FCsli', 'Nussm\u00FCsli', 'Knusperm\u00FCsli', 'Bircher M\u00FCsli', 'Protein M\u00FCsli'],
+    'cornflakes': ['Classic', 'Schoko', 'Zimtflakes', 'Smacks', 'Crunchy Nut'],
+    'porridge': ['Classic', 'Schoko', 'Beeren', 'Apfel-Zimt'],
+    'cereal-bars': ['M\u00FCsliriegel', 'Proteinriegel', 'Fruchtriegel', 'Schokoriegel', 'Haferriegel'],
+    'jam': ['Erdbeere', 'Aprikose', 'Himbeere', 'Kirsche', 'Mehrfrucht', 'Bitterorange'],
+    'honey': ['Bl\u00FCtenhonig', 'Waldhonig', 'Akazienhonig', 'Rapshonig'],
+    'chocolate-spread': ['Nutella', 'Ovomaltine', 'Nudossi'],
+    'peanut-butter': ['Crunchy', 'Creamy'],
+    'syrup': ['Ahornsirup', 'Agavendicksaft', 'Zuckerr\u00FCbensirup'],
+    'fruit-puree': ['Apfelmus', 'Mangomus', 'Birnenmus'],
+    'chocolate': ['Vollmilch', 'Zartbitter', 'Wei\u00DF', 'Nuss', 'Karamell', 'Marzipan'],
+    'cookies': ['Butterkekse', 'Schokokekse', 'Doppelkekse', 'Haferkekse', 'Spekulatius'],
+    'chips': ['Paprika', 'Salz', 'Sour Cream', 'Ungarisch', 'Chili'],
+    'gummy-bears': ['Goldb\u00E4ren', 'Saure', 'Cola-Fl\u00E4schchen', 'Lakritz'],
+    'ice-cream': ['Vanille', 'Schoko', 'Erdbeere', 'Am Stiel', 'Becher', 'Magnum'],
+    'popcorn': ['S\u00FC\u00DF', 'Salzig', 'Karamell'],
+    'salty-snacks': ['Salzstangen', 'Mini-Brezeln', 'Cracker', 'Erdnussflips'],
+    'wafers': ['Schoko-Waffeln', 'Eiswaffeln', 'Stroopwafels'],
+    'candy': ['Fruchtbonbons', 'Karamell', 'Husten-Bonbons', 'Toffee'],
+    'dried-fruits': ['Rosinen', 'Cranberries', 'Datteln', 'Feigen', 'Aprikosen'],
+    'pralines': ['Ferrero', 'Merci', 'Lindt', 'Mon Ch\u00E9ri'],
+    'frozen-pizza': ['Margherita', 'Salami', 'Spinat', 'Thunfisch', 'Hawaii', 'Vier K\u00E4se'],
+    'fries': ['Pommes Frites', 'Wedges', 'Kroketten', 'S\u00FC\u00DFkartoffel-Pommes', 'R\u00F6sti'],
+    'frozen-vegetables': ['Erbsen', 'Brokkoli', 'Spinat', 'Rahmspinat', 'Mischgem\u00FCse', 'Kaisergem\u00FCse'],
+    'frozen-fruit': ['Beeren-Mix', 'Himbeeren', 'Mango', 'Erdbeeren'],
+    'frozen-meals': ['Lasagne', 'Schnitzel', 'Gulasch', 'Currywurst', 'Chicken Nuggets'],
+    'frozen-rolls': ['Normal', 'Laugenbr\u00F6tchen', 'Ciabatta'],
+    'frozen-fish': ['Fischst\u00E4bchen', 'Schlemmerfilet', 'Lachsfilet', 'Backfisch'],
+    'frozen-herbs': ['8-Kr\u00E4uter', 'Petersilie', 'Schnittlauch', 'Basilikum']
+  };
+
+  // Merge variants into ALL_PRODUCTS
+  ALL_PRODUCTS.forEach(function(p) {
+    if (PRODUCT_VARIANTS[p.id]) p.variants = PRODUCT_VARIANTS[p.id];
+  });
+
+  // ===== Custom Variants =====
+  var CUSTOM_VARIANTS_KEY = 'shopzebra_custom_variants_' + LIST_ID;
+
+  function loadCustomVariants(productId) {
+    var stored = localStorage.getItem(CUSTOM_VARIANTS_KEY);
+    var all = {};
+    if (stored) { try { all = JSON.parse(stored); } catch(e) {} }
+    return all[productId] || [];
+  }
+
+  function saveCustomVariant(productId, name) {
+    var stored = localStorage.getItem(CUSTOM_VARIANTS_KEY);
+    var all = {};
+    if (stored) { try { all = JSON.parse(stored); } catch(e) {} }
+    if (!all[productId]) all[productId] = [];
+    if (!all[productId].includes(name)) all[productId].push(name);
+    localStorage.setItem(CUSTOM_VARIANTS_KEY, JSON.stringify(all));
+  }
+
+  function makeVariantId(productId, variantName) {
+    return productId + '--' + variantName;
+  }
+
+  // ===== Notes =====
+  var NOTES_KEY = 'shopzebra_notes_' + LIST_ID;
+
+  function loadNotes() {
+    var stored = localStorage.getItem(NOTES_KEY);
+    if (stored) { try { return JSON.parse(stored); } catch(e) {} }
+    return {};
+  }
+
+  function saveNote(productId, text) {
+    var notes = loadNotes();
+    if (text) {
+      notes[productId] = text;
+    } else {
+      delete notes[productId];
+    }
+    localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+  }
+
+  function getNote(productId) {
+    return loadNotes()[productId] || '';
+  }
 
   // ===== State =====
   let completedExpanded = false;
+  var listLongPressTriggered = false;
 
   function loadItems() {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -1075,12 +1963,19 @@
     return String(item.qty);
   }
 
+  // ===== Helpers =====
+  function countUniqueProducts(items) {
+    var seen = {};
+    items.forEach(function(i) { seen[i.parentId || i.id] = true; });
+    return Object.keys(seen).length;
+  }
+
   // ===== Progress =====
   function updateProgress() {
     const activeItems = loadItems();
     const completedItems = loadCompleted();
-    const total = activeItems.length + completedItems.length;
-    const done = completedItems.length;
+    const total = countUniqueProducts(activeItems) + countUniqueProducts(completedItems);
+    const done = countUniqueProducts(completedItems);
     const pct = total > 0 ? Math.round((done / total) * 100) : 0;
     const progressSection = document.getElementById('progressSection');
 
@@ -1122,11 +2017,63 @@
     if (activeItems.length === 0) {
       grid.innerHTML = '<div class="cart-empty">Noch keine Produkte ausgew\u00E4hlt</div>';
     } else {
-      grid.innerHTML = activeItems.map(function(item) {
-        return '<div class="cart-tile" onclick="checkOffItem(\'' + item.id + '\')" data-id="' + item.id + '">' +
-          '<span class="tile-qty">x' + formatQty(item) + '</span>' +
-          '<span class="tile-emoji">' + item.emoji + '</span>' +
-          '<span class="tile-name">' + item.name + '</span>' +
+      // Group items by product (parentId or id)
+      var groups = {};
+      var groupOrder = [];
+      activeItems.forEach(function(item) {
+        var key = item.parentId || item.id;
+        if (!groups[key]) {
+          groups[key] = { items: [], emoji: item.emoji, unit: item.unit, cat: item.cat };
+          groupOrder.push(key);
+        }
+        groups[key].items.push(item);
+      });
+
+      // Sort groups by category order
+      var catOrder = CATEGORIES.map(function(c) { return c.id; });
+      groupOrder.sort(function(a, b) {
+        var catA = catOrder.indexOf(groups[a].cat);
+        var catB = catOrder.indexOf(groups[b].cat);
+        if (catA === -1) catA = 999;
+        if (catB === -1) catB = 999;
+        return catA - catB;
+      });
+
+      grid.innerHTML = groupOrder.map(function(key) {
+        var g = groups[key];
+        var product = ALL_PRODUCTS.find(function(p) { return p.id === key; });
+        var name = product ? product.name : g.items[0].name;
+        var variants = g.items.filter(function(i) { return !!i.parentId; });
+        var generic = g.items.find(function(i) { return !i.parentId; });
+        var totalQty = g.items.reduce(function(s, i) { return s + i.qty; }, 0);
+
+        // Status line (below name) for variant info
+        var statusHtml = '';
+        if (variants.length > 0) {
+          var statusText = variants.length === 1 ? variants[0].name : variants.length + ' Sorten';
+          if (generic && generic.qty > 1) statusText += ' \u00B7 ' + generic.qty + ' ' + g.unit;
+          statusHtml = '<span class="tile-status-line">' + statusText + '</span>';
+        }
+
+        // Avatar badge — show who added it (only for other users)
+        var avatarHtml = '';
+        var addedBy = g.items[0].addedBy;
+        if (addedBy && addedBy !== CURRENT_USER && FAMILY_MEMBERS[addedBy]) {
+          avatarHtml = '<span class="tile-avatar" title="' + addedBy + '">' + FAMILY_MEMBERS[addedBy].initial + '</span>';
+        }
+
+        // Note indicator
+        var noteHtml = '';
+        if (getNote(key)) {
+          noteHtml = '<span class="tile-note-icon"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></span>';
+        }
+
+        return '<div class="cart-tile" onclick="checkOffItem(\'' + key + '\')" data-id="' + key + '">' +
+          noteHtml +
+          avatarHtml +
+          '<span class="tile-emoji">' + g.emoji + '</span>' +
+          '<span class="tile-name">' + name + '</span>' +
+          statusHtml +
         '</div>';
       }).join('');
     }
@@ -1146,7 +2093,6 @@
     }
 
     section.style.display = '';
-    badge.textContent = completedItems.length;
 
     if (completedExpanded) {
       toggle.classList.add('expanded');
@@ -1156,56 +2102,81 @@
       grid.classList.remove('expanded');
     }
 
-    grid.innerHTML = completedItems.map(function(item) {
-      return '<div class="completed-tile" onclick="restoreItem(\'' + item.id + '\')" data-id="' + item.id + '">' +
-        '<span class="tile-qty">x' + formatQty(item) + '</span>' +
-        '<span class="tile-emoji">' + item.emoji + '</span>' +
-        '<span class="tile-name">' + item.name + '</span>' +
+    // Group completed items by product
+    var cGroups = {};
+    var cGroupOrder = [];
+    completedItems.forEach(function(item) {
+      var key = item.parentId || item.id;
+      if (!cGroups[key]) {
+        cGroups[key] = { items: [], emoji: item.emoji, unit: item.unit };
+        cGroupOrder.push(key);
+      }
+      cGroups[key].items.push(item);
+    });
+
+    badge.textContent = cGroupOrder.length;
+
+    grid.innerHTML = cGroupOrder.map(function(key) {
+      var g = cGroups[key];
+      var product = ALL_PRODUCTS.find(function(p) { return p.id === key; });
+      var name = product ? product.name : g.items[0].name;
+      var variants = g.items.filter(function(i) { return !!i.parentId; });
+      var totalQty = g.items.reduce(function(s, i) { return s + i.qty; }, 0);
+
+      var statusHtml = '';
+      if (variants.length > 0) {
+        var statusText = variants.length === 1 ? variants[0].name : variants.length + ' Sorten';
+        statusHtml = '<span class="tile-status-line">' + statusText + '</span>';
+      }
+
+      var avatarHtml = '';
+      var addedBy = g.items[0].addedBy;
+      if (addedBy && addedBy !== CURRENT_USER && FAMILY_MEMBERS[addedBy]) {
+        avatarHtml = '<span class="tile-avatar">' + FAMILY_MEMBERS[addedBy].initial + '</span>';
+      }
+
+      return '<div class="completed-tile" onclick="restoreItem(\'' + key + '\')" data-id="' + key + '">' +
+        avatarHtml +
+        '<span class="tile-emoji">' + g.emoji + '</span>' +
+        '<span class="tile-name">' + name + '</span>' +
+        statusHtml +
       '</div>';
     }).join('');
   }
 
   // ===== Check Off =====
-  function checkOffItem(itemId) {
+  function checkOffItem(productKey) {
+    if (listLongPressTriggered) { listLongPressTriggered = false; return; }
     const items = loadItems();
-    const idx = items.findIndex(function(i) { return i.id === itemId; });
-    if (idx === -1) return;
-
-    const item = items[idx];
+    const toCheckOff = items.filter(function(i) { return i.id === productKey || i.parentId === productKey; });
+    if (toCheckOff.length === 0) return;
 
     if (navigator.vibrate) navigator.vibrate(15);
 
-    items.splice(idx, 1);
-    saveItems(items);
+    const remaining = items.filter(function(i) { return i.id !== productKey && i.parentId !== productKey; });
+    saveItems(remaining);
 
     const completed = loadCompleted();
-    completed.unshift(item);
+    toCheckOff.forEach(function(item) { completed.unshift(item); });
     saveCompleted(completed);
 
     updateProgress();
     renderActiveGrid();
     renderCompletedSection();
     updateCategoryBadges();
-
-    // Auto-expand on first check
-    if (completed.length === 1 && !completedExpanded) {
-      completedExpanded = true;
-      renderCompletedSection();
-    }
   }
 
   // ===== Restore =====
-  function restoreItem(itemId) {
+  function restoreItem(productKey) {
     const completed = loadCompleted();
-    const idx = completed.findIndex(function(i) { return i.id === itemId; });
-    if (idx === -1) return;
+    const toRestore = completed.filter(function(i) { return i.id === productKey || i.parentId === productKey; });
+    if (toRestore.length === 0) return;
 
-    const item = completed[idx];
-    completed.splice(idx, 1);
-    saveCompleted(completed);
+    const remaining = completed.filter(function(i) { return i.id !== productKey && i.parentId !== productKey; });
+    saveCompleted(remaining);
 
     const items = loadItems();
-    items.push(item);
+    toRestore.forEach(function(item) { items.push(item); });
     saveItems(items);
 
     if (navigator.vibrate) navigator.vibrate(10);
@@ -1214,7 +2185,6 @@
     renderActiveGrid();
     renderCompletedSection();
     updateCategoryBadges();
-
   }
 
   // ===== Reset =====
@@ -1303,12 +2273,391 @@
     renderCompletedSection();
   });
 
+  // ===== Detail Sheet (long-press on cart items) =====
+  var listSheetItemId = null;
+  var listLongPressTimer = null;
+  // listLongPressTriggered declared above (before checkOffItem)
+  var listTouchStartPos = null;
+
+  function openListSheet(productKey) {
+    var items = loadItems();
+    var groupItems = items.filter(function(i) { return i.id === productKey || i.parentId === productKey; });
+    if (groupItems.length === 0) return;
+    listSheetItemId = productKey;
+
+    var product = ALL_PRODUCTS.find(function(p) { return p.id === productKey; });
+    var emoji = groupItems[0].emoji;
+    var name = product ? product.name : groupItems[0].name;
+    var catName = CATEGORY_SHORT_NAMES[groupItems[0].cat] || '';
+
+    document.getElementById('listSheetEmoji').textContent = emoji;
+    document.getElementById('listSheetTitle').textContent = name;
+
+    var variants = groupItems.filter(function(i) { return !!i.parentId; });
+    var addedBy = groupItems[0].addedBy;
+    var subtitleParts = [];
+    if (catName) subtitleParts.push(catName);
+    if (addedBy && addedBy !== CURRENT_USER) subtitleParts.push('von ' + addedBy);
+    if (variants.length > 0 && subtitleParts.length > 0) subtitleParts.push(variants.length + ' Varianten');
+    document.getElementById('listSheetSubtitle').textContent = subtitleParts.join(' \u00B7 ') || 'Details';
+
+    // Avatar badge — colorful in overlay
+    var avatarEl = document.getElementById('listSheetAvatar');
+    if (addedBy && addedBy !== CURRENT_USER && FAMILY_MEMBERS[addedBy]) {
+      avatarEl.textContent = FAMILY_MEMBERS[addedBy].initial;
+      avatarEl.style.background = FAMILY_MEMBERS[addedBy].color;
+      avatarEl.classList.add('visible');
+    } else {
+      avatarEl.classList.remove('visible');
+    }
+
+    renderListSheetContent();
+    document.getElementById('listSheetBackdrop').classList.add('visible');
+  }
+
+  function closeListSheet() {
+    document.getElementById('listSheetBackdrop').classList.remove('visible');
+    listSheetItemId = null;
+    updateProgress();
+    renderActiveGrid();
+    renderCompletedSection();
+    updateCategoryBadges();
+  }
+
+  function renderListSheetContent() {
+    var productKey = listSheetItemId;
+    var items = loadItems();
+    var groupItems = items.filter(function(i) { return i.id === productKey || i.parentId === productKey; });
+    if (groupItems.length === 0) return;
+
+    var product = ALL_PRODUCTS.find(function(p) { return p.id === productKey; });
+    var generic = groupItems.find(function(i) { return !i.parentId; });
+    var unit = groupItems[0].unit;
+    var html = '';
+
+    // All variant chips (selected + unselected, toggleable) — like category.html
+    var allVariants = (product && product.variants) ? product.variants.slice() : [];
+    var custom = loadCustomVariants(productKey);
+    custom.forEach(function(c) {
+      if (allVariants.indexOf(c) === -1) allVariants.push(c);
+    });
+
+    if (allVariants.length > 0) {
+      html += '<div class="list-sheet-section-label">Varianten</div>';
+      html += '<div class="list-sheet-variant-chips">';
+      allVariants.forEach(function(v) {
+        var vid = makeVariantId(productKey, v);
+        var isSelected = groupItems.some(function(i) { return i.id === vid; });
+        var escapedV = v.replace(/'/g, "\\'");
+        html += '<button class="list-sheet-variant-chip' + (isSelected ? ' selected' : '') +
+          '" onclick="toggleListVariant(\'' + escapedV + '\')">' + v + '</button>';
+      });
+      html += '</div>';
+    }
+
+    // Custom variant input
+    html += '<div class="list-sheet-custom-variant-row">';
+    html += '<input type="text" id="listCustomVariantInput" placeholder="Eigene Sorte hinzuf\u00FCgen..." oninput="onListCustomInput(this)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();addListCustomVariant()}">';
+    html += '<button class="list-sheet-custom-variant-add-btn" id="listCustomAddBtn" onclick="addListCustomVariant()">+</button>';
+    html += '</div>';
+
+    // Qty chips (for generic item)
+    var genericQty = generic ? generic.qty : 1;
+    html += '<div class="list-sheet-section-label">Menge (' + unit + ')</div>';
+    html += '<div class="list-sheet-qty-chips">';
+    var isCustomQty = genericQty > 5;
+    for (var i = 1; i <= 5; i++) {
+      var sel = (!isCustomQty && genericQty === i) ? ' selected' : '';
+      html += '<button class="list-sheet-qty-chip' + sel + '" onclick="setListItemQty(' + i + ')">' + i + '</button>';
+    }
+    html += '<input type="number" class="list-sheet-qty-custom' + (isCustomQty ? ' has-value' : '') + '" ' +
+      'placeholder="..." ' +
+      'value="' + (isCustomQty ? genericQty : '') + '" ' +
+      'min="1" max="99" ' +
+      'onfocus="this.select()" ' +
+      'oninput="onListQtyCustomInput(this)" ' +
+      'onkeydown="if(event.key===\'Enter\'){this.blur()}">';
+    html += '</div>';
+
+    // Note input
+    var currentNote = getNote(productKey);
+    var escapedNote = currentNote.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    html += '<textarea class="list-sheet-note-input" ' +
+      'id="listNoteInput" ' +
+      'placeholder="Notiz hinzuf\u00FCgen\u2026" ' +
+      'maxlength="100" ' +
+      'rows="1" ' +
+      'oninput="onListNoteInput(this)" ' +
+      'onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.blur()}">' + escapedNote + '</textarea>';
+    html += '<div class="list-sheet-note-char-count" id="listNoteCharCount">' + currentNote.length + '/100</div>';
+
+    // Remove button
+    html += '<button class="list-sheet-remove-btn" onclick="removeListItem()">Von der Liste entfernen</button>';
+
+    document.getElementById('listSheetContent').innerHTML = html;
+
+    // Auto-resize note textarea if it has content
+    var noteEl = document.getElementById('listNoteInput');
+    if (noteEl && noteEl.value) {
+      noteEl.style.height = 'auto';
+      noteEl.style.height = Math.min(noteEl.scrollHeight, 58) + 'px';
+    }
+  }
+
+  function toggleListVariant(variantName) {
+    var productKey = listSheetItemId;
+    var variantId = makeVariantId(productKey, variantName);
+    var items = loadItems();
+    var idx = items.findIndex(function(i) { return i.id === variantId; });
+    if (idx !== -1) {
+      // Remove variant
+      items.splice(idx, 1);
+    } else {
+      // Add variant with qty 1
+      var product = ALL_PRODUCTS.find(function(p) { return p.id === productKey; });
+      if (product) {
+        items.push({
+          id: variantId,
+          parentId: productKey,
+          emoji: product.emoji,
+          name: variantName,
+          qty: 1,
+          unit: product.unit,
+          cat: product.cat,
+          addedBy: CURRENT_USER
+        });
+      }
+    }
+    saveItems(items);
+    renderListSheetContent();
+  }
+
+  function onListCustomInput(input) {
+    var btn = document.getElementById('listCustomAddBtn');
+    btn.classList.toggle('active', input.value.trim().length > 0);
+  }
+
+  function addListCustomVariant() {
+    var input = document.getElementById('listCustomVariantInput');
+    var name = input.value.trim();
+    if (!name || !listSheetItemId) return;
+    var productKey = listSheetItemId;
+    var product = ALL_PRODUCTS.find(function(p) { return p.id === productKey; });
+    if (!product) return;
+    saveCustomVariant(productKey, name);
+    var variantId = makeVariantId(productKey, name);
+    var items = loadItems();
+    // Only add if not already on list
+    if (!items.some(function(i) { return i.id === variantId; })) {
+      items.push({
+        id: variantId,
+        parentId: productKey,
+        emoji: product.emoji,
+        name: name,
+        qty: 1,
+        unit: product.unit,
+        cat: product.cat,
+        addedBy: CURRENT_USER
+      });
+      saveItems(items);
+    }
+    renderListSheetContent();
+  }
+
+  function onListNoteInput(el) {
+    var text = el.value.substring(0, 100);
+    saveNote(listSheetItemId, text);
+    document.getElementById('listNoteCharCount').textContent = text.length + '/100';
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 58) + 'px';
+  }
+
+  function setListItemQty(qty) {
+    var items = loadItems();
+    var item = items.find(function(i) { return i.id === listSheetItemId && !i.parentId; });
+    if (item) {
+      item.qty = qty;
+    } else {
+      // No generic item exists, update first item in group
+      item = items.find(function(i) { return i.id === listSheetItemId || i.parentId === listSheetItemId; });
+      if (item) item.qty = qty;
+    }
+    saveItems(items);
+    renderListSheetContent();
+  }
+
+  function onListQtyCustomInput(input) {
+    var val = parseInt(input.value, 10);
+    if (val > 0 && val <= 99) {
+      setListItemQty(val);
+      input.classList.add('has-value');
+      input.parentElement.querySelectorAll('.list-sheet-qty-chip').forEach(function(c) { c.classList.remove('selected'); });
+    }
+  }
+
+  function removeListItem() {
+    var items = loadItems().filter(function(i) { return i.id !== listSheetItemId && i.parentId !== listSheetItemId; });
+    saveItems(items);
+    saveNote(listSheetItemId, '');
+    closeListSheet();
+  }
+
+  // Long-press event delegation on activeGrid
+  var activeGrid = document.getElementById('activeGrid');
+
+  activeGrid.addEventListener('touchstart', function(e) {
+    var tile = e.target.closest('.cart-tile');
+    if (!tile) return;
+    var itemId = tile.dataset.id;
+    if (!itemId) return;
+    listTouchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    listLongPressTriggered = false;
+    listLongPressTimer = setTimeout(function() {
+      listLongPressTriggered = true;
+      openListSheet(itemId);
+    }, 500);
+  }, { passive: true });
+
+  activeGrid.addEventListener('touchmove', function(e) {
+    if (!listLongPressTimer) return;
+    if (listTouchStartPos) {
+      var dx = e.touches[0].clientX - listTouchStartPos.x;
+      var dy = e.touches[0].clientY - listTouchStartPos.y;
+      if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+        clearTimeout(listLongPressTimer);
+        listLongPressTimer = null;
+      }
+    }
+  }, { passive: true });
+
+  activeGrid.addEventListener('touchend', function() {
+    clearTimeout(listLongPressTimer);
+    listLongPressTimer = null;
+  });
+
+  // Mouse long-press for desktop testing
+  activeGrid.addEventListener('mousedown', function(e) {
+    var tile = e.target.closest('.cart-tile');
+    if (!tile) return;
+    var itemId = tile.dataset.id;
+    if (!itemId) return;
+    listLongPressTriggered = false;
+    listLongPressTimer = setTimeout(function() {
+      listLongPressTriggered = true;
+      openListSheet(itemId);
+    }, 500);
+  });
+
+  activeGrid.addEventListener('mouseup', function() {
+    clearTimeout(listLongPressTimer);
+    listLongPressTimer = null;
+  });
+
+  activeGrid.addEventListener('mouseleave', function() {
+    clearTimeout(listLongPressTimer);
+    listLongPressTimer = null;
+  });
+
   // ===== Init =====
   applyTheme(getTheme());
   renderCategories();
   updateProgress();
   renderActiveGrid();
   renderCompletedSection();
+
+  // ===== Global Search =====
+  function isItemOnList(productId) {
+    var items = loadItems();
+    var completed = loadCompleted();
+    var all = items.concat(completed);
+    return all.some(function(i) { return i.id === productId || i.parentId === productId; });
+  }
+
+  function handleGlobalSearch() {
+    var query = document.getElementById('globalSearchInput').value.toLowerCase().trim();
+    var clearBtn = document.getElementById('globalSearchClear');
+    var resultsSection = document.getElementById('searchResults');
+    var categoriesSection = document.getElementById('categoriesSection');
+
+    clearBtn.classList.toggle('visible', query.length > 0);
+
+    if (query.length === 0) {
+      resultsSection.classList.remove('visible');
+      categoriesSection.style.display = '';
+      return;
+    }
+
+    categoriesSection.style.display = 'none';
+    resultsSection.classList.add('visible');
+
+    var filtered = ALL_PRODUCTS.filter(function(p) {
+      return p.name.toLowerCase().indexOf(query) !== -1;
+    });
+
+    var label = document.getElementById('searchResultsLabel');
+    var grid = document.getElementById('searchResultsGrid');
+
+    if (filtered.length === 0) {
+      label.textContent = '';
+      grid.innerHTML = '<div class="search-no-results">' +
+        '<div class="search-no-results-emoji">\u{1F50D}</div>' +
+        '<div class="search-no-results-text">Kein Produkt gefunden</div>' +
+      '</div>';
+      return;
+    }
+
+    label.textContent = filtered.length + ' Ergebnisse';
+
+    grid.innerHTML = filtered.map(function(p) {
+      var onList = isItemOnList(p.id);
+      var catName = CATEGORY_SHORT_NAMES[p.cat] || '';
+
+      return '<div class="search-tile' + (onList ? ' on-list' : '') + '" onclick="toggleSearchItem(\'' + p.id + '\')">' +
+        '<div class="search-tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>' +
+        '<div class="search-tile-emoji">' + p.emoji + '</div>' +
+        '<div class="search-tile-name">' + p.name + '</div>' +
+        '<div class="search-tile-cat">' + catName + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function toggleSearchItem(productId) {
+    var product = ALL_PRODUCTS.find(function(p) { return p.id === productId; });
+    if (!product) return;
+
+    if (isItemOnList(productId)) {
+      // Remove from list
+      var items = loadItems().filter(function(i) { return i.id !== productId && i.parentId !== productId; });
+      saveItems(items);
+      var completed = loadCompleted().filter(function(i) { return i.id !== productId && i.parentId !== productId; });
+      saveCompleted(completed);
+    } else {
+      // Add to list with qty 1
+      var items = loadItems();
+      items.push({
+        id: product.id,
+        emoji: product.emoji,
+        name: product.name,
+        qty: 1,
+        unit: product.unit,
+        cat: product.cat
+      });
+      saveItems(items);
+    }
+
+    updateProgress();
+    renderActiveGrid();
+    renderCompletedSection();
+    renderCategories();
+    handleGlobalSearch();
+  }
+
+  function clearGlobalSearch() {
+    document.getElementById('globalSearchInput').value = '';
+    document.getElementById('globalSearchClear').classList.remove('visible');
+    document.getElementById('searchResults').classList.remove('visible');
+    document.getElementById('categoriesSection').style.display = '';
+  }
 
   // Re-render when returning from category page
   window.addEventListener('focus', function() {

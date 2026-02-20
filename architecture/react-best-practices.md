@@ -556,6 +556,27 @@ function ShoppingListView() {
 
 Der Loader garantiert: Wenn die Komponente rendert, sind die Daten im Store.
 
+### Loader sind EINE von mehreren Daten-Eintrittspforten
+
+"Kein useEffect für Datenladen" heißt **nicht** "Loader für alles". Loader decken nur den initialen Daten-Load bei Route-Wechseln ab. In einer Offline-first-App mit Echtzeit-Sync gibt es mehrere Kanäle, über die Daten in Redux gelangen:
+
+| Kanal | Mechanismus | Beispiel |
+|---|---|---|
+| Route-Navigation | Loader → Thunk → SQLite → Redux | Liste öffnen |
+| Echtzeit-Event | WebSocket → Sync-Middleware → Redux | Anderes Familienmitglied fügt Item hinzu |
+| User-Aktion | dispatch → Reducer | Item abhaken |
+| App-Lifecycle | `useEffect` + Capacitor Listener → Thunk | App kommt aus Background, Events nachholen |
+| WebSocket-Reconnect | Sync-Middleware → Thunk | Verbindung nach Tunnelfahrt wiederhergestellt |
+
+Die eigentliche Schwerarbeit passiert in **Middleware und Thunks**, nicht in Loadern. Loader sind der einfachste Teil.
+
+### Loader-Besonderheiten bei Local-first
+
+- **SQLite-Reads sind quasi-synchron** (<5ms). Kein Spinner nötig, keine Race Conditions, kein Retry. Loader sind trivial.
+- **Globale Daten** (Family-Members, User-Profil, Settings) gehören in den **Root-Route-Loader**, nicht in jeden Feature-Loader.
+- **Tab-Wechsel re-triggered Loader.** Bei SQLite kein Performance-Problem, aber `staleTime` von TanStack Router nutzen wenn unnötige Reloads stören.
+- **Real-time Updates laufen am Loader vorbei.** Wenn Papa im Supermarkt steht und Mama ein Item hinzufügt, geht das über WebSocket → Middleware → Redux. Kein Route-Wechsel, kein Loader.
+
 ---
 
 ## Testing

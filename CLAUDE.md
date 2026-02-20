@@ -38,6 +38,7 @@ Die Kernregeln unten sind eine Kurzfassung — bei Zweifelsfällen immer das vol
 - `any` vermeiden — `unknown` + Type Guards bevorzugen. `any` nur in Ausnahmen wenn es wirklich vereinfacht, nie als Default
 - Kein `as` Type-Casting — nur wenn alle anderen Optionen erschöpft sind
 - `const` statt `let`, `readonly` auf allen Properties
+- `type` statt `interface` für Datenstrukturen. `interface` nur für Contracts (Klassen-Implementierung)
 - Types beschreiben, Funktionen transformieren
 
 ---
