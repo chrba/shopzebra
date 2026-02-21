@@ -39,6 +39,7 @@ export function ListsPage() {
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
 
   const goToCreateList = () => navigate({ to: '/lists/new' })
+  const goToProfile = () => navigate({ to: '/profile' })
 
   const handleConfirmDelete = () => {
     if (deleteTarget) {
@@ -55,7 +56,7 @@ export function ListsPage() {
 
   return (
     <div className="min-h-screen pb-[100px]">
-      <ListsHeader title="Meine Listen" onAdd={goToCreateList} />
+      <ListsHeader title="Meine Listen" onAdd={goToCreateList} onProfile={goToProfile} />
       <SummaryChips
         listCount={listCount}
         itemCount={totalItemCount}

@@ -4,8 +4,15 @@ import {
   createRouter,
   redirect,
 } from '@tanstack/react-router'
+import { getCurrentUser, fetchAuthSession } from 'aws-amplify/auth'
 import { store } from './store'
 import { listsLoaded } from '../features/lists/listsSlice'
+import {
+  sessionRestored,
+  sessionNotFound,
+  selectIsAuthenticated,
+  type AuthProvider,
+} from '../features/auth/authSlice'
 import { appLoaded } from './appSlice'
 import { getItem } from './storage'
 import type { ShoppingList } from '../features/lists/listsSlice'
@@ -13,6 +20,10 @@ import { RootLayout } from './RootLayout'
 import { ListsPage } from '../features/lists/ListsPage'
 import { CreateListPage } from '../features/manage-list/CreateListPage'
 import { EditListPage } from '../features/manage-list/EditListPage'
+import { SignInPage } from '../features/auth/SignInPage'
+import { SignUpPage } from '../features/auth/SignUpPage'
+import { ForgotPasswordPage } from '../features/auth/ForgotPasswordPage'
+import { ProfilePage } from '../features/profile/ProfilePage'
 
 const LISTS_KEY = 'shopzebra_lists'
 
@@ -97,6 +108,30 @@ const DEFAULT_LISTS: readonly ShoppingList[] = [
 const rootRoute = createRootRoute({
   component: RootLayout,
   beforeLoad: async () => {
+    // 1. Check Amplify session
+    try {
+      const cognitoUser = await getCurrentUser()
+      const session = await fetchAuthSession()
+      const claims = session.tokens?.idToken?.payload
+      const identities = (claims?.identities as readonly { readonly providerName?: string }[] | undefined)
+      const providerName = identities?.[0]?.providerName?.toLowerCase()
+      const provider: AuthProvider = providerName === 'google' ? 'google' : providerName === 'apple' ? 'apple' : 'email'
+      store.dispatch(
+        sessionRestored({
+          user: {
+            userId: cognitoUser.userId,
+            email: (claims?.email as string) ?? '',
+            name: (claims?.name as string) ?? '',
+            provider,
+          },
+        }),
+      )
+    } catch {
+      // No active session
+      store.dispatch(sessionNotFound())
+    }
+
+    // 2. Load persisted lists
     const raw = await getItem(LISTS_KEY)
     let lists: readonly ShoppingList[] = []
     if (raw) {
@@ -116,6 +151,45 @@ const rootRoute = createRootRoute({
   },
 })
 
+// --- Auth routes (public, redirect if already authenticated) ---
+
+function requireGuest() {
+  const state = store.getState()
+  if (selectIsAuthenticated(state)) {
+    throw redirect({ to: '/profile' })
+  }
+}
+
+function requireAuth() {
+  const state = store.getState()
+  if (!selectIsAuthenticated(state)) {
+    throw redirect({ to: '/signin' })
+  }
+}
+
+const signInRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/signin',
+  beforeLoad: requireGuest,
+  component: SignInPage,
+})
+
+const signUpRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/signup',
+  beforeLoad: requireGuest,
+  component: SignUpPage,
+})
+
+const forgotPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/forgot-password',
+  beforeLoad: requireGuest,
+  component: ForgotPasswordPage,
+})
+
+// --- App routes (protected, redirect if not authenticated) ---
+
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
@@ -127,29 +201,43 @@ const indexRoute = createRoute({
 const listsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/lists',
+  beforeLoad: requireAuth,
   component: ListsPage,
 })
 
 const createListRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/lists/new',
+  beforeLoad: requireAuth,
   component: CreateListPage,
 })
 
 const editListRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/lists/$listId/edit',
+  beforeLoad: requireAuth,
   component: () => {
     const { listId } = editListRoute.useParams()
     return EditListPage({ listId })
   },
 })
 
+const profileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/profile',
+  beforeLoad: requireAuth,
+  component: ProfilePage,
+})
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
+  signInRoute,
+  signUpRoute,
+  forgotPasswordRoute,
   listsRoute,
   createListRoute,
   editListRoute,
+  profileRoute,
 ])
 
 export const router = createRouter({ routeTree })
