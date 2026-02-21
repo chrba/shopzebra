@@ -16,11 +16,11 @@ type ListTileProps = {
 }
 
 const iconBgMap: Record<ListColor, string> = {
-  green: 'bg-green-500/10 shadow-[0_0_20px_rgba(107,191,107,0.3)]',
-  blue: 'bg-blue-500/10 shadow-[0_0_20px_rgba(91,168,213,0.3)]',
-  red: 'bg-red-500/10 shadow-[0_0_20px_rgba(224,123,123,0.3)]',
-  purple: 'bg-purple-500/10 shadow-[0_0_20px_rgba(160,123,204,0.3)]',
-  yellow: 'bg-yellow-500/10 shadow-[0_0_20px_rgba(232,196,74,0.3)]',
+  green: 'bg-green-500/15 shadow-[0_0_20px_rgba(107,191,107,0.4)]',
+  blue: 'bg-blue-500/15 shadow-[0_0_20px_rgba(91,168,213,0.4)]',
+  red: 'bg-red-500/15 shadow-[0_0_20px_rgba(224,123,123,0.4)]',
+  purple: 'bg-purple-500/15 shadow-[0_0_20px_rgba(160,123,204,0.4)]',
+  yellow: 'bg-yellow-500/15 shadow-[0_0_20px_rgba(232,196,74,0.4)]',
 }
 
 function formatMembers(
