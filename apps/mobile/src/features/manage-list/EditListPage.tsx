@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useAppDispatch, useAppSelector } from '../../app/store'
-import { listUpdated, selectListById } from '../lists/listsSlice'
+import { listUpdated, selectListById } from '../lists/state/listsSlice'
 import { ListEditor } from './ListEditor'
 
 type EditListPageProps = {

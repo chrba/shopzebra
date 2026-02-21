@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useAppDispatch } from '../../app/store'
-import { listCreated } from '../lists/listsSlice'
+import { listCreated } from '../lists/state/listsSlice'
 import { ListEditor } from './ListEditor'
 
 const DEFAULT_VALUES = {

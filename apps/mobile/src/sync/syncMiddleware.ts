@@ -13,7 +13,7 @@
 // New features just add their handler to the array below.
 
 import type { Middleware } from '@reduxjs/toolkit'
-import { listsSyncHandler } from '../features/lists/listsSync'
+import { listsSyncHandler } from '../features/lists/state/listsSync'
 
 type SyncHandler = (action: { readonly type: string; readonly payload?: unknown }) => Promise<void> | null
 

@@ -8,8 +8,8 @@ import {
   selectAuthError,
   selectResetPending,
   selectPendingEmail,
-} from './authSlice'
-import { performForgotPassword, performResetPassword } from './authThunks'
+} from './state/authSlice'
+import { performForgotPassword, performResetPassword } from './state/authThunks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 

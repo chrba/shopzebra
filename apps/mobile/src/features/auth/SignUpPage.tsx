@@ -9,8 +9,8 @@ import {
   selectAuthError,
   selectConfirmationPending,
   selectPendingEmail,
-} from './authSlice'
-import { performSignUp, performConfirmSignUp } from './authThunks'
+} from './state/authSlice'
+import { performSignUp, performConfirmSignUp } from './state/authThunks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 

@@ -1,4 +1,4 @@
-import { createSlice, type PayloadAction } from '../../app/createSlice'
+import { createSlice, type PayloadAction } from '../../../app/createSlice'
 
 // --- Types ---
 

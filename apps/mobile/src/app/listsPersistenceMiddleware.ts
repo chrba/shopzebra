@@ -1,6 +1,6 @@
 import type { Middleware } from '@reduxjs/toolkit'
 import { setItem } from './storage'
-import type { ShoppingList } from '../features/lists/listsSlice'
+import type { ShoppingList } from '../features/lists/state/listsSlice'
 
 const LISTS_KEY = 'shopzebra_lists'
 

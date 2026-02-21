@@ -8,8 +8,8 @@ import {
   selectAuthStatus,
   selectAuthError,
   selectIsAuthenticated,
-} from './authSlice'
-import { performSignIn } from './authThunks'
+} from './state/authSlice'
+import { performSignIn } from './state/authThunks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 

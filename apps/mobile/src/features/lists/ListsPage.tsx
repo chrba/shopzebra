@@ -6,7 +6,7 @@ import {
   selectListCount,
   selectTotalItemCount,
   listDeleted,
-} from './listsSlice'
+} from './state/listsSlice'
 import { ListsHeader } from './ListsHeader'
 import { SummaryChips } from './SummaryChips'
 import { ListTile } from './ListTile'

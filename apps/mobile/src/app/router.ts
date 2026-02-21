@@ -6,16 +6,16 @@ import {
 } from '@tanstack/react-router'
 import { getCurrentUser, fetchAuthSession } from 'aws-amplify/auth'
 import { store } from './store'
-import { listsLoaded } from '../features/lists/listsSlice'
+import { listsLoaded } from '../features/lists/state/listsSlice'
 import {
   sessionRestored,
   sessionNotFound,
   selectIsAuthenticated,
   type AuthProvider,
-} from '../features/auth/authSlice'
+} from '../features/auth/state/authSlice'
 import { appLoaded } from './appSlice'
 import { getItem } from './storage'
-import type { ShoppingList } from '../features/lists/listsSlice'
+import type { ShoppingList } from '../features/lists/state/listsSlice'
 import { RootLayout } from './RootLayout'
 import { ListsPage } from '../features/lists/ListsPage'
 import { CreateListPage } from '../features/manage-list/CreateListPage'

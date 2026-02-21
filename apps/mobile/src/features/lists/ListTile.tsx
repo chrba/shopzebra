@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import type { ShoppingList, ListColor } from './listsSlice'
+import type { ShoppingList, ListColor } from './state/listsSlice'
 
 type ListTileProps = {
   readonly list: ShoppingList

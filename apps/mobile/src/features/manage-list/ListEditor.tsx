@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import type { ListColor, Member } from '../lists/listsSlice'
+import type { ListColor, Member } from '../lists/state/listsSlice'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'

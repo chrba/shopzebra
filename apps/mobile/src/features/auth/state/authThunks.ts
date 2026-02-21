@@ -14,7 +14,7 @@ import {
   getCurrentUser,
   fetchAuthSession,
 } from 'aws-amplify/auth'
-import type { AppDispatch } from '../../app/store'
+import type { AppDispatch } from '../../../app/store'
 import {
   signInSucceeded,
   signInFailed,
