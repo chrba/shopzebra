@@ -25,25 +25,41 @@ type ReducerDefinition<S> = ReducerFunction<S> | ReducerWithPrepare<S>
 
 // --- Action Creator inference ---
 
-type InferActionCreatorFromFunction<Name extends string, Key extends string, R> =
+type RawActionCreatorFromFunction<Name extends string, Key extends string, R> =
   R extends (...args: infer A) => any
     ? A extends [any, PayloadAction<infer P>]
       ? (payload: P) => { readonly type: `${Name}/${Key}`; readonly payload: P }
       : () => { readonly type: `${Name}/${Key}` }
     : never
 
-type InferActionCreatorFromPrepare<Name extends string, Key extends string, R> =
+type RawActionCreatorFromPrepare<Name extends string, Key extends string, R> =
   R extends { readonly prepare: (...args: infer A) => { readonly payload: infer P } }
     ? (...args: A) => { readonly type: `${Name}/${Key}`; readonly payload: P }
     : never
 
-type InferActionCreator<Name extends string, Key extends string, R> =
+type RawActionCreator<Name extends string, Key extends string, R> =
   R extends { readonly prepare: any; readonly reducer: any }
-    ? InferActionCreatorFromPrepare<Name, Key, R>
-    : InferActionCreatorFromFunction<Name, Key, R>
+    ? RawActionCreatorFromPrepare<Name, Key, R>
+    : RawActionCreatorFromFunction<Name, Key, R>
+
+type InferPayload<R> =
+  R extends { readonly prepare: (...args: any[]) => { readonly payload: infer P } }
+    ? P
+    : R extends (...args: infer _A) => any
+      ? _A extends [any, PayloadAction<infer P>] ? P : undefined
+      : undefined
+
+type ActionCreatorWithMeta<F, T extends string, P> = F & {
+  readonly type: T
+  readonly match: (action: { readonly type: string; readonly payload?: unknown }) => action is PayloadAction<P>
+}
 
 type ActionCreators<Name extends string, R extends Record<string, any>> = {
-  readonly [K in keyof R & string]: InferActionCreator<Name, K, R[K]>
+  readonly [K in keyof R & string]: ActionCreatorWithMeta<
+    RawActionCreator<Name, K, R[K]>,
+    `${Name}/${K}`,
+    InferPayload<R[K]>
+  >
 }
 
 // --- createSlice ---
@@ -66,15 +82,23 @@ export function createSlice<
 
     if (typeof definition === 'function') {
       // Plain reducer — action creator takes optional payload
-      actionCreators[key] = (payload?: unknown) =>
+      const creator = (payload?: unknown) =>
         payload !== undefined ? { type, payload } : { type }
+      creator.type = type
+      creator.match = (action: { readonly type: string }): boolean =>
+        action.type === type
+      actionCreators[key] = creator
       lookup[type] = definition as (state: S, action: any) => S
     } else {
       // { prepare, reducer } — action creator calls prepare()
-      actionCreators[key] = (...args: unknown[]) => ({
+      const creator = (...args: unknown[]) => ({
         type,
         ...definition.prepare(...args),
       })
+      creator.type = type
+      creator.match = (action: { readonly type: string }): boolean =>
+        action.type === type
+      actionCreators[key] = creator
       lookup[type] = definition.reducer
     }
   }

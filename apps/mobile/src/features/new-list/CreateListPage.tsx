@@ -4,6 +4,7 @@ import { useAppDispatch } from '../../app/store'
 import { listCreated, type ListColor, type Member } from '../lists/listsSlice'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { cn } from '@/lib/utils'
 
 const EMOJIS = [
@@ -61,14 +62,6 @@ export function CreateListPage() {
   ])
   const [error, setError] = useState('')
 
-  const toggleMember = (letter: string) => {
-    setSelectedMembers((prev) =>
-      prev.includes(letter)
-        ? prev.filter((m) => m !== letter)
-        : [...prev, letter],
-    )
-  }
-
   const handleCreate = () => {
     const trimmed = name.trim()
     if (!trimmed) {
@@ -82,14 +75,20 @@ export function CreateListPage() {
       return { letter, color: member?.color ?? '#888' }
     })
 
-    dispatch(listCreated(trimmed, emoji, color, members))
+    dispatch(listCreated({
+      id: crypto.randomUUID(),
+      name: trimmed,
+      emoji,
+      color,
+      members,
+    }))
     navigate({ to: '/lists' })
   }
 
   return (
-    <div className="min-h-screen pb-10">
+    <div className="flex h-dvh flex-col overflow-hidden">
       {/* Nav Header */}
-      <header className="flex items-center justify-between px-6 pt-2 pb-4">
+      <header className="flex shrink-0 items-center justify-between px-6 pt-2 pb-4">
         <Button
           variant="ghost"
           className="text-teal gap-1.5 px-0 text-[15px] font-semibold"
@@ -126,23 +125,27 @@ export function CreateListPage() {
       </div>
 
       {/* Emoji Grid */}
-      <div className="grid grid-cols-6 gap-1.5 px-6">
+      <ToggleGroup
+        type="single"
+        value={emoji}
+        onValueChange={(v) => v && setEmoji(v)}
+        spacing={1}
+        className="grid w-auto grid-cols-6 gap-1.5 px-6"
+      >
         {EMOJIS.map((e) => (
-          <button
+          <ToggleGroupItem
             key={e}
-            type="button"
-            onClick={() => setEmoji(e)}
+            value={e}
             className={cn(
-              'flex aspect-square items-center justify-center rounded-[14px] text-2xl transition-all',
-              e === emoji
-                ? 'border-teal border-2 bg-[rgba(78,157,166,0.12)]'
-                : 'bg-secondary border-2 border-transparent',
+              'flex aspect-square h-auto w-full min-w-0 shrink items-center justify-center rounded-[clamp(10px,2.5vw,20px)] p-0 text-[clamp(1.25rem,5.5vw,2.5rem)] transition-all',
+              'bg-secondary border-2 border-transparent hover:bg-secondary',
+              'data-[state=on]:border-teal data-[state=on]:bg-[rgba(78,157,166,0.12)] data-[state=on]:border-2',
             )}
           >
             {e}
-          </button>
+          </ToggleGroupItem>
         ))}
-      </div>
+      </ToggleGroup>
 
       {/* Name Input */}
       <div className="px-6 pt-6">
@@ -166,16 +169,20 @@ export function CreateListPage() {
         <label className="text-muted-foreground mb-2 block text-xs font-semibold tracking-wider uppercase">
           Farbe
         </label>
-        <div className="flex gap-3">
+        <ToggleGroup
+          type="single"
+          value={color}
+          onValueChange={(v) => v && setColor(v as ListColor)}
+          spacing={1}
+          className="flex gap-3"
+        >
           {COLORS.map((c) => (
-            <button
+            <ToggleGroupItem
               key={c.name}
-              type="button"
-              onClick={() => setColor(c.name)}
+              value={c.name}
               className={cn(
-                'size-11 rounded-full transition-all',
-                c.name === color &&
-                  'ring-background scale-110 ring-2 ring-offset-2 ring-offset-transparent',
+                'size-11 min-w-0 rounded-full p-0 transition-all hover:bg-transparent data-[state=on]:bg-transparent',
+                'data-[state=on]:ring-background data-[state=on]:scale-110 data-[state=on]:ring-2 data-[state=on]:ring-offset-2 data-[state=on]:ring-offset-transparent',
               )}
               style={{
                 backgroundColor: c.hex,
@@ -185,7 +192,7 @@ export function CreateListPage() {
               aria-label={c.name}
             />
           ))}
-        </div>
+        </ToggleGroup>
       </div>
 
       {/* Members */}
@@ -193,37 +200,37 @@ export function CreateListPage() {
         <label className="text-muted-foreground mb-2 block text-xs font-semibold tracking-wider uppercase">
           Teilen mit
         </label>
-        <div className="flex items-center gap-2.5">
-          {MEMBERS.map((m) => {
-            const isSelected = selectedMembers.includes(m.letter)
-            return (
-              <button
-                key={m.letter}
-                type="button"
-                onClick={() => toggleMember(m.letter)}
-                className={cn(
-                  'relative flex size-11 items-center justify-center rounded-full text-base font-bold text-white transition-all active:scale-90',
-                  !isSelected && 'opacity-35',
-                )}
-                style={{ backgroundColor: m.color }}
-                aria-label={`${m.name} ${isSelected ? 'entfernen' : 'hinzufügen'}`}
-              >
-                {m.letter}
-                {isSelected && (
-                  <div className="bg-teal border-background absolute -right-0.5 -bottom-0.5 flex size-[18px] items-center justify-center rounded-full border-2">
-                    <svg viewBox="0 0 24 24" className="size-2.5 fill-white">
-                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-                    </svg>
-                  </div>
-                )}
-              </button>
-            )
-          })}
-        </div>
+        <ToggleGroup
+          type="multiple"
+          value={[...selectedMembers]}
+          onValueChange={(v) => setSelectedMembers(v)}
+          spacing={1}
+          className="flex items-center gap-2.5"
+        >
+          {MEMBERS.map((m) => (
+            <ToggleGroupItem
+              key={m.letter}
+              value={m.letter}
+              className={cn(
+                'group relative flex size-11 min-w-0 items-center justify-center rounded-full p-0 text-base font-bold text-white transition-all hover:text-white active:scale-90 data-[state=on]:text-white',
+                'opacity-35 data-[state=on]:opacity-100',
+              )}
+              style={{ backgroundColor: m.color }}
+              aria-label={m.name}
+            >
+              {m.letter}
+              <div className="bg-teal border-background absolute -right-0.5 -bottom-0.5 flex size-[18px] items-center justify-center rounded-full border-2 opacity-0 transition-opacity group-data-[state=on]:opacity-100">
+                <svg viewBox="0 0 24 24" className="size-2.5 fill-white">
+                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                </svg>
+              </div>
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
       </div>
 
       {/* CTA */}
-      <div className="px-6 pt-8">
+      <div className="mt-auto px-6 pb-6">
         <Button
           onClick={handleCreate}
           className="h-auto w-full rounded-[20px] bg-gradient-to-br from-[#4E9DA6] to-[#3A8A92] py-[18px] text-[17px] font-bold text-white shadow-[0_4px_20px_rgba(78,157,166,0.3)] transition-all active:scale-[0.98]"

@@ -26,6 +26,22 @@ export type ShoppingList = {
   readonly badge: string | null
 }
 
+export type LoadListsPayload = {
+  readonly lists: readonly ShoppingList[]
+}
+
+export type CreateListPayload = {
+  readonly id: string
+  readonly name: string
+  readonly emoji: string
+  readonly color: ListColor
+  readonly members: readonly Member[]
+}
+
+export type DeleteListPayload = {
+  readonly listId: string
+}
+
 type ListsState = {
   readonly lists: readonly ShoppingList[]
 }
@@ -40,60 +56,29 @@ const listsSlice = createSlice({
   name: 'lists',
   initialState,
   reducers: {
-    listsLoaded: (
-      state: ListsState,
-      action: PayloadAction<{ readonly lists: readonly ShoppingList[] }>,
-    ) => ({
+    listsLoaded: (state: ListsState, action: PayloadAction<LoadListsPayload>) => ({
       ...state,
       lists: action.payload.lists,
     }),
 
-    listCreated: {
-      prepare: (
-        name: string,
-        emoji: string,
-        color: ListColor,
-        members: readonly Member[],
-      ) => ({
-        payload: {
-          id: crypto.randomUUID(),
-          name,
-          emoji,
-          color,
-          members,
+    listCreated: (state: ListsState, action: PayloadAction<CreateListPayload>) => ({
+      ...state,
+      lists: [
+        ...state.lists,
+        {
+          id: action.payload.id,
+          name: action.payload.name,
+          emoji: action.payload.emoji,
+          color: action.payload.color,
+          itemCount: 0,
+          members: action.payload.members,
+          activity: { who: 'Du', what: 'erstellt', when: 'gerade' },
+          badge: null,
         },
-      }),
-      reducer: (
-        state: ListsState,
-        action: PayloadAction<{
-          readonly id: string
-          readonly name: string
-          readonly emoji: string
-          readonly color: ListColor
-          readonly members: readonly Member[]
-        }>,
-      ) => ({
-        ...state,
-        lists: [
-          ...state.lists,
-          {
-            id: action.payload.id,
-            name: action.payload.name,
-            emoji: action.payload.emoji,
-            color: action.payload.color,
-            itemCount: 0,
-            members: action.payload.members,
-            activity: { who: 'Du', what: 'erstellt', when: 'gerade' },
-            badge: null,
-          },
-        ],
-      }),
-    },
+      ],
+    }),
 
-    listDeleted: (
-      state: ListsState,
-      action: PayloadAction<{ readonly listId: string }>,
-    ) => ({
+    listDeleted: (state: ListsState, action: PayloadAction<DeleteListPayload>) => ({
       ...state,
       lists: state.lists.filter((list) => list.id !== action.payload.listId),
     }),
@@ -118,3 +103,4 @@ export const selectListById = (
   state: { readonly lists: ListsState },
   listId: string,
 ) => state.lists.lists.find((list) => list.id === listId) ?? null
+

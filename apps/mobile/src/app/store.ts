@@ -4,6 +4,7 @@ import { listsReducer } from '../features/lists/listsSlice'
 import { appReducer } from './appSlice'
 import { themeMiddleware } from './themeMiddleware'
 import { listsPersistenceMiddleware } from './listsPersistenceMiddleware'
+import { syncMiddleware } from '../sync/syncMiddleware'
 
 export const store = configureStore({
   reducer: {
@@ -11,7 +12,7 @@ export const store = configureStore({
     lists: listsReducer,
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(themeMiddleware, listsPersistenceMiddleware),
+    getDefaultMiddleware().concat(themeMiddleware, listsPersistenceMiddleware, syncMiddleware),
 })
 
 export type RootState = ReturnType<typeof store.getState>
