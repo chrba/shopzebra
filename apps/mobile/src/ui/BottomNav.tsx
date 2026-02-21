@@ -31,7 +31,7 @@ function NavButton({
 
 export function BottomNav({ activeTab, activityBadgeCount }: BottomNavProps) {
   return (
-    <nav className="fixed right-0 bottom-0 left-0 z-100 flex items-start justify-around border-t border-zinc-800 bg-zinc-950/90 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+12px)] backdrop-blur-lg">
+    <nav className="sticky bottom-0 z-100 flex items-start justify-around border-t border-zinc-800 bg-zinc-950/90 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+12px)] backdrop-blur-lg">
       <NavButton active={activeTab === 'listen'} label="Listen">
         <svg viewBox="0 0 24 24">
           <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z" />
