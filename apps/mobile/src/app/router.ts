@@ -11,7 +11,8 @@ import { getItem } from './storage'
 import type { ShoppingList } from '../features/lists/listsSlice'
 import { RootLayout } from './RootLayout'
 import { ListsPage } from '../features/lists/ListsPage'
-import { CreateListPage } from '../features/new-list/CreateListPage'
+import { CreateListPage } from '../features/manage-list/CreateListPage'
+import { EditListPage } from '../features/manage-list/EditListPage'
 
 const LISTS_KEY = 'shopzebra_lists'
 
@@ -135,10 +136,20 @@ const createListRoute = createRoute({
   component: CreateListPage,
 })
 
+const editListRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/lists/$listId/edit',
+  component: () => {
+    const { listId } = editListRoute.useParams()
+    return EditListPage({ listId })
+  },
+})
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   listsRoute,
   createListRoute,
+  editListRoute,
 ])
 
 export const router = createRouter({ routeTree })

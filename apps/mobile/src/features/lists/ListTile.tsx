@@ -51,7 +51,7 @@ export function ListTile({ list, onClick, onEdit }: ListTileProps) {
       <Button
         variant="ghost"
         size="icon-xs"
-        className="absolute right-3 bottom-3 z-3 opacity-0 transition-opacity duration-200 group-hover:opacity-60 hover:opacity-100!"
+        className="absolute right-3 bottom-3 z-3 opacity-60 transition-opacity duration-200 active:opacity-100"
         onClick={(e) => {
           e.stopPropagation()
           onEdit()

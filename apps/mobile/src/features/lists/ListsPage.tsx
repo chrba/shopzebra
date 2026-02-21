@@ -75,7 +75,9 @@ export function ListsPage() {
             <ListTile
               list={list}
               onClick={() => {}}
-              onEdit={() => {}}
+              onEdit={() =>
+                navigate({ to: '/lists/$listId/edit', params: { listId: list.id } })
+              }
             />
           </SwipeToDelete>
         ))}

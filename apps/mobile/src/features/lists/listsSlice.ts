@@ -38,6 +38,14 @@ export type CreateListPayload = {
   readonly members: readonly Member[]
 }
 
+export type UpdateListPayload = {
+  readonly listId: string
+  readonly name: string
+  readonly emoji: string
+  readonly color: ListColor
+  readonly members: readonly Member[]
+}
+
 export type DeleteListPayload = {
   readonly listId: string
 }
@@ -78,6 +86,21 @@ const listsSlice = createSlice({
       ],
     }),
 
+    listUpdated: (state: ListsState, action: PayloadAction<UpdateListPayload>) => ({
+      ...state,
+      lists: state.lists.map((list) =>
+        list.id === action.payload.listId
+          ? {
+              ...list,
+              name: action.payload.name,
+              emoji: action.payload.emoji,
+              color: action.payload.color,
+              members: action.payload.members,
+            }
+          : list,
+      ),
+    }),
+
     listDeleted: (state: ListsState, action: PayloadAction<DeleteListPayload>) => ({
       ...state,
       lists: state.lists.filter((list) => list.id !== action.payload.listId),
@@ -87,7 +110,7 @@ const listsSlice = createSlice({
 
 // --- Actions ---
 
-export const { listsLoaded, listCreated, listDeleted } = listsSlice.actions
+export const { listsLoaded, listCreated, listUpdated, listDeleted } = listsSlice.actions
 export const listsReducer = listsSlice.reducer
 
 // --- Selectors ---

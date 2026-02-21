@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { useAppDispatch } from '../../app/store'
-import { listCreated, type ListColor, type Member } from '../lists/listsSlice'
+import type { ListColor, Member } from '../lists/listsSlice'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
@@ -49,20 +48,53 @@ const MEMBERS: readonly {
   { letter: 'O', name: 'Opa', color: '#A07BCC' },
 ]
 
-export function CreateListPage() {
-  const dispatch = useAppDispatch()
+function resolveMembers(letters: readonly string[]): readonly Member[] {
+  return letters.map((letter) => {
+    const member = MEMBERS.find((m) => m.letter === letter)
+    return { letter, color: member?.color ?? '#888' }
+  })
+}
+
+// --- Public API ---
+
+export type ListEditorValues = {
+  readonly emoji: string
+  readonly name: string
+  readonly color: ListColor
+  readonly selectedMembers: readonly string[]
+}
+
+export type ListEditorResult = {
+  readonly name: string
+  readonly emoji: string
+  readonly color: ListColor
+  readonly members: readonly Member[]
+}
+
+type ListEditorProps = {
+  readonly title: string
+  readonly submitLabel: string
+  readonly initialValues: ListEditorValues
+  readonly onSubmit: (result: ListEditorResult) => void
+}
+
+export function ListEditor({
+  title,
+  submitLabel,
+  initialValues,
+  onSubmit,
+}: ListEditorProps) {
   const navigate = useNavigate()
 
-  const [emoji, setEmoji] = useState('\u{1F6D2}')
-  const [name, setName] = useState('')
-  const [color, setColor] = useState<ListColor>('green')
-  const [selectedMembers, setSelectedMembers] = useState<readonly string[]>([
-    'M',
-    'P',
-  ])
+  const [emoji, setEmoji] = useState(initialValues.emoji)
+  const [name, setName] = useState(initialValues.name)
+  const [color, setColor] = useState<ListColor>(initialValues.color)
+  const [selectedMembers, setSelectedMembers] = useState<readonly string[]>(
+    initialValues.selectedMembers,
+  )
   const [error, setError] = useState('')
 
-  const handleCreate = () => {
+  const handleSubmit = () => {
     const trimmed = name.trim()
     if (!trimmed) {
       setError('Bitte einen Namen eingeben')
@@ -70,19 +102,12 @@ export function CreateListPage() {
     }
     setError('')
 
-    const members: readonly Member[] = selectedMembers.map((letter) => {
-      const member = MEMBERS.find((m) => m.letter === letter)
-      return { letter, color: member?.color ?? '#888' }
-    })
-
-    dispatch(listCreated({
-      id: crypto.randomUUID(),
+    onSubmit({
       name: trimmed,
       emoji,
       color,
-      members,
-    }))
-    navigate({ to: '/lists' })
+      members: resolveMembers(selectedMembers),
+    })
   }
 
   return (
@@ -99,7 +124,7 @@ export function CreateListPage() {
           </svg>
           Listen
         </Button>
-        <h1 className="font-display text-[17px] font-bold">Neue Liste</h1>
+        <h1 className="font-display text-[17px] font-bold">{title}</h1>
         <div className="w-[70px]" />
       </header>
 
@@ -232,10 +257,10 @@ export function CreateListPage() {
       {/* CTA */}
       <div className="mt-auto px-6 pb-6">
         <Button
-          onClick={handleCreate}
+          onClick={handleSubmit}
           className="h-auto w-full rounded-[20px] bg-gradient-to-br from-[#4E9DA6] to-[#3A8A92] py-[18px] text-[17px] font-bold text-white shadow-[0_4px_20px_rgba(78,157,166,0.3)] transition-all active:scale-[0.98]"
         >
-          Liste erstellen
+          {submitLabel}
         </Button>
         <p className="mt-2 min-h-[18px] text-center text-xs font-medium text-[#E07B7B]">
           {error}
