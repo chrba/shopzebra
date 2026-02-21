@@ -8,14 +8,90 @@ import { store } from './store'
 import { listsLoaded } from '../features/lists/listsSlice'
 import { appLoaded } from './appSlice'
 import { getItem } from './storage'
-import { loadTheme } from './theme'
 import type { ShoppingList } from '../features/lists/listsSlice'
 import { RootLayout } from './RootLayout'
 import { ListsPage } from '../features/lists/ListsPage'
-import { CreateListPage } from '../features/lists/CreateListPage'
-import { ShoppingListPage } from '../features/lists/ShoppingListPage'
+import { CreateListPage } from '../features/new-list/CreateListPage'
 
 const LISTS_KEY = 'shopzebra_lists'
+
+const DEFAULT_LISTS: readonly ShoppingList[] = [
+  {
+    id: 'rewe',
+    name: 'REWE Wocheneinkauf',
+    emoji: '\u{1F6D2}',
+    color: 'green',
+    itemCount: 15,
+    members: [
+      { letter: 'M', color: '#6BBF6B' },
+      { letter: 'P', color: '#5BA8D5' },
+      { letter: 'L', color: '#E07B7B' },
+    ],
+    activity: { who: 'Mama', what: '+Milch', when: '14:02' },
+    badge: '3 neu',
+  },
+  {
+    id: 'dm',
+    name: 'dm Drogerie',
+    emoji: '\u{1F9F4}',
+    color: 'blue',
+    itemCount: 4,
+    members: [{ letter: 'P', color: '#5BA8D5' }],
+    activity: { who: 'Papa', what: 'erstellt', when: 'gestern' },
+    badge: null,
+  },
+  {
+    id: 'party',
+    name: 'Geburtstagsparty Lena',
+    emoji: '\u{1F389}',
+    color: 'red',
+    itemCount: 22,
+    members: [
+      { letter: 'M', color: '#6BBF6B' },
+      { letter: 'P', color: '#5BA8D5' },
+      { letter: 'L', color: '#E07B7B' },
+      { letter: 'O', color: '#A07BCC' },
+    ],
+    activity: { who: 'Lena', what: '+Schokopudding', when: 'Mo' },
+    badge: null,
+  },
+  {
+    id: 'aldi',
+    name: 'ALDI Vorräte',
+    emoji: '\u{1F34E}',
+    color: 'green',
+    itemCount: 8,
+    members: [{ letter: 'M', color: '#6BBF6B' }],
+    activity: { who: 'Mama', what: 'erstellt', when: 'Di' },
+    badge: null,
+  },
+  {
+    id: 'baumarkt',
+    name: 'Baumarkt Garten',
+    emoji: '\u{1F527}',
+    color: 'blue',
+    itemCount: 6,
+    members: [
+      { letter: 'P', color: '#5BA8D5' },
+      { letter: 'O', color: '#A07BCC' },
+    ],
+    activity: { who: 'Papa', what: '+Erde', when: 'So' },
+    badge: '2 neu',
+  },
+  {
+    id: 'wochenmarkt',
+    name: 'Wochenmarkt Samstag',
+    emoji: '\u{1F9C0}',
+    color: 'red',
+    itemCount: 11,
+    members: [
+      { letter: 'M', color: '#6BBF6B' },
+      { letter: 'L', color: '#E07B7B' },
+    ],
+    activity: { who: 'Mama', what: '+Käse', when: 'letzte Wo' },
+    badge: null,
+  },
+]
 
 const rootRoute = createRootRoute({
   component: RootLayout,
@@ -33,9 +109,9 @@ const rootRoute = createRootRoute({
       }
     }
 
-    const theme = await loadTheme()
-    store.dispatch(listsLoaded({ lists }))
-    store.dispatch(appLoaded({ theme }))
+    const allLists = lists.length > 0 ? lists : DEFAULT_LISTS
+    store.dispatch(listsLoaded({ lists: allLists }))
+    store.dispatch(appLoaded({ theme: 'dark' }))
   },
 })
 
@@ -59,20 +135,10 @@ const createListRoute = createRoute({
   component: CreateListPage,
 })
 
-const listDetailRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/lists/$listId',
-  component: function ListDetailPage() {
-    const { listId } = listDetailRoute.useParams()
-    return ShoppingListPage({ listId })
-  },
-})
-
 const routeTree = rootRoute.addChildren([
   indexRoute,
   listsRoute,
   createListRoute,
-  listDetailRoute,
 ])
 
 export const router = createRouter({ routeTree })

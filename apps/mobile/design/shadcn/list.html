@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="de" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopZebra - Einkaufsliste (shadcn)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      fontFamily: { sans: ['Geist', 'system-ui', 'sans-serif'] },
+      colors: {
+        zebra: { DEFAULT: '#4E9DA6', light: '#6BC5A0', dim: 'rgba(78,157,166,0.12)', border: 'rgba(78,157,166,0.25)' },
+        accent: { DEFAULT: '#E8923A', dim: 'rgba(232,146,58,0.15)' },
+        danger: { DEFAULT: '#EF4444', dim: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.2)' },
+        cat: {
+          green: { bg: 'rgba(74,222,128,0.1)', text: '#4ade80', border: 'rgba(74,222,128,0.2)' },
+          blue: { bg: 'rgba(96,165,250,0.1)', text: '#60a5fa', border: 'rgba(96,165,250,0.2)' },
+          yellow: { bg: 'rgba(250,204,21,0.1)', text: '#facc15', border: 'rgba(250,204,21,0.2)' },
+          red: { bg: 'rgba(251,113,133,0.1)', text: '#fb7185', border: 'rgba(251,113,133,0.2)' },
+          purple: { bg: 'rgba(167,139,250,0.1)', text: '#a78bfa', border: 'rgba(167,139,250,0.2)' },
+          cyan: { bg: 'rgba(34,211,238,0.1)', text: '#22d3ee', border: 'rgba(34,211,238,0.2)' },
+          orange: { bg: 'rgba(251,146,60,0.1)', text: '#fb923c', border: 'rgba(251,146,60,0.2)' },
+          pink: { bg: 'rgba(244,114,182,0.1)', text: '#f472b6', border: 'rgba(244,114,182,0.2)' },
+          indigo: { bg: 'rgba(129,140,248,0.1)', text: '#818cf8', border: 'rgba(129,140,248,0.2)' },
+          ice: { bg: 'rgba(103,232,249,0.1)', text: '#67e8f9', border: 'rgba(103,232,249,0.2)' },
+        }
+      },
+      borderRadius: { '2xl': '16px', '3xl': '20px' },
+      animation: {
+        'celebrate-in': 'celebrateIn 0.6s cubic-bezier(0.25,0.46,0.45,0.94) forwards',
+        'celebrate-pulse': 'celebratePulse 2s ease-in-out infinite',
+        'confetti-fall': 'confettiFall linear forwards',
+        'sheet-up': 'sheetUp 0.35s cubic-bezier(0.32,0.72,0,1) forwards',
+      },
+    }
+  }
+}
+</script>
+<style>
+  @keyframes celebrateIn {
+    0% { transform: scale(0.8); opacity: 0; }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes celebratePulse {
+    0%, 100% { box-shadow: 0 0 30px rgba(78,157,166,0.15); transform: scale(1); }
+    50% { box-shadow: 0 0 50px rgba(78,157,166,0.25); transform: scale(1.05); }
+  }
+  @keyframes confettiFall {
+    0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+    80% { opacity: 1; }
+    100% { transform: translateY(300px) rotate(720deg) scale(0.5); opacity: 0; }
+  }
+  @keyframes sheetUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  * { -webkit-tap-highlight-color: transparent; }
+  .screen::-webkit-scrollbar { display: none; }
+  .screen { scrollbar-width: none; }
+
+  .tile-press:active { transform: scale(0.95); }
+  .confetti-piece { position: absolute; top: -10px; animation: confettiFall linear forwards; }
+
+  /* shadcn-style focus ring */
+  .ring-zebra:focus-visible {
+    outline: 2px solid #4E9DA6;
+    outline-offset: 2px;
+  }
+
+  /* Completed grid collapse */
+  .completed-grid-inner {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.3s ease, margin-top 0.3s ease;
+    margin-top: 0;
+  }
+  .completed-grid-inner.expanded {
+    max-height: 600px;
+    opacity: 1;
+    margin-top: 8px;
+  }
+
+  /* Progress bar shimmer */
+  .progress-shimmer::after {
+    content: '';
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 20px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25));
+    border-radius: 0 9999px 9999px 0;
+  }
+</style>
+</head>
+<body class="bg-zinc-950 flex items-center justify-center min-h-screen font-sans text-zinc-50 antialiased">
+
+<div class="w-[390px] h-[844px] bg-zinc-900 rounded-[44px] overflow-hidden relative border border-zinc-800 shadow-2xl shadow-black/50">
+  <div class="screen h-full overflow-y-auto overflow-x-hidden pb-[100px]">
+
+    <!-- Status Bar -->
+    <div class="flex justify-between items-center px-7 pt-3.5 pb-2 sticky top-0 z-50 bg-zinc-900/95 backdrop-blur-sm">
+      <span class="text-[15px] font-bold tracking-wide">9:41</span>
+      <div class="flex items-center gap-1.5">
+        <svg class="w-4 h-4 fill-white" viewBox="0 0 16 16"><path d="M1.5 4.5C4 2 7.5 1 8 1s4 1 6.5 3.5l-1.2 1.2C11.2 3.6 9 2.5 8 2.5S4.8 3.6 2.7 5.7L1.5 4.5zM4 7.3C5.3 6 6.8 5.2 8 5.2s2.7.8 4 2.1L10.8 8.5C9.8 7.5 9 7 8 7s-1.8.5-2.8 1.5L4 7.3zM6.5 10c.8-.8 1.2-1 1.5-1s.7.2 1.5 1L8 11.5 6.5 10z"/></svg>
+        <svg class="w-4 h-4 fill-white" viewBox="0 0 16 16"><path d="M1 4h2v8H1V4zm3.5 2h2v6h-2V6zM8 3h2v9H8V3zm3.5 1h2v8h-2V4z"/></svg>
+        <svg class="w-4 h-4" viewBox="0 0 24 14"><rect x="0.5" y="0.5" width="20" height="13" rx="2.5" stroke="white" stroke-opacity="0.35" fill="none"/><path opacity="0.4" d="M22 5v4a2 2 0 000-4z" fill="white"/><rect x="2" y="2" width="15" height="9" rx="1.5" fill="white"/></svg>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="px-5 pt-2 pb-4">
+      <div class="flex items-center gap-3 mb-1">
+        <a class="flex items-center gap-1.5 text-zebra text-[15px] font-semibold no-underline shrink-0 hover:opacity-80 transition-opacity" href="lists.html">
+          <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+          Listen
+        </a>
+        <h1 class="text-2xl font-extrabold tracking-tight truncate">REWE Wocheneinkauf</h1>
+      </div>
+      <p class="text-[13px] font-medium text-zinc-500 pl-12">Familien-Einkauf &middot; 3 Personen</p>
+    </div>
+
+    <!-- Cart Card -->
+    <div class="px-5 mb-6">
+      <div class="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-4">
+        <!-- Cart Header -->
+        <div class="flex items-center justify-between mb-3.5">
+          <span class="text-[15px] font-bold tracking-tight">Einkaufsliste</span>
+          <span class="bg-accent text-white text-xs font-bold px-3 py-1 rounded-full" id="cartCount">0 Artikel</span>
+        </div>
+
+        <!-- Progress -->
+        <div class="mb-4" id="progressSection" style="display:none;">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[13px] font-medium text-zinc-400" id="progressText">0 von 0 erledigt</span>
+            <span class="text-xs font-bold text-zebra" id="progressPercent">0%</span>
+          </div>
+          <div class="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden relative">
+            <div class="h-full bg-gradient-to-r from-zebra to-zebra-light rounded-full transition-all duration-500 ease-out relative progress-shimmer" id="progressFill" style="width:0%"></div>
+          </div>
+        </div>
+
+        <!-- Active Grid -->
+        <div class="grid grid-cols-3 gap-1.5" id="activeGrid"></div>
+
+        <!-- Completed -->
+        <div id="completedSection" style="display:none;" class="mt-3.5">
+          <div class="h-px bg-zinc-800 mb-3"></div>
+          <div class="flex items-center gap-2 cursor-pointer select-none py-1.5 group" id="completedToggle">
+            <div class="w-4 h-4 flex items-center justify-center transition-transform duration-200" id="completedChevronIcon">
+              <svg class="w-3 h-3" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 2l5 5-5 5"/></svg>
+            </div>
+            <span class="text-[13px] font-semibold text-zinc-500 group-hover:text-zinc-400 transition-colors">Erledigt</span>
+            <span class="text-[11px] font-bold text-zebra bg-zebra-dim px-2 py-0.5 rounded-md" id="completedCountBadge">0</span>
+          </div>
+          <div class="completed-grid-inner" id="completedGrid"></div>
+        </div>
+
+        <!-- Celebration -->
+        <div class="hidden flex-col items-center justify-center py-8 px-4 text-center" id="celebrationContainer">
+          <div class="absolute inset-0 pointer-events-none overflow-hidden z-[2]" id="confettiContainer"></div>
+          <div class="w-[72px] h-[72px] rounded-full bg-zebra-dim flex items-center justify-center mb-4 animate-celebrate-pulse relative z-[1]">
+            <svg class="w-9 h-9 fill-zebra" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          </div>
+          <div class="text-xl font-extrabold tracking-tight mb-1.5 relative z-[1]">Alles eingekauft!</div>
+          <div class="text-[13px] font-medium text-zinc-500 mb-6 relative z-[1]" id="celebrationSubtitle"></div>
+          <button class="bg-zebra hover:bg-zebra/90 text-white font-bold text-[15px] px-8 py-3.5 rounded-xl transition-all active:scale-[0.97] relative z-[1] ring-zebra" onclick="resetList()">Neuer Einkauf</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="px-5 pb-4">
+      <div class="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-zinc-800/60 border border-zinc-700/50 transition-all duration-200 focus-within:border-zebra focus-within:bg-zebra-dim/30">
+        <svg class="w-[18px] h-[18px] fill-zinc-500 shrink-0" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <input class="flex-1 bg-transparent border-none outline-none text-zinc-50 text-[15px] placeholder:text-zinc-500" type="text" id="globalSearchInput" placeholder="Produkt suchen..." oninput="handleGlobalSearch()">
+        <button class="w-5 h-5 rounded-full bg-zinc-600 items-center justify-center cursor-pointer p-0 border-none hidden" id="globalSearchClear" onclick="clearGlobalSearch()">
+          <svg class="w-3 h-3 fill-zinc-300" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Search Results -->
+    <div class="px-5 hidden" id="searchResults">
+      <div class="text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-3" id="searchResultsLabel"></div>
+      <div class="grid grid-cols-3 gap-2" id="searchResultsGrid"></div>
+    </div>
+
+    <!-- Categories -->
+    <div class="px-5" id="categoriesSection">
+      <div class="text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-3.5">Kategorien</div>
+      <div class="flex flex-col gap-2.5" id="categoryList"></div>
+    </div>
+  </div>
+
+  <!-- Detail Sheet -->
+  <div class="absolute inset-0 bg-black/60 z-[200] opacity-0 pointer-events-none transition-opacity duration-300" id="listSheetBackdrop" onclick="closeListSheet()">
+    <div class="absolute bottom-0 left-0 right-0 bg-zinc-900 rounded-t-3xl z-[210] translate-y-full flex flex-col border-t border-zinc-700/50" id="listSheet" onclick="event.stopPropagation()">
+      <div class="w-9 h-1 bg-zinc-600 rounded-full mx-auto mt-2.5 shrink-0"></div>
+      <div class="flex items-center gap-3 px-5 pt-4 pb-3 shrink-0">
+        <div class="text-[32px] leading-none" id="listSheetEmoji"></div>
+        <div class="flex-1 min-w-0">
+          <div class="text-lg font-bold" id="listSheetTitle"></div>
+          <div class="text-xs text-zinc-400 mt-0.5" id="listSheetSubtitle"></div>
+        </div>
+        <div class="w-[30px] h-[30px] rounded-full items-center justify-center text-[13px] font-bold text-white shrink-0 hidden" id="listSheetAvatar"></div>
+      </div>
+      <div class="px-4 pb-9" id="listSheetContent"></div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="absolute bottom-0 left-0 right-0 bg-zinc-900/90 backdrop-blur-lg border-t border-zinc-800 flex justify-around items-start px-4 pt-3 pb-8 z-[100]">
+    <a class="flex flex-col items-center gap-1 no-underline text-zebra text-[10px] font-semibold relative cursor-pointer min-w-[56px]" href="lists.html">
+      <div class="absolute -top-3 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-zebra rounded-full"></div>
+      <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+      <span>Listen</span>
+    </a>
+    <a class="flex flex-col items-center gap-1 no-underline text-zinc-500 text-[10px] font-semibold relative cursor-pointer min-w-[56px] hover:text-zinc-400 transition-colors" href="#">
+      <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/></svg>
+      <span>Planen</span>
+    </a>
+    <a class="flex flex-col items-center gap-1 no-underline text-zinc-500 text-[10px] font-semibold relative cursor-pointer min-w-[56px] hover:text-zinc-400 transition-colors" href="#">
+      <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M8.1 13.34l2.83-2.83L3.91 3.5a4.008 4.008 0 000 5.66l4.19 4.18zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3.7 19.87l1.41 1.41L12 14.41l6.88 6.88 1.41-1.41L13.41 13l1.47-1.47z"/></svg>
+      <span>Rezepte</span>
+    </a>
+    <a class="flex flex-col items-center gap-1 no-underline text-zinc-500 text-[10px] font-semibold relative cursor-pointer min-w-[56px] hover:text-zinc-400 transition-colors" href="#">
+      <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
+      <span>Aktivit&auml;t</span>
+      <div class="absolute -top-1 right-1 w-[18px] h-[18px] bg-accent text-white text-[10px] font-bold rounded-full flex items-center justify-center">3</div>
+    </a>
+  </div>
+</div>
+
+<script>
+  // ===== CONSTANTS =====
+  const LIST_ID = new URLSearchParams(window.location.search).get('id') || 'default';
+  const STORAGE_KEY = 'shopzebra_items_' + LIST_ID;
+  const COMPLETED_KEY = 'shopzebra_completed_' + LIST_ID;
+  const CURRENT_USER = 'Du';
+  const FAMILY_MEMBERS = {
+    'Du': { initial: 'D', color: '#4E9DA6' },
+    'Mama': { initial: 'M', color: '#EC70A2' },
+    'Papa': { initial: 'P', color: '#6366F1' },
+    'Lisa': { initial: 'L', color: '#E8A046' }
+  };
+
+  const DEFAULT_ITEMS = [
+    { id: 'apples', emoji: '\u{1F34E}', name: '\u00C4pfel', qty: 2, unit: 'kg', cat: 'fruits-vegetables', addedBy: 'Du' },
+    { id: 'bananas', emoji: '\u{1F34C}', name: 'Bananen', qty: 6, unit: 'St', cat: 'fruits-vegetables', addedBy: 'Du' },
+    { id: 'tomatoes', emoji: '\u{1F345}', name: 'Tomaten', qty: 1, unit: 'kg', cat: 'fruits-vegetables', addedBy: 'Mama' },
+    { id: 'potatoes', emoji: '\u{1F954}', name: 'Kartoffeln', qty: 2, unit: 'kg', cat: 'fruits-vegetables', addedBy: 'Du' },
+    { id: 'cucumber', emoji: '\u{1F952}', name: 'Gurke', qty: 2, unit: 'St', cat: 'fruits-vegetables', addedBy: 'Du' },
+    { id: 'bell-pepper', emoji: '\u{1FAD1}', name: 'Paprika', qty: 3, unit: 'St', cat: 'fruits-vegetables', addedBy: 'Mama' },
+    { id: 'onions', emoji: '\u{1F9C5}', name: 'Zwiebeln', qty: 1, unit: 'Netz', cat: 'fruits-vegetables', addedBy: 'Du' },
+    { id: 'lettuce', emoji: '\u{1F957}', name: 'Salat', qty: 1, unit: 'Kopf', cat: 'fruits-vegetables', addedBy: 'Du' },
+    { id: 'milk', emoji: '\u{1F95B}', name: 'Milch', qty: 2, unit: 'L', cat: 'dairy-cheese', addedBy: 'Mama' },
+    { id: 'gouda', emoji: '\u{1F9C0}', name: 'Gouda', qty: 1, unit: 'Pck', cat: 'dairy-cheese', addedBy: 'Du' },
+    { id: 'yogurt', emoji: '\u{1F963}', name: 'Joghurt', qty: 4, unit: 'St', cat: 'dairy-cheese', addedBy: 'Mama' },
+    { id: 'butter', emoji: '\u{1F9C8}', name: 'Butter', qty: 1, unit: 'St', cat: 'dairy-cheese', addedBy: 'Du' },
+    { id: 'bread', emoji: '\u{1F35E}', name: 'Brot', qty: 1, unit: 'Pck', cat: 'bread-bakery', addedBy: 'Du' },
+    { id: 'rolls', emoji: '\u{1F96F}', name: 'Br\u00F6tchen', qty: 6, unit: 'St', cat: 'bread-bakery', addedBy: 'Papa' },
+    { id: 'ground-meat', emoji: '\u{1F969}', name: 'Hackfleisch', qty: 1, unit: '500g', cat: 'meat-fish', addedBy: 'Papa' },
+    { id: 'chicken', emoji: '\u{1F357}', name: 'H\u00E4hnchenbrust', qty: 1, unit: '400g', cat: 'meat-fish', addedBy: 'Du' },
+    { id: 'salmon', emoji: '\u{1F41F}', name: 'Lachs', qty: 1, unit: '200g', cat: 'meat-fish', addedBy: 'Papa' },
+    { id: 'pasta', emoji: '\u{1F35D}', name: 'Nudeln', qty: 2, unit: 'Pck', cat: 'ingredients-spices', addedBy: 'Lisa' },
+    { id: 'rice', emoji: '\u{1F35A}', name: 'Reis', qty: 1, unit: 'Pck', cat: 'ingredients-spices', addedBy: 'Du' },
+    { id: 'cooking-oil', emoji: '\u{1FAD2}', name: 'Speise\u00F6l', qty: 1, unit: 'Fl', cat: 'ingredients-spices', addedBy: 'Du' },
+    { id: 'tomato-puree', emoji: '\u{1F96B}', name: 'Passierte Tomaten', qty: 2, unit: 'Pck', cat: 'ingredients-spices', addedBy: 'Mama' },
+    { id: 'soy-sauce', emoji: '\u{1F962}', name: 'Sojasauce', qty: 1, unit: 'Fl', cat: 'ingredients-spices', addedBy: 'Du' }
+  ];
+
+  const CATEGORIES = [
+    { id: 'fruits-vegetables', name: 'Obst & Gem\u00FCse', emoji: '\u{1F34E}', color: 'green', totalProducts: 41 },
+    { id: 'dairy-cheese', name: 'Milch & K\u00E4se', emoji: '\u{1F9C0}', color: 'blue', totalProducts: 13 },
+    { id: 'bread-bakery', name: 'Brot & Geb\u00E4ck', emoji: '\u{1F35E}', color: 'yellow', totalProducts: 10 },
+    { id: 'meat-fish', name: 'Fleisch & Fisch', emoji: '\u{1F969}', color: 'red', totalProducts: 12 },
+    { id: 'ingredients-spices', name: 'Zutaten & Gew\u00FCrze', emoji: '\u{1F9C2}', color: 'purple', totalProducts: 39 },
+    { id: 'beverages', name: 'Getr\u00E4nke', emoji: '\u{1F964}', color: 'indigo', totalProducts: 13 },
+    { id: 'breakfast-cereals', name: 'Fr\u00FChst\u00FCck & Cerealien', emoji: '\u{1F963}', color: 'orange', totalProducts: 10 },
+    { id: 'sweets-snacks', name: 'S\u00FC\u00DFes & Snacks', emoji: '\u{1F36B}', color: 'pink', totalProducts: 12 },
+    { id: 'frozen', name: 'Tiefk\u00FChl', emoji: '\u{1F9CA}', color: 'ice', totalProducts: 8 },
+    { id: 'drugstore-household', name: 'Drogerie & Haushalt', emoji: '\u{1F9F4}', color: 'cyan', totalProducts: 20 }
+  ];
+
+  const CATEGORY_SHORT_NAMES = {
+    'fruits-vegetables': 'Obst & Gem\u00FCse', 'dairy-cheese': 'Milch & K\u00E4se',
+    'bread-bakery': 'Brot & Geb\u00E4ck', 'meat-fish': 'Fleisch & Fisch',
+    'ingredients-spices': 'Zutaten & Gew\u00FCrze', 'beverages': 'Getr\u00E4nke',
+    'breakfast-cereals': 'Fr\u00FChst\u00FCck & Cerealien', 'sweets-snacks': 'S\u00FC\u00DFes & Snacks',
+    'frozen': 'Tiefk\u00FChl', 'drugstore-household': 'Drogerie & Haushalt'
+  };
+
+  // Category icon color classes (tailwind)
+  const CAT_ICON_CLASSES = {
+    green: 'bg-cat-green-bg', blue: 'bg-cat-blue-bg', yellow: 'bg-cat-yellow-bg',
+    red: 'bg-cat-red-bg', purple: 'bg-cat-purple-bg', cyan: 'bg-cat-cyan-bg',
+    orange: 'bg-cat-orange-bg', pink: 'bg-cat-pink-bg', indigo: 'bg-cat-indigo-bg', ice: 'bg-cat-ice-bg'
+  };
+  const CAT_CHEVRON_COLORS = {
+    green: '#4ade80', blue: '#60a5fa', yellow: '#facc15', red: '#fb7185',
+    purple: '#a78bfa', cyan: '#22d3ee', orange: '#fb923c', pink: '#f472b6',
+    indigo: '#818cf8', ice: '#67e8f9'
+  };
+
+  const ALL_PRODUCTS = [
+    { id: 'pineapple', emoji: '\u{1F34D}', name: 'Ananas', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'apples', emoji: '\u{1F34E}', name: '\u00C4pfel', unit: 'kg', cat: 'fruits-vegetables' },
+    { id: 'avocado', emoji: '\u{1F951}', name: 'Avocado', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'bananas', emoji: '\u{1F34C}', name: 'Bananen', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'berries', emoji: '\u{1F353}', name: 'Beeren', unit: 'Schale', cat: 'fruits-vegetables' },
+    { id: 'pears', emoji: '\u{1F350}', name: 'Birnen', unit: 'kg', cat: 'fruits-vegetables' },
+    { id: 'pomegranate', emoji: '\u{1F34F}', name: 'Granatapfel', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'cherries', emoji: '\u{1F352}', name: 'Kirschen', unit: 'Schale', cat: 'fruits-vegetables' },
+    { id: 'kiwi', emoji: '\u{1F95D}', name: 'Kiwi', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'coconut', emoji: '\u{1F965}', name: 'Kokosnuss', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'mango', emoji: '\u{1F96D}', name: 'Mango', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'melon', emoji: '\u{1F348}', name: 'Melone', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'stone-fruit', emoji: '\u{1F351}', name: 'Steinobst', unit: 'kg', cat: 'fruits-vegetables' },
+    { id: 'grapes', emoji: '\u{1F347}', name: 'Trauben', unit: 'kg', cat: 'fruits-vegetables' },
+    { id: 'citrus-fruits', emoji: '\u{1F34A}', name: 'Zitrusfr\u00FCchte', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'eggplant', emoji: '\u{1F346}', name: 'Aubergine', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'beans', emoji: '\u{1FAD8}', name: 'Bohnen', unit: '250g', cat: 'fruits-vegetables' },
+    { id: 'broccoli', emoji: '\u{1F966}', name: 'Brokkoli', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'peas', emoji: '\u{1FADB}', name: 'Erbsen', unit: '250g', cat: 'fruits-vegetables' },
+    { id: 'fennel', emoji: '\u{1F331}', name: 'Fenchel', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'cucumber', emoji: '\u{1F952}', name: 'Gurke', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'ginger', emoji: '\u{1FADA}', name: 'Ingwer', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'potatoes', emoji: '\u{1F954}', name: 'Kartoffeln', unit: 'kg', cat: 'fruits-vegetables' },
+    { id: 'garlic', emoji: '\u{1F9C4}', name: 'Knoblauch', unit: 'Knolle', cat: 'fruits-vegetables' },
+    { id: 'cabbage', emoji: '\u{1F96C}', name: 'Kohl', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'pumpkin', emoji: '\u{1F383}', name: 'K\u00FCrbis', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'leek', emoji: '\u{1F3F7}\u{FE0F}', name: 'Lauch', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'corn', emoji: '\u{1F33D}', name: 'Mais', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'carrots', emoji: '\u{1F955}', name: 'M\u00F6hren', unit: 'kg', cat: 'fruits-vegetables' },
+    { id: 'bell-pepper', emoji: '\u{1FAD1}', name: 'Paprika', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'mushrooms', emoji: '\u{1F344}', name: 'Pilze', unit: '200g', cat: 'fruits-vegetables' },
+    { id: 'radishes', emoji: '\u{1F3F7}\u{FE0F}', name: 'Radieschen', unit: 'Bund', cat: 'fruits-vegetables' },
+    { id: 'beetroot', emoji: '\u{1F3F7}\u{FE0F}', name: 'Rote Beete', unit: 'Bund', cat: 'fruits-vegetables' },
+    { id: 'lettuce', emoji: '\u{1F957}', name: 'Salat', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'celery', emoji: '\u{1FAB4}', name: 'Sellerie', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'asparagus', emoji: '\u{1F3F7}\u{FE0F}', name: 'Spargel', unit: 'Bund', cat: 'fruits-vegetables' },
+    { id: 'spinach', emoji: '\u{1F343}', name: 'Spinat', unit: 'Beutel', cat: 'fruits-vegetables' },
+    { id: 'tomatoes', emoji: '\u{1F345}', name: 'Tomaten', unit: 'kg', cat: 'fruits-vegetables' },
+    { id: 'zucchini', emoji: '\u{1F3F7}\u{FE0F}', name: 'Zucchini', unit: 'St', cat: 'fruits-vegetables' },
+    { id: 'onions', emoji: '\u{1F9C5}', name: 'Zwiebeln', unit: 'Netz', cat: 'fruits-vegetables' },
+    { id: 'herbs', emoji: '\u{1F33F}', name: 'Kr\u00E4uter', unit: 'Bund', cat: 'fruits-vegetables' },
+    { id: 'milk', emoji: '\u{1F95B}', name: 'Milch', unit: 'L', cat: 'dairy-cheese' },
+    { id: 'butter', emoji: '\u{1F9C8}', name: 'Butter', unit: 'St', cat: 'dairy-cheese' },
+    { id: 'cheese-slices', emoji: '\u{1F9C0}', name: 'K\u00E4se Scheiben', unit: 'Pck', cat: 'dairy-cheese' },
+    { id: 'cheese-block', emoji: '\u{1F9C0}', name: 'K\u00E4se St\u00FCck', unit: 'St', cat: 'dairy-cheese' },
+    { id: 'cream-cheese', emoji: '\u{1F95B}', name: 'Frischk\u00E4se', unit: 'Becher', cat: 'dairy-cheese' },
+    { id: 'yogurt', emoji: '\u{1F963}', name: 'Joghurt', unit: 'Becher', cat: 'dairy-cheese' },
+    { id: 'quark', emoji: '\u{1F95B}', name: 'Quark', unit: 'Becher', cat: 'dairy-cheese' },
+    { id: 'cream', emoji: '\u{1F95B}', name: 'Sahne', unit: 'Becher', cat: 'dairy-cheese' },
+    { id: 'eggs', emoji: '\u{1F95A}', name: 'Eier', unit: 'Pck', cat: 'dairy-cheese' },
+    { id: 'plant-milk', emoji: '\u{1F95B}', name: 'Pflanzenmilch', unit: 'L', cat: 'dairy-cheese' },
+    { id: 'pudding', emoji: '\u{1F36E}', name: 'Pudding', unit: 'Becher', cat: 'dairy-cheese' },
+    { id: 'margarine', emoji: '\u{1F9C8}', name: 'Margarine', unit: 'Becher', cat: 'dairy-cheese' },
+    { id: 'tofu', emoji: '\u{1F9C8}', name: 'Tofu', unit: 'Pck', cat: 'dairy-cheese' },
+    { id: 'bread', emoji: '\u{1F35E}', name: 'Brot', unit: 'St', cat: 'bread-bakery' },
+    { id: 'rolls', emoji: '\u{1F35E}', name: 'Br\u00F6tchen', unit: 'St', cat: 'bread-bakery' },
+    { id: 'toast', emoji: '\u{1F35E}', name: 'Toast', unit: 'Pck', cat: 'bread-bakery' },
+    { id: 'croissant', emoji: '\u{1F950}', name: 'Croissant', unit: 'St', cat: 'bread-bakery' },
+    { id: 'baguette', emoji: '\u{1F956}', name: 'Baguette', unit: 'St', cat: 'bread-bakery' },
+    { id: 'pretzel', emoji: '\u{1F968}', name: 'Brezel', unit: 'St', cat: 'bread-bakery' },
+    { id: 'cake', emoji: '\u{1F370}', name: 'Kuchen', unit: 'St', cat: 'bread-bakery' },
+    { id: 'tortillas', emoji: '\u{1FAD3}', name: 'Tortillas', unit: 'Pck', cat: 'bread-bakery' },
+    { id: 'crispbread', emoji: '\u{1F35E}', name: 'Kn\u00E4ckebrot', unit: 'Pck', cat: 'bread-bakery' },
+    { id: 'flour', emoji: '\u{1F33E}', name: 'Mehl', unit: 'kg', cat: 'bread-bakery' },
+    { id: 'chicken', emoji: '\u{1F357}', name: 'H\u00E4hnchen', unit: 'g', cat: 'meat-fish' },
+    { id: 'beef', emoji: '\u{1F969}', name: 'Rind', unit: 'g', cat: 'meat-fish' },
+    { id: 'pork', emoji: '\u{1F969}', name: 'Schwein', unit: 'g', cat: 'meat-fish' },
+    { id: 'mixed-ground-meat', emoji: '\u{1F356}', name: 'Hackfleisch gemischt', unit: 'g', cat: 'meat-fish' },
+    { id: 'sausage', emoji: '\u{1F953}', name: 'Wurst', unit: 'Pck', cat: 'meat-fish' },
+    { id: 'bacon', emoji: '\u{1F953}', name: 'Bacon', unit: 'Pck', cat: 'meat-fish' },
+    { id: 'salmon', emoji: '\u{1F99E}', name: 'Lachs', unit: 'g', cat: 'meat-fish' },
+    { id: 'tuna', emoji: '\u{1F41F}', name: 'Thunfisch', unit: 'Dose', cat: 'meat-fish' },
+    { id: 'shrimp', emoji: '\u{1F990}', name: 'Garnelen', unit: 'g', cat: 'meat-fish' },
+    { id: 'fish-sticks', emoji: '\u{1F41F}', name: 'Fischst\u00E4bchen', unit: 'Pck', cat: 'meat-fish' },
+    { id: 'trout', emoji: '\u{1F41F}', name: 'Forelle', unit: 'St', cat: 'meat-fish' },
+    { id: 'meat-substitute', emoji: '\u{1F331}', name: 'Fleischersatz', unit: 'Pck', cat: 'meat-fish' },
+    { id: 'salt', emoji: '\u{1F9C2}', name: 'Salz', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'pepper', emoji: '\u{1F3F7}\u{FE0F}', name: 'Pfeffer', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'olive-oil', emoji: '\u{1FAD2}', name: 'Oliven\u00F6l', unit: 'Fl', cat: 'ingredients-spices' },
+    { id: 'sunflower-oil', emoji: '\u{1FAD2}', name: 'Sonnenblumen\u00F6l', unit: 'Fl', cat: 'ingredients-spices' },
+    { id: 'vinegar', emoji: '\u{1FAD2}', name: 'Essig', unit: 'Fl', cat: 'ingredients-spices' },
+    { id: 'sugar', emoji: '\u{1F3F7}\u{FE0F}', name: 'Zucker', unit: 'kg', cat: 'ingredients-spices' },
+    { id: 'mustard', emoji: '\u{1F3F7}\u{FE0F}', name: 'Senf', unit: 'Glas', cat: 'ingredients-spices' },
+    { id: 'ketchup', emoji: '\u{1F3F7}\u{FE0F}', name: 'Ketchup', unit: 'Fl', cat: 'ingredients-spices' },
+    { id: 'mayo', emoji: '\u{1F3F7}\u{FE0F}', name: 'Mayonnaise', unit: 'Glas', cat: 'ingredients-spices' },
+    { id: 'soy-sauce', emoji: '\u{1F3F7}\u{FE0F}', name: 'Sojasauce', unit: 'Fl', cat: 'ingredients-spices' },
+    { id: 'pasta', emoji: '\u{1F35D}', name: 'Nudeln', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'rice', emoji: '\u{1F35A}', name: 'Reis', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'tomato-puree', emoji: '\u{1F345}', name: 'Passierte Tomaten', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'tomato-paste', emoji: '\u{1F345}', name: 'Tomatenmark', unit: 'Tube', cat: 'ingredients-spices' },
+    { id: 'coconut-milk-can', emoji: '\u{1F965}', name: 'Kokosmilch', unit: 'Dose', cat: 'ingredients-spices' },
+    { id: 'broth', emoji: '\u{1F372}', name: 'Br\u00FChe', unit: 'Glas', cat: 'ingredients-spices' },
+    { id: 'spices', emoji: '\u{1F3F7}\u{FE0F}', name: 'Gew\u00FCrze', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'baking-powder', emoji: '\u{1F3F7}\u{FE0F}', name: 'Backpulver', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'yeast', emoji: '\u{1F3F7}\u{FE0F}', name: 'Hefe', unit: 'W\u00FCrfel', cat: 'ingredients-spices' },
+    { id: 'nuts', emoji: '\u{1F95C}', name: 'N\u00FCsse', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'breadcrumbs', emoji: '\u{1F35E}', name: 'Paniermehl', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'oatmeal', emoji: '\u{1F33E}', name: 'Haferflocken', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'canned-corn', emoji: '\u{1F33D}', name: 'Mais (Dose)', unit: 'Dose', cat: 'ingredients-spices' },
+    { id: 'canned-beans', emoji: '\u{1FAD8}', name: 'Bohnen (Dose)', unit: 'Dose', cat: 'ingredients-spices' },
+    { id: 'lentils', emoji: '\u{1F3F7}\u{FE0F}', name: 'Linsen', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'couscous', emoji: '\u{1F35A}', name: 'Couscous', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'quinoa', emoji: '\u{1F33E}', name: 'Quinoa', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'bulgur', emoji: '\u{1F33E}', name: 'Bulgur', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'asian-noodles', emoji: '\u{1F35C}', name: 'Asia-Nudeln', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'tortellini', emoji: '\u{1F95F}', name: 'Tortellini', unit: 'Pck', cat: 'ingredients-spices' },
+    { id: 'pesto', emoji: '\u{1F33F}', name: 'Pesto', unit: 'Glas', cat: 'ingredients-spices' },
+    { id: 'canned-tomatoes', emoji: '\u{1F345}', name: 'Dosentomaten', unit: 'Dose', cat: 'ingredients-spices' },
+    { id: 'olives', emoji: '\u{1FAD2}', name: 'Oliven', unit: 'Glas', cat: 'ingredients-spices' },
+    { id: 'pickles', emoji: '\u{1F952}', name: 'Gew\u00FCrzgurken', unit: 'Glas', cat: 'ingredients-spices' },
+    { id: 'sauerkraut', emoji: '\u{1F96C}', name: 'Sauerkraut', unit: 'Dose', cat: 'ingredients-spices' },
+    { id: 'curry-paste', emoji: '\u{1F35B}', name: 'Currypaste', unit: 'Glas', cat: 'ingredients-spices' },
+    { id: 'hot-sauce', emoji: '\u{1F336}\u{FE0F}', name: 'Scharfe Sauce', unit: 'Fl', cat: 'ingredients-spices' },
+    { id: 'bbq-sauce', emoji: '\u{1F356}', name: 'BBQ Sauce', unit: 'Fl', cat: 'ingredients-spices' },
+    { id: 'worcester-sauce', emoji: '\u{1F3F7}\u{FE0F}', name: 'Worcestersauce', unit: 'Fl', cat: 'ingredients-spices' },
+    { id: 'water', emoji: '\u{1F4A7}', name: 'Wasser', unit: 'Fl', cat: 'beverages' },
+    { id: 'juice', emoji: '\u{1F9C3}', name: 'Saft', unit: 'L', cat: 'beverages' },
+    { id: 'softdrinks', emoji: '\u{1F964}', name: 'Softdrinks', unit: 'Fl', cat: 'beverages' },
+    { id: 'lemonade', emoji: '\u{1F34B}', name: 'Limonade', unit: 'Fl', cat: 'beverages' },
+    { id: 'iced-tea', emoji: '\u{1F9CA}', name: 'Eistee', unit: 'Fl', cat: 'beverages' },
+    { id: 'energy-drinks', emoji: '\u{26A1}', name: 'Energydrinks', unit: 'Dose', cat: 'beverages' },
+    { id: 'coffee', emoji: '\u{2615}', name: 'Kaffee', unit: 'Pck', cat: 'beverages' },
+    { id: 'tea', emoji: '\u{1F375}', name: 'Tee', unit: 'Pck', cat: 'beverages' },
+    { id: 'cocoa', emoji: '\u{2615}', name: 'Kakao', unit: 'Dose', cat: 'beverages' },
+    { id: 'beer', emoji: '\u{1F37A}', name: 'Bier', unit: 'Fl', cat: 'beverages' },
+    { id: 'wine', emoji: '\u{1F377}', name: 'Wein', unit: 'Fl', cat: 'beverages' },
+    { id: 'sparkling-wine', emoji: '\u{1F942}', name: 'Sekt & Prosecco', unit: 'Fl', cat: 'beverages' },
+    { id: 'spirits', emoji: '\u{1F943}', name: 'Spirituosen', unit: 'Fl', cat: 'beverages' },
+    { id: 'muesli', emoji: '\u{1F963}', name: 'M\u00FCsli', unit: 'Pck', cat: 'breakfast-cereals' },
+    { id: 'cornflakes', emoji: '\u{1F963}', name: 'Cornflakes', unit: 'Pck', cat: 'breakfast-cereals' },
+    { id: 'porridge', emoji: '\u{1F963}', name: 'Porridge', unit: 'Pck', cat: 'breakfast-cereals' },
+    { id: 'cereal-bars', emoji: '\u{1F36B}', name: 'Riegel', unit: 'Pck', cat: 'breakfast-cereals' },
+    { id: 'jam', emoji: '\u{1F353}', name: 'Marmelade', unit: 'Glas', cat: 'breakfast-cereals' },
+    { id: 'honey', emoji: '\u{1F36F}', name: 'Honig', unit: 'Glas', cat: 'breakfast-cereals' },
+    { id: 'chocolate-spread', emoji: '\u{1F36B}', name: 'Nuss-Nougat-Creme', unit: 'Glas', cat: 'breakfast-cereals' },
+    { id: 'peanut-butter', emoji: '\u{1F95C}', name: 'Erdnussbutter', unit: 'Glas', cat: 'breakfast-cereals' },
+    { id: 'syrup', emoji: '\u{1F341}', name: 'Sirup', unit: 'Fl', cat: 'breakfast-cereals' },
+    { id: 'fruit-puree', emoji: '\u{1F34E}', name: 'Fruchtmus', unit: 'Glas', cat: 'breakfast-cereals' },
+    { id: 'chocolate', emoji: '\u{1F36B}', name: 'Schokolade', unit: 'Tafel', cat: 'sweets-snacks' },
+    { id: 'cookies', emoji: '\u{1F36A}', name: 'Kekse', unit: 'Pck', cat: 'sweets-snacks' },
+    { id: 'chips', emoji: '\u{1F954}', name: 'Chips', unit: 'T\u00FCte', cat: 'sweets-snacks' },
+    { id: 'gummy-bears', emoji: '\u{1F36C}', name: 'Fruchtgummi', unit: 'T\u00FCte', cat: 'sweets-snacks' },
+    { id: 'ice-cream', emoji: '\u{1F368}', name: 'Eis', unit: 'Pck', cat: 'sweets-snacks' },
+    { id: 'popcorn', emoji: '\u{1F37F}', name: 'Popcorn', unit: 'T\u00FCte', cat: 'sweets-snacks' },
+    { id: 'salty-snacks', emoji: '\u{1F968}', name: 'Salzgeb\u00E4ck', unit: 'T\u00FCte', cat: 'sweets-snacks' },
+    { id: 'wafers', emoji: '\u{1F9C7}', name: 'Waffeln', unit: 'Pck', cat: 'sweets-snacks' },
+    { id: 'candy', emoji: '\u{1F36C}', name: 'Bonbons', unit: 'T\u00FCte', cat: 'sweets-snacks' },
+    { id: 'trail-mix', emoji: '\u{1F95C}', name: 'Studentenfutter', unit: 'T\u00FCte', cat: 'sweets-snacks' },
+    { id: 'dried-fruits', emoji: '\u{1F347}', name: 'Trockenobst', unit: 'Pck', cat: 'sweets-snacks' },
+    { id: 'pralines', emoji: '\u{1F36C}', name: 'Pralinen', unit: 'Pck', cat: 'sweets-snacks' },
+    { id: 'frozen-pizza', emoji: '\u{1F355}', name: 'TK Pizza', unit: 'Pck', cat: 'frozen' },
+    { id: 'fries', emoji: '\u{1F35F}', name: 'Pommes & Co', unit: 'Pck', cat: 'frozen' },
+    { id: 'frozen-vegetables', emoji: '\u{1F966}', name: 'TK Gem\u00FCse', unit: 'Pck', cat: 'frozen' },
+    { id: 'frozen-fruit', emoji: '\u{1F353}', name: 'TK Obst', unit: 'Pck', cat: 'frozen' },
+    { id: 'frozen-meals', emoji: '\u{1F372}', name: 'TK Fertiggerichte', unit: 'Pck', cat: 'frozen' },
+    { id: 'frozen-rolls', emoji: '\u{1F950}', name: 'Aufbackbr\u00F6tchen', unit: 'Pck', cat: 'frozen' },
+    { id: 'frozen-fish', emoji: '\u{1F41F}', name: 'TK Fisch', unit: 'Pck', cat: 'frozen' },
+    { id: 'frozen-herbs', emoji: '\u{1F33F}', name: 'TK Kr\u00E4uter', unit: 'Pck', cat: 'frozen' },
+    { id: 'toilet-paper', emoji: '\u{1F9FB}', name: 'Toilettenpapier', unit: 'Pck', cat: 'drugstore-household' },
+    { id: 'paper-towels', emoji: '\u{1F9FB}', name: 'K\u00FCchenpapier', unit: 'Pck', cat: 'drugstore-household' },
+    { id: 'dish-soap', emoji: '\u{1F9F4}', name: 'Sp\u00FClmittel', unit: 'Fl', cat: 'drugstore-household' },
+    { id: 'laundry-detergent', emoji: '\u{1F9F4}', name: 'Waschmittel', unit: 'Fl', cat: 'drugstore-household' },
+    { id: 'fabric-softener', emoji: '\u{1F9F4}', name: 'Weichsp\u00FCler', unit: 'Fl', cat: 'drugstore-household' },
+    { id: 'all-purpose-cleaner', emoji: '\u{1F9F4}', name: 'Allzweckreiniger', unit: 'Fl', cat: 'drugstore-household' },
+    { id: 'trash-bags', emoji: '\u{1F5D1}\u{FE0F}', name: 'M\u00FCllbeutel', unit: 'Rolle', cat: 'drugstore-household' },
+    { id: 'aluminum-foil', emoji: '\u{1F3F7}\u{FE0F}', name: 'Alufolie', unit: 'Rolle', cat: 'drugstore-household' },
+    { id: 'cling-wrap', emoji: '\u{1F3F7}\u{FE0F}', name: 'Frischhaltefolie', unit: 'Rolle', cat: 'drugstore-household' },
+    { id: 'sponges', emoji: '\u{1F9FD}', name: 'Schw\u00E4mme', unit: 'Pck', cat: 'drugstore-household' },
+    { id: 'toothpaste', emoji: '\u{1FAA5}', name: 'Zahnpasta', unit: 'Tube', cat: 'drugstore-household' },
+    { id: 'toothbrush', emoji: '\u{1FAA5}', name: 'Zahnb\u00FCrste', unit: 'St', cat: 'drugstore-household' },
+    { id: 'shampoo', emoji: '\u{1F9F4}', name: 'Shampoo', unit: 'Fl', cat: 'drugstore-household' },
+    { id: 'shower-gel', emoji: '\u{1F6BF}', name: 'Duschgel', unit: 'Fl', cat: 'drugstore-household' },
+    { id: 'hand-soap', emoji: '\u{1F9FC}', name: 'Handseife', unit: 'St', cat: 'drugstore-household' },
+    { id: 'deodorant', emoji: '\u{1F3F7}\u{FE0F}', name: 'Deo', unit: 'St', cat: 'drugstore-household' },
+    { id: 'tissues', emoji: '\u{1F3F7}\u{FE0F}', name: 'Taschent\u00FCcher', unit: 'Pck', cat: 'drugstore-household' },
+    { id: 'batteries', emoji: '\u{1F50B}', name: 'Batterien', unit: 'Pck', cat: 'drugstore-household' },
+    { id: 'candles', emoji: '\u{1F56F}\u{FE0F}', name: 'Kerzen', unit: 'Pck', cat: 'drugstore-household' },
+    { id: 'dishwasher-tabs', emoji: '\u{1F3F7}\u{FE0F}', name: 'Sp\u00FCltabs', unit: 'Pck', cat: 'drugstore-household' }
+  ];
+
+  var PRODUCT_VARIANTS = {"apples":["Elstar","Braeburn","Gala","Granny Smith","Pink Lady","Golden Delicious","Jonagold"],"berries":["Erdbeeren","Blaubeeren","Himbeeren","Brombeeren","Johannisbeeren","Stachelbeeren"],"pears":["Conference","Williams","Abate"],"melon":["Wassermelone","Honigmelone","Galiamelone","Cantaloupemelone"],"stone-fruit":["Pfirsiche","Nektarinen","Aprikosen","Pflaumen","Mirabellen"],"grapes":["Wei\u00DFe kernlos","Rote kernlos","Wei\u00DFe","Rote"],"citrus-fruits":["Orangen","Zitronen","Limetten","Mandarinen","Clementinen","Grapefruit","Blutorangen"],"beans":["Gr\u00FCne Bohnen","Kidney-Bohnen","Wei\u00DFe Bohnen"],"peas":["Zuckererbsen","Erbsen TK","Erbsen frisch"],"cucumber":["Salatgurke","Minigurken","Schmorgurke"],"potatoes":["Festkochend","Mehligkochend","Vorwiegend festkochend","Drillinge","S\u00FC\u00DFkartoffeln"],"cabbage":["Rotkohl","Wei\u00DFkohl","Spitzkohl","Chinakohl","Wirsing","Rosenkohl","Blumenkohl","Kohlrabi","Gr\u00FCnkohl"],"pumpkin":["Hokkaido","Butternut","Muskatk\u00FCrbis","Spaghettik\u00FCrbis"],"bell-pepper":["Rot","Gelb","Gr\u00FCn","Orange","Spitzpaprika"],"mushrooms":["Champignons","Kr\u00E4uterseitlinge","Austernpilze","Shiitake","Pfifferlinge"],"lettuce":["Kopfsalat","Eisbergsalat","Feldsalat","Rucola","Romana","Lollo Rosso","Batavia"],"celery":["Knollensellerie","Staudensellerie"],"asparagus":["Wei\u00DFer Spargel","Gr\u00FCner Spargel"],"tomatoes":["Rispentomaten","Cherrytomaten","Roma","Fleischtomaten","Cocktailtomaten"],"onions":["Gelbe Zwiebeln","Rote Zwiebeln","Schalotten","Fr\u00FChlingszwiebeln"],"herbs":["Basilikum","Petersilie","Schnittlauch","Dill","Koriander","Minze","Rosmarin","Thymian","Oregano","Salbei"],"milk":["1,5% fettarm","3,5% Vollmilch","Laktosefrei","H-Milch","Frischmilch"],"butter":["Deutsche Markenbutter","Irische Butter","Sauerrahmbutter"],"cheese-slices":["Gouda","Emmentaler","Edamer","Butterk\u00E4se","Maasdamer","Tilsiter"],"cheese-block":["Parmesan","Gruy\u00E8re","Cheddar","Brie","Camembert","Mozzarella","Feta","Bergk\u00E4se"],"cream-cheese":["Natur","Kr\u00E4uter","Philadelphia","Doppelrahmstufe"],"yogurt":["Naturjoghurt","Griechisch","Fruchtjoghurt","Skyr","Trinkjoghurt"],"quark":["Magerquark","Speisequark 20%","Speisequark 40%","Kr\u00E4uterquark"],"cream":["Schlagsahne","Saure Sahne","Cr\u00E8me fra\u00eeche","Schmand","Kochsahne"],"eggs":["6er Freiland","10er Freiland","6er Bio","10er Bio"],"plant-milk":["Hafermilch","Sojamilch","Mandelmilch","Kokosmilch","Reismilch"],"pudding":["Schoko","Vanille","Griessbrei","Milchreis"],"margarine":["Rama","L\u00E4tta","Becel"],"tofu":["Natur","Ger\u00E4uchert","Seidentofu","Mariniert"],"bread":["Vollkorn","Mischbrot","Roggenbrot","Dinkel","Weizenbrot","Sauerteig","Pumpernickel"],"rolls":["Normal","Vollkorn","K\u00F6rnerbr\u00F6tchen","Laugen","Ciabatta"],"toast":["Weizen","Vollkorn","Buttermilch","K\u00F6rner"],"cake":["Apfelkuchen","K\u00E4sekuchen","Marmorkuchen","Streuselkuchen"],"tortillas":["Weizen","Vollkorn","Mais"],"flour":["Weizenmehl 405","Weizenmehl 550","Dinkelmehl","Vollkornmehl"],"chicken":["Brust","Schenkel","Fl\u00FCgel","Ganzes H\u00E4hnchen","Hackfleisch"],"beef":["Hackfleisch","Steak","Gulasch","Rouladen","Filet"],"pork":["Hackfleisch","Schnitzel","Filet","Kotelett","Gulasch","Bauch"],"sausage":["Salami","Schinken","Mortadella","Leberwurst","Lyoner","Wiener W\u00FCrstchen"],"salmon":["Frisch","R\u00E4ucherlachs","TK Filet"],"tuna":["In \u00D6l","In Wasser","Im eigenen Saft"],"shrimp":["Frisch","TK","Riesengarnelen"],"meat-substitute":["Beyond Burger","Veganes Hack","Vegane Nuggets","Seitan","Tempeh"],"olive-oil":["Extra Vergine","Zum Braten"],"vinegar":["Balsamico","Wei\u00DFweinessig","Apfelessig"],"sugar":["Wei\u00DF","Braun","Puderzucker","Vanillezucker"],"mustard":["Mittelscharf","S\u00FC\u00DF","Dijon"],"pasta":["Spaghetti","Penne","Fusilli","Farfalle","Tagliatelle","Lasagneplatten"],"rice":["Basmati","Jasmin","Langkorn","Risotto","Sushi-Reis"],"broth":["Gem\u00FCse","H\u00FChner","Rinder"],"spices":["Paprika","Curry","Kurkuma","Zimt","Muskat","Kreuzk\u00FCmmel","Chilliflocken","Oregano getr."],"yeast":["Frische Hefe","Trockenhefe"],"nuts":["Waln\u00FCsse","Mandeln","Haseln\u00FCsse","Cashews","Erdn\u00FCsse","Pinienkerne"],"oatmeal":["Zart","Kernig"],"canned-beans":["Kidneybohnen","Kichererbsen","Wei\u00DFe Bohnen"],"lentils":["Rote Linsen","Belugalinsen","Tellerlinsen"],"asian-noodles":["Glasnudeln","Reisnudeln","Udon","Mie-Nudeln"],"tortellini":["K\u00E4se","Fleisch","Spinat"],"pesto":["Basilikum","Rosso","Rucola"],"canned-tomatoes":["Gehackt","Ganz","St\u00FCckig"],"olives":["Gr\u00FCn","Schwarz","Kalamata"],"curry-paste":["Rot","Gelb","Gr\u00FCn"],"hot-sauce":["Sambal Oelek","Sriracha","Tabasco","Harissa"],"laundry-detergent":["Fl\u00FCssig","Pulver","Pods/Caps"],"batteries":["AA","AAA","9V"],"water":["Still","Medium","Sprudel"],"juice":["Apfelsaft","Orangensaft","Multivitamin","Traubensaft","Tomatensaft","Apfelschorle"],"softdrinks":["Cola","Fanta","Sprite","Spezi","Schwip Schwap"],"lemonade":["Zitrone","Bionade","Fritz-Limo","Almdudler"],"iced-tea":["Pfirsich","Zitrone","Waldbeere"],"coffee":["Filterkaffee","Espresso Bohnen","Pads","Kapseln","Instant","Ganze Bohne"],"tea":["Schwarztee","Gr\u00FCntee","Kr\u00E4utertee","Fr\u00FCchtetee","Kamille","Pfefferminze","Rooibos","Ingwertee"],"cocoa":["Kakaopulver","Trinkschokolade","Ovomaltine"],"beer":["Pils","Weizen","Helles","Alkoholfrei","Radler","Kellerbier"],"wine":["Rotwein","Wei\u00DFwein","Ros\u00E9"],"sparkling-wine":["Sekt","Prosecco","Champagner"],"spirits":["Gin","Wodka","Rum","Whisky","Lik\u00F6r"],"muesli":["Fr\u00FCchtem\u00FCsli","Schokom\u00FCsli","Nussm\u00FCsli","Knusperm\u00FCsli","Bircher M\u00FCsli","Protein M\u00FCsli"],"cornflakes":["Classic","Schoko","Zimtflakes","Smacks","Crunchy Nut"],"porridge":["Classic","Schoko","Beeren","Apfel-Zimt"],"cereal-bars":["M\u00FCsliriegel","Proteinriegel","Fruchtriegel","Schokoriegel","Haferriegel"],"jam":["Erdbeere","Aprikose","Himbeere","Kirsche","Mehrfrucht","Bitterorange"],"honey":["Bl\u00FCtenhonig","Waldhonig","Akazienhonig","Rapshonig"],"chocolate-spread":["Nutella","Ovomaltine","Nudossi"],"peanut-butter":["Crunchy","Creamy"],"syrup":["Ahornsirup","Agavendicksaft","Zuckerr\u00FCbensirup"],"fruit-puree":["Apfelmus","Mangomus","Birnenmus"],"chocolate":["Vollmilch","Zartbitter","Wei\u00DF","Nuss","Karamell","Marzipan"],"cookies":["Butterkekse","Schokokekse","Doppelkekse","Haferkekse","Spekulatius"],"chips":["Paprika","Salz","Sour Cream","Ungarisch","Chili"],"gummy-bears":["Goldb\u00E4ren","Saure","Cola-Fl\u00E4schchen","Lakritz"],"ice-cream":["Vanille","Schoko","Erdbeere","Am Stiel","Becher","Magnum"],"popcorn":["S\u00FC\u00DF","Salzig","Karamell"],"salty-snacks":["Salzstangen","Mini-Brezeln","Cracker","Erdnussflips"],"wafers":["Schoko-Waffeln","Eiswaffeln","Stroopwafels"],"candy":["Fruchtbonbons","Karamell","Husten-Bonbons","Toffee"],"dried-fruits":["Rosinen","Cranberries","Datteln","Feigen","Aprikosen"],"pralines":["Ferrero","Merci","Lindt","Mon Ch\u00E9ri"],"frozen-pizza":["Margherita","Salami","Spinat","Thunfisch","Hawaii","Vier K\u00E4se"],"fries":["Pommes Frites","Wedges","Kroketten","S\u00FC\u00DFkartoffel-Pommes","R\u00F6sti"],"frozen-vegetables":["Erbsen","Brokkoli","Spinat","Rahmspinat","Mischgem\u00FCse","Kaisergem\u00FCse"],"frozen-fruit":["Beeren-Mix","Himbeeren","Mango","Erdbeeren"],"frozen-meals":["Lasagne","Schnitzel","Gulasch","Currywurst","Chicken Nuggets"],"frozen-rolls":["Normal","Laugenbr\u00F6tchen","Ciabatta"],"frozen-fish":["Fischst\u00E4bchen","Schlemmerfilet","Lachsfilet","Backfisch"],"frozen-herbs":["8-Kr\u00E4uter","Petersilie","Schnittlauch","Basilikum"]};
+
+  ALL_PRODUCTS.forEach(function(p) { if (PRODUCT_VARIANTS[p.id]) p.variants = PRODUCT_VARIANTS[p.id]; });
+
+  // ===== STORAGE =====
+  var CUSTOM_VARIANTS_KEY = 'shopzebra_custom_variants_' + LIST_ID;
+  var NOTES_KEY = 'shopzebra_notes_' + LIST_ID;
+
+  function loadCustomVariants(pid) { var s = localStorage.getItem(CUSTOM_VARIANTS_KEY); var a = {}; if (s) { try { a = JSON.parse(s); } catch(e) {} } return a[pid] || []; }
+  function saveCustomVariant(pid, name) { var s = localStorage.getItem(CUSTOM_VARIANTS_KEY); var a = {}; if (s) { try { a = JSON.parse(s); } catch(e) {} } if (!a[pid]) a[pid] = []; if (!a[pid].includes(name)) a[pid].push(name); localStorage.setItem(CUSTOM_VARIANTS_KEY, JSON.stringify(a)); }
+  function makeVariantId(pid, v) { return pid + '--' + v; }
+  function loadNotes() { var s = localStorage.getItem(NOTES_KEY); if (s) { try { return JSON.parse(s); } catch(e) {} } return {}; }
+  function saveNote(pid, t) { var n = loadNotes(); if (t) n[pid] = t; else delete n[pid]; localStorage.setItem(NOTES_KEY, JSON.stringify(n)); }
+  function getNote(pid) { return loadNotes()[pid] || ''; }
+
+  let completedExpanded = false;
+  var listLongPressTriggered = false;
+
+  function loadItems() { const s = localStorage.getItem(STORAGE_KEY); if (s === null) { localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_ITEMS)); return [...DEFAULT_ITEMS]; } try { return JSON.parse(s); } catch(e) { return [...DEFAULT_ITEMS]; } }
+  function saveItems(items) { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
+  function loadCompleted() { const s = localStorage.getItem(COMPLETED_KEY); if (!s) return []; try { return JSON.parse(s); } catch(e) { return []; } }
+  function saveCompleted(items) { localStorage.setItem(COMPLETED_KEY, JSON.stringify(items)); }
+
+  function countUniqueProducts(items) { var seen = {}; items.forEach(function(i) { seen[i.parentId || i.id] = true; }); return Object.keys(seen).length; }
+
+  // ===== PROGRESS =====
+  function updateProgress() {
+    const ai = loadItems(), ci = loadCompleted();
+    const total = countUniqueProducts(ai) + countUniqueProducts(ci);
+    const done = countUniqueProducts(ci);
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+    const ps = document.getElementById('progressSection');
+    if (total === 0) { ps.style.display = 'none'; } else {
+      ps.style.display = '';
+      document.getElementById('progressText').textContent = done + ' von ' + total + ' erledigt';
+      document.getElementById('progressPercent').textContent = pct + '%';
+      document.getElementById('progressFill').style.width = pct + '%';
+    }
+    document.getElementById('cartCount').textContent = total + ' Artikel';
+  }
+
+  // ===== ACTIVE GRID =====
+  function renderActiveGrid() {
+    const ai = loadItems(), ci = loadCompleted();
+    const grid = document.getElementById('activeGrid');
+    if (ai.length === 0 && ci.length > 0) {
+      grid.style.display = 'none';
+      document.getElementById('progressSection').style.display = 'none';
+      document.getElementById('completedSection').style.display = 'none';
+      const cel = document.getElementById('celebrationContainer');
+      document.getElementById('celebrationSubtitle').textContent = 'Alle ' + ci.length + ' Artikel erledigt';
+      cel.className = 'flex flex-col items-center justify-center py-8 px-4 text-center relative animate-celebrate-in';
+      spawnConfetti();
+      return;
+    }
+    grid.style.display = '';
+    document.getElementById('celebrationContainer').className = 'hidden flex-col items-center justify-center py-8 px-4 text-center';
+    if (ai.length === 0) {
+      grid.innerHTML = '<div class="col-span-3 text-zinc-500 text-[13px] font-medium text-center py-3">Noch keine Produkte ausgew\u00E4hlt</div>';
+    } else {
+      var groups = {}, order = [];
+      ai.forEach(function(item) { var k = item.parentId || item.id; if (!groups[k]) { groups[k] = { items: [], emoji: item.emoji, unit: item.unit, cat: item.cat }; order.push(k); } groups[k].items.push(item); });
+      var catOrder = CATEGORIES.map(function(c) { return c.id; });
+      order.sort(function(a, b) { var ca = catOrder.indexOf(groups[a].cat), cb = catOrder.indexOf(groups[b].cat); if (ca === -1) ca = 999; if (cb === -1) cb = 999; return ca - cb; });
+      grid.innerHTML = order.map(function(key) {
+        var g = groups[key], product = ALL_PRODUCTS.find(function(p) { return p.id === key; });
+        var name = product ? product.name : g.items[0].name;
+        var variants = g.items.filter(function(i) { return !!i.parentId; });
+        var generic = g.items.find(function(i) { return !i.parentId; });
+        var statusHtml = '';
+        if (variants.length > 0) { var st = variants.length === 1 ? variants[0].name : variants.length + ' Sorten'; if (generic && generic.qty > 1) st += ' \u00B7 ' + generic.qty + ' ' + g.unit; statusHtml = '<span class="text-[8px] font-semibold text-zebra text-center max-w-full px-1 leading-tight overflow-hidden text-ellipsis whitespace-nowrap block">' + st + '</span>'; }
+        var avatarHtml = '', addedBy = g.items[0].addedBy;
+        if (addedBy && addedBy !== CURRENT_USER && FAMILY_MEMBERS[addedBy]) { avatarHtml = '<span class="absolute bottom-[3px] left-[3px] w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] font-bold bg-zinc-800 text-zinc-500 z-[2]" title="' + addedBy + '">' + FAMILY_MEMBERS[addedBy].initial + '</span>'; }
+        var noteHtml = '';
+        if (getNote(key)) { noteHtml = '<span class="absolute top-1 right-1 w-3 h-3 opacity-35"><svg class="w-3 h-3 fill-zinc-400" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></span>'; }
+        return '<div class="relative p-2 rounded-xl bg-zinc-800/50 border border-zinc-700/40 flex flex-col items-center justify-center gap-0.5 cursor-pointer select-none min-h-[68px] transition-all duration-150 hover:bg-zinc-700/40 hover:border-zinc-600/50 tile-press" onclick="checkOffItem(\'' + key + '\')" data-id="' + key + '">' + noteHtml + avatarHtml + '<span class="text-[22px] leading-none">' + g.emoji + '</span><span class="text-[9px] font-medium text-zinc-400 text-center max-w-full px-1 leading-tight line-clamp-1">' + name + '</span>' + statusHtml + '</div>';
+      }).join('');
+    }
+  }
+
+  // ===== COMPLETED =====
+  function renderCompletedSection() {
+    const ci = loadCompleted();
+    const sec = document.getElementById('completedSection');
+    if (ci.length === 0) { sec.style.display = 'none'; return; }
+    sec.style.display = '';
+    const chevron = document.getElementById('completedChevronIcon');
+    const grid = document.getElementById('completedGrid');
+    if (completedExpanded) { chevron.style.transform = 'rotate(90deg)'; grid.classList.add('expanded'); }
+    else { chevron.style.transform = ''; grid.classList.remove('expanded'); }
+    var cG = {}, cO = [];
+    ci.forEach(function(item) { var k = item.parentId || item.id; if (!cG[k]) { cG[k] = { items: [], emoji: item.emoji, unit: item.unit }; cO.push(k); } cG[k].items.push(item); });
+    document.getElementById('completedCountBadge').textContent = cO.length;
+    grid.innerHTML = cO.map(function(key) {
+      var g = cG[key], product = ALL_PRODUCTS.find(function(p) { return p.id === key; });
+      var name = product ? product.name : g.items[0].name;
+      var variants = g.items.filter(function(i) { return !!i.parentId; });
+      var statusHtml = '';
+      if (variants.length > 0) { statusHtml = '<span class="text-[8px] font-semibold text-zebra/50 text-center max-w-full px-1 leading-tight overflow-hidden text-ellipsis whitespace-nowrap block">' + (variants.length === 1 ? variants[0].name : variants.length + ' Sorten') + '</span>'; }
+      var avatarHtml = '', addedBy = g.items[0].addedBy;
+      if (addedBy && addedBy !== CURRENT_USER && FAMILY_MEMBERS[addedBy]) { avatarHtml = '<span class="absolute bottom-[3px] left-[3px] w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] font-bold bg-zinc-800 text-zinc-600 z-[2] opacity-40">' + FAMILY_MEMBERS[addedBy].initial + '</span>'; }
+      return '<div class="relative p-2 rounded-xl bg-zinc-800/20 border border-zinc-800/50 flex flex-col items-center justify-center gap-0.5 cursor-pointer select-none min-h-[68px] opacity-40 transition-all hover:opacity-60 tile-press" onclick="restoreItem(\'' + key + '\')" data-id="' + key + '">' + avatarHtml + '<span class="text-[20px] leading-none grayscale-[30%]">' + g.emoji + '</span><span class="text-[9px] font-medium text-zinc-600 text-center max-w-full px-1 leading-tight line-clamp-1 line-through decoration-zinc-600">' + name + '</span>' + statusHtml + '</div>';
+    }).join('');
+  }
+
+  // ===== CHECK OFF / RESTORE =====
+  function checkOffItem(pk) {
+    if (listLongPressTriggered) { listLongPressTriggered = false; return; }
+    const items = loadItems();
+    const toCheck = items.filter(function(i) { return i.id === pk || i.parentId === pk; });
+    if (toCheck.length === 0) return;
+    if (navigator.vibrate) navigator.vibrate(15);
+    saveItems(items.filter(function(i) { return i.id !== pk && i.parentId !== pk; }));
+    const completed = loadCompleted(); toCheck.forEach(function(i) { completed.unshift(i); }); saveCompleted(completed);
+    updateProgress(); renderActiveGrid(); renderCompletedSection(); updateCategoryBadges();
+  }
+  function restoreItem(pk) {
+    const completed = loadCompleted();
+    const toRestore = completed.filter(function(i) { return i.id === pk || i.parentId === pk; });
+    if (toRestore.length === 0) return;
+    saveCompleted(completed.filter(function(i) { return i.id !== pk && i.parentId !== pk; }));
+    const items = loadItems(); toRestore.forEach(function(i) { items.push(i); }); saveItems(items);
+    if (navigator.vibrate) navigator.vibrate(10);
+    updateProgress(); renderActiveGrid(); renderCompletedSection(); updateCategoryBadges();
+  }
+  function resetList() { saveItems([]); saveCompleted([]); completedExpanded = false; updateProgress(); renderActiveGrid(); renderCompletedSection(); updateCategoryBadges(); }
+
+  // ===== CONFETTI =====
+  function spawnConfetti() {
+    const c = document.getElementById('confettiContainer'); c.innerHTML = '';
+    const colors = ['#4E9DA6','#E8923A','#4ade80','#fb7185','#a78bfa','#facc15','#60a5fa'];
+    for (let i = 0; i < 40; i++) {
+      const p = document.createElement('div'); p.className = 'confetti-piece';
+      p.style.left = Math.random()*100+'%'; p.style.backgroundColor = colors[Math.floor(Math.random()*colors.length)];
+      p.style.animationDuration = (1.5+Math.random()*1.5)+'s'; p.style.animationDelay = (Math.random()*0.5)+'s';
+      p.style.width = (5+Math.random()*6)+'px'; p.style.height = (5+Math.random()*6)+'px';
+      p.style.borderRadius = Math.random()>0.5?'50%':'2px'; c.appendChild(p);
+    }
+    setTimeout(function() { c.innerHTML = ''; }, 3500);
+  }
+
+  // ===== CATEGORIES =====
+  function updateCategoryBadges() {
+    const all = loadItems().concat(loadCompleted());
+    CATEGORIES.forEach(function(cat) {
+      const el = document.querySelector('[data-cat-badge="'+cat.id+'"]');
+      if (!el) return;
+      const n = all.filter(function(i) { return i.cat === cat.id; }).length;
+      if (n > 0) { el.textContent = n + ' gew\u00E4hlt'; el.style.display = ''; } else { el.style.display = 'none'; }
+    });
+  }
+  function renderCategories() {
+    const all = loadItems().concat(loadCompleted());
+    document.getElementById('categoryList').innerHTML = CATEGORIES.map(function(cat) {
+      const n = all.filter(function(i) { return i.cat === cat.id; }).length;
+      return '<a class="flex items-center rounded-2xl border border-zinc-800 bg-zinc-800/30 p-4 no-underline text-inherit cursor-pointer transition-all hover:bg-zinc-700/30 hover:border-zinc-700/60 active:scale-[0.98]" href="category.html?list=' + LIST_ID + '&cat=' + cat.id + '">' +
+        '<div class="w-12 h-12 rounded-full ' + (CAT_ICON_CLASSES[cat.color]||'') + ' flex items-center justify-center text-2xl shrink-0 mr-4">' + cat.emoji + '</div>' +
+        '<div class="flex-1 min-w-0"><div class="text-[15px] font-bold tracking-tight">' + cat.name + '</div><div class="text-xs text-zinc-500">' + cat.totalProducts + ' Produkte</div></div>' +
+        '<div class="flex items-center gap-2.5 shrink-0">' +
+          '<span class="text-[11px] font-bold text-zebra bg-zebra-dim px-2.5 py-1 rounded-lg ' + (n > 0 ? '' : 'hidden') + '" data-cat-badge="' + cat.id + '" style="' + (n > 0 ? '' : 'display:none') + '">' + (n > 0 ? n + ' gew\u00E4hlt' : '') + '</span>' +
+          '<svg class="w-4 h-4 opacity-30" viewBox="0 0 14 14" fill="none" stroke="' + (CAT_CHEVRON_COLORS[cat.color]||'#71717a') + '" stroke-width="2" stroke-linecap="round"><path d="M5 2l5 5-5 5"/></svg>' +
+        '</div></a>';
+    }).join('');
+  }
+
+  // ===== COMPLETED TOGGLE =====
+  document.getElementById('completedToggle').addEventListener('click', function() { completedExpanded = !completedExpanded; renderCompletedSection(); });
+
+  // ===== DETAIL SHEET =====
+  var listSheetItemId = null, listLongPressTimer = null, listTouchStartPos = null;
+
+  function openListSheet(pk) {
+    var items = loadItems();
+    var gi = items.filter(function(i) { return i.id === pk || i.parentId === pk; });
+    if (gi.length === 0) return;
+    listSheetItemId = pk;
+    var product = ALL_PRODUCTS.find(function(p) { return p.id === pk; });
+    document.getElementById('listSheetEmoji').textContent = gi[0].emoji;
+    document.getElementById('listSheetTitle').textContent = product ? product.name : gi[0].name;
+    var variants = gi.filter(function(i) { return !!i.parentId; });
+    var addedBy = gi[0].addedBy;
+    var parts = [];
+    var cn = CATEGORY_SHORT_NAMES[gi[0].cat] || '';
+    if (cn) parts.push(cn);
+    if (addedBy && addedBy !== CURRENT_USER) parts.push('von ' + addedBy);
+    if (variants.length > 0 && parts.length > 0) parts.push(variants.length + ' Varianten');
+    document.getElementById('listSheetSubtitle').textContent = parts.join(' \u00B7 ') || 'Details';
+    var av = document.getElementById('listSheetAvatar');
+    if (addedBy && addedBy !== CURRENT_USER && FAMILY_MEMBERS[addedBy]) { av.textContent = FAMILY_MEMBERS[addedBy].initial; av.style.background = FAMILY_MEMBERS[addedBy].color; av.style.display = 'flex'; }
+    else { av.style.display = 'none'; }
+    renderListSheetContent();
+    var bd = document.getElementById('listSheetBackdrop');
+    bd.style.opacity = '1'; bd.style.pointerEvents = 'auto';
+    var sh = document.getElementById('listSheet');
+    sh.style.transform = 'translateY(0)'; sh.style.transition = 'transform 0.35s cubic-bezier(0.32,0.72,0,1)';
+  }
+  function closeListSheet() {
+    var bd = document.getElementById('listSheetBackdrop');
+    bd.style.opacity = '0'; bd.style.pointerEvents = 'none';
+    var sh = document.getElementById('listSheet');
+    sh.style.transform = 'translateY(100%)';
+    listSheetItemId = null;
+    updateProgress(); renderActiveGrid(); renderCompletedSection(); updateCategoryBadges();
+  }
+  function renderListSheetContent() {
+    var pk = listSheetItemId, items = loadItems();
+    var gi = items.filter(function(i) { return i.id === pk || i.parentId === pk; });
+    if (gi.length === 0) return;
+    var product = ALL_PRODUCTS.find(function(p) { return p.id === pk; });
+    var generic = gi.find(function(i) { return !i.parentId; });
+    var unit = gi[0].unit, html = '';
+    var allV = (product && product.variants) ? product.variants.slice() : [];
+    var custom = loadCustomVariants(pk);
+    custom.forEach(function(c) { if (allV.indexOf(c) === -1) allV.push(c); });
+    if (allV.length > 0) {
+      html += '<div class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider pt-3 pb-2 px-1">Varianten</div>';
+      html += '<div class="flex flex-wrap gap-2 pb-2">';
+      allV.forEach(function(v) {
+        var vid = makeVariantId(pk, v);
+        var isSel = gi.some(function(i) { return i.id === vid; });
+        var ev = v.replace(/'/g, "\\'");
+        html += '<button class="px-3.5 py-2 rounded-lg text-[13px] font-medium transition-all active:scale-95 border ' + (isSel ? 'border-zebra-border bg-zebra-dim text-zinc-100' : 'border-zinc-700 bg-zinc-800/50 text-zinc-400 hover:bg-zinc-700/50') + '" onclick="toggleListVariant(\'' + ev + '\')">' + v + '</button>';
+      });
+      html += '</div>';
+    }
+    html += '<div class="flex items-center gap-2 py-1 pb-2"><input type="text" id="listCustomVariantInput" placeholder="Eigene Sorte hinzuf\u00FCgen..." class="flex-1 px-3.5 py-2 rounded-lg border border-dashed border-zinc-700 bg-transparent text-zinc-100 text-[13px] font-medium outline-none transition-colors focus:border-zebra placeholder:text-zinc-600" oninput="onListCustomInput(this)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();addListCustomVariant()}"><button class="w-8 h-8 rounded-full bg-zebra text-white text-lg font-bold flex items-center justify-center shrink-0 transition-all active:scale-90 opacity-30 pointer-events-none" id="listCustomAddBtn" onclick="addListCustomVariant()">+</button></div>';
+    var gQty = generic ? generic.qty : 1;
+    html += '<div class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider pt-3 pb-2 px-1">Menge (' + unit + ')</div>';
+    html += '<div class="flex gap-2 pb-2">';
+    var isCustomQ = gQty > 5;
+    for (var i = 1; i <= 5; i++) {
+      var sel = (!isCustomQ && gQty === i);
+      html += '<button class="w-[42px] h-[42px] rounded-xl text-[15px] font-semibold flex items-center justify-center transition-all active:scale-95 border ' + (sel ? 'border-zebra-border bg-zebra-dim text-zebra font-bold' : 'border-zinc-700 bg-zinc-800/50 text-zinc-400 hover:bg-zinc-700/50') + '" onclick="setListItemQty(' + i + ')">' + i + '</button>';
+    }
+    html += '<input type="number" class="w-[42px] h-[42px] rounded-xl text-center text-[15px] font-semibold outline-none transition-all border border-dashed ' + (isCustomQ ? 'border-zebra-border bg-zebra-dim text-zebra font-bold border-solid' : 'border-zinc-700 bg-zinc-800/50 text-zinc-400') + ' [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:border-zebra focus:border-solid focus:text-zebra" placeholder="..." value="' + (isCustomQ ? gQty : '') + '" min="1" max="99" onfocus="this.select()" oninput="onListQtyCustomInput(this)" onkeydown="if(event.key===\'Enter\'){this.blur()}">';
+    html += '</div>';
+    var currentNote = getNote(pk);
+    var en = currentNote.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    html += '<textarea class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-700 bg-transparent text-zinc-500 text-[13px] font-medium outline-none transition-all resize-none overflow-hidden leading-relaxed min-h-[38px] max-h-[58px] mt-2 mb-0.5 focus:border-zebra focus:text-zinc-100 placeholder:text-zinc-600" id="listNoteInput" placeholder="Notiz hinzuf\u00FCgen\u2026" maxlength="100" rows="1" oninput="onListNoteInput(this)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.blur()}">' + en + '</textarea>';
+    html += '<div class="text-[10px] text-zinc-600 text-right px-1 pb-1.5 opacity-0 transition-opacity [textarea:focus+&]:opacity-100" id="listNoteCharCount">' + currentNote.length + '/100</div>';
+    html += '<button class="w-full py-3 rounded-xl border border-danger-border bg-danger-dim text-red-400 text-sm font-semibold transition-all active:scale-[0.98] active:opacity-80 mt-2 hover:bg-red-500/15" onclick="removeListItem()">Von der Liste entfernen</button>';
+    document.getElementById('listSheetContent').innerHTML = html;
+    var noteEl = document.getElementById('listNoteInput');
+    if (noteEl && noteEl.value) { noteEl.style.height = 'auto'; noteEl.style.height = Math.min(noteEl.scrollHeight, 58) + 'px'; }
+    // Wire up char count visibility
+    if (noteEl) {
+      noteEl.addEventListener('focus', function() { document.getElementById('listNoteCharCount').style.opacity = '1'; });
+      noteEl.addEventListener('blur', function() { document.getElementById('listNoteCharCount').style.opacity = '0'; });
+    }
+  }
+
+  function toggleListVariant(vn) { var pk = listSheetItemId, vid = makeVariantId(pk, vn), items = loadItems(); var idx = items.findIndex(function(i) { return i.id === vid; }); if (idx !== -1) items.splice(idx, 1); else { var p = ALL_PRODUCTS.find(function(pp) { return pp.id === pk; }); if (p) items.push({ id: vid, parentId: pk, emoji: p.emoji, name: vn, qty: 1, unit: p.unit, cat: p.cat, addedBy: CURRENT_USER }); } saveItems(items); renderListSheetContent(); }
+  function onListCustomInput(input) { document.getElementById('listCustomAddBtn').style.opacity = input.value.trim().length > 0 ? '1' : '0.3'; document.getElementById('listCustomAddBtn').style.pointerEvents = input.value.trim().length > 0 ? 'auto' : 'none'; }
+  function addListCustomVariant() { var input = document.getElementById('listCustomVariantInput'), name = input.value.trim(); if (!name || !listSheetItemId) return; var pk = listSheetItemId, p = ALL_PRODUCTS.find(function(pp) { return pp.id === pk; }); if (!p) return; saveCustomVariant(pk, name); var vid = makeVariantId(pk, name), items = loadItems(); if (!items.some(function(i) { return i.id === vid; })) { items.push({ id: vid, parentId: pk, emoji: p.emoji, name: name, qty: 1, unit: p.unit, cat: p.cat, addedBy: CURRENT_USER }); saveItems(items); } renderListSheetContent(); }
+  function onListNoteInput(el) { var t = el.value.substring(0, 100); saveNote(listSheetItemId, t); document.getElementById('listNoteCharCount').textContent = t.length + '/100'; el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 58) + 'px'; }
+  function setListItemQty(qty) { var items = loadItems(); var item = items.find(function(i) { return i.id === listSheetItemId && !i.parentId; }); if (item) item.qty = qty; else { item = items.find(function(i) { return i.id === listSheetItemId || i.parentId === listSheetItemId; }); if (item) item.qty = qty; } saveItems(items); renderListSheetContent(); }
+  function onListQtyCustomInput(input) { var v = parseInt(input.value, 10); if (v > 0 && v <= 99) { setListItemQty(v); } }
+  function removeListItem() { saveItems(loadItems().filter(function(i) { return i.id !== listSheetItemId && i.parentId !== listSheetItemId; })); saveNote(listSheetItemId, ''); closeListSheet(); }
+
+  // ===== LONG PRESS =====
+  var activeGrid = document.getElementById('activeGrid');
+  activeGrid.addEventListener('touchstart', function(e) { var t = e.target.closest('[data-id]'); if (!t) return; var id = t.dataset.id; listTouchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY }; listLongPressTriggered = false; listLongPressTimer = setTimeout(function() { listLongPressTriggered = true; openListSheet(id); }, 500); }, { passive: true });
+  activeGrid.addEventListener('touchmove', function(e) { if (!listLongPressTimer) return; if (listTouchStartPos) { var dx = e.touches[0].clientX - listTouchStartPos.x, dy = e.touches[0].clientY - listTouchStartPos.y; if (Math.abs(dx) > 10 || Math.abs(dy) > 10) { clearTimeout(listLongPressTimer); listLongPressTimer = null; } } }, { passive: true });
+  activeGrid.addEventListener('touchend', function() { clearTimeout(listLongPressTimer); listLongPressTimer = null; });
+  activeGrid.addEventListener('mousedown', function(e) { var t = e.target.closest('[data-id]'); if (!t) return; listLongPressTriggered = false; listLongPressTimer = setTimeout(function() { listLongPressTriggered = true; openListSheet(t.dataset.id); }, 500); });
+  activeGrid.addEventListener('mouseup', function() { clearTimeout(listLongPressTimer); listLongPressTimer = null; });
+  activeGrid.addEventListener('mouseleave', function() { clearTimeout(listLongPressTimer); listLongPressTimer = null; });
+
+  // ===== GLOBAL SEARCH =====
+  function isItemOnList(pid) { var all = loadItems().concat(loadCompleted()); return all.some(function(i) { return i.id === pid || i.parentId === pid; }); }
+  function handleGlobalSearch() {
+    var q = document.getElementById('globalSearchInput').value.toLowerCase().trim();
+    var cb = document.getElementById('globalSearchClear'), rs = document.getElementById('searchResults'), cs = document.getElementById('categoriesSection');
+    if (q.length > 0) { cb.style.display = 'flex'; } else { cb.style.display = 'none'; }
+    if (q.length === 0) { rs.style.display = 'none'; cs.style.display = ''; return; }
+    cs.style.display = 'none'; rs.style.display = '';
+    var filtered = ALL_PRODUCTS.filter(function(p) { return p.name.toLowerCase().indexOf(q) !== -1; });
+    var label = document.getElementById('searchResultsLabel'), grid = document.getElementById('searchResultsGrid');
+    if (filtered.length === 0) { label.textContent = ''; grid.innerHTML = '<div class="col-span-3 flex flex-col items-center py-8 gap-2"><div class="text-4xl">\u{1F50D}</div><div class="text-sm text-zinc-400">Kein Produkt gefunden</div></div>'; return; }
+    label.textContent = filtered.length + ' Ergebnisse';
+    grid.innerHTML = filtered.map(function(p) {
+      var on = isItemOnList(p.id), cn = CATEGORY_SHORT_NAMES[p.cat] || '';
+      return '<div class="relative p-3 pb-2.5 rounded-2xl border flex flex-col items-center justify-center gap-1 cursor-pointer select-none min-h-[90px] transition-all tile-press ' + (on ? 'border-zebra-border bg-zebra-dim/40' : 'border-zinc-700/50 bg-zinc-800/40 hover:bg-zinc-700/30') + '" onclick="toggleSearchItem(\'' + p.id + '\')">' +
+        '<div class="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-zebra items-center justify-center ' + (on ? 'flex' : 'hidden') + '"><svg class="w-2.5 h-2.5 fill-white" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>' +
+        '<div class="text-[28px] leading-none ' + (on ? 'scale-105' : '') + '">' + p.emoji + '</div>' +
+        '<div class="text-[10px] font-medium text-center leading-tight px-1 line-clamp-1 ' + (on ? 'text-zinc-100' : 'text-zinc-400') + '">' + p.name + '</div>' +
+        '<div class="text-[8px] font-semibold text-zinc-500 text-center">' + cn + '</div></div>';
+    }).join('');
+  }
+  function toggleSearchItem(pid) {
+    var p = ALL_PRODUCTS.find(function(pp) { return pp.id === pid; }); if (!p) return;
+    if (isItemOnList(pid)) { saveItems(loadItems().filter(function(i) { return i.id !== pid && i.parentId !== pid; })); saveCompleted(loadCompleted().filter(function(i) { return i.id !== pid && i.parentId !== pid; })); }
+    else { var items = loadItems(); items.push({ id: p.id, emoji: p.emoji, name: p.name, qty: 1, unit: p.unit, cat: p.cat }); saveItems(items); }
+    updateProgress(); renderActiveGrid(); renderCompletedSection(); renderCategories(); handleGlobalSearch();
+  }
+  function clearGlobalSearch() { document.getElementById('globalSearchInput').value = ''; document.getElementById('globalSearchClear').style.display = 'none'; document.getElementById('searchResults').style.display = 'none'; document.getElementById('categoriesSection').style.display = ''; }
+
+  // ===== INIT =====
+  renderCategories(); updateProgress(); renderActiveGrid(); renderCompletedSection();
+  window.addEventListener('focus', function() { renderCategories(); updateProgress(); renderActiveGrid(); renderCompletedSection(); });
+  window.addEventListener('pageshow', function() { renderCategories(); updateProgress(); renderActiveGrid(); renderCompletedSection(); });
+</script>
+
+</body>
+</html>

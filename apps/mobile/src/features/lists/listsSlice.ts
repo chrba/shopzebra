@@ -49,12 +49,18 @@ const listsSlice = createSlice({
     }),
 
     listCreated: {
-      prepare: (name: string, emoji: string, color: ListColor) => ({
+      prepare: (
+        name: string,
+        emoji: string,
+        color: ListColor,
+        members: readonly Member[],
+      ) => ({
         payload: {
           id: crypto.randomUUID(),
           name,
           emoji,
           color,
+          members,
         },
       }),
       reducer: (
@@ -64,6 +70,7 @@ const listsSlice = createSlice({
           readonly name: string
           readonly emoji: string
           readonly color: ListColor
+          readonly members: readonly Member[]
         }>,
       ) => ({
         ...state,
@@ -75,19 +82,21 @@ const listsSlice = createSlice({
             emoji: action.payload.emoji,
             color: action.payload.color,
             itemCount: 0,
-            members: [],
-            activity: null,
+            members: action.payload.members,
+            activity: { who: 'Du', what: 'erstellt', when: 'gerade' },
             badge: null,
           },
         ],
       }),
     },
 
-    listDeleted: (state: ListsState, action: PayloadAction<{ readonly listId: string }>) => ({
+    listDeleted: (
+      state: ListsState,
+      action: PayloadAction<{ readonly listId: string }>,
+    ) => ({
       ...state,
       lists: state.lists.filter((list) => list.id !== action.payload.listId),
     }),
-
   },
 })
 
@@ -98,10 +107,14 @@ export const listsReducer = listsSlice.reducer
 
 // --- Selectors ---
 
-export const selectAllLists = (state: { readonly lists: ListsState }) => state.lists.lists
-export const selectListCount = (state: { readonly lists: ListsState }) => state.lists.lists.length
+export const selectAllLists = (state: { readonly lists: ListsState }) =>
+  state.lists.lists
+export const selectListCount = (state: { readonly lists: ListsState }) =>
+  state.lists.lists.length
 export const selectTotalItemCount = (state: { readonly lists: ListsState }) =>
   state.lists.lists.reduce((sum, list) => sum + list.itemCount, 0)
 
-export const selectListById = (state: { readonly lists: ListsState }, listId: string) =>
-  state.lists.lists.find((list) => list.id === listId) ?? null
+export const selectListById = (
+  state: { readonly lists: ListsState },
+  listId: string,
+) => state.lists.lists.find((list) => list.id === listId) ?? null

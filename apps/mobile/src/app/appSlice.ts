@@ -23,19 +23,10 @@ const appSlice = createSlice({
     ): AppState => ({
       theme: action.payload.theme,
     }),
-
-    themeToggled: (state: AppState): AppState => ({
-      ...state,
-      theme: state.theme === 'dark' ? 'glass' : 'dark',
-    }),
   },
 })
 
 // --- Actions ---
 
-export const { appLoaded, themeToggled } = appSlice.actions
+export const { appLoaded } = appSlice.actions
 export const appReducer = appSlice.reducer
-
-// --- Selectors ---
-
-export const selectTheme = (state: { readonly app: AppState }) => state.app.theme
