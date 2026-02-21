@@ -1,17 +1,17 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { useDispatch, useSelector } from 'react-redux'
-import { counterReducer } from '../features/example/counterSlice'
-import { counterReducer as counterReducer2 } from '../features/example2/counterSlice'
-import { counterReducer as counterReducer3 } from '../features/example3/counterSlice'
-import { todoReducer } from '../features/example3/todoSlice'
+import { listsReducer } from '../features/lists/listsSlice'
+import { appReducer } from './appSlice'
+import { themeMiddleware } from './themeMiddleware'
+import { listsPersistenceMiddleware } from './listsPersistenceMiddleware'
 
 export const store = configureStore({
   reducer: {
-    counter: counterReducer,
-    counter2: counterReducer2,
-    counter3: counterReducer3,
-    todos3: todoReducer,
+    app: appReducer,
+    lists: listsReducer,
   },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware().concat(themeMiddleware, listsPersistenceMiddleware),
 })
 
 export type RootState = ReturnType<typeof store.getState>

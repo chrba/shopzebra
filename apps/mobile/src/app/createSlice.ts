@@ -1,18 +1,18 @@
-// Eigenes createSlice — gleiche API wie RTK, aber ohne Immer.
-// Reducer-Funktionen MÜSSEN neuen State returnen (Spread statt Mutation).
+// Custom createSlice — same API as RTK, but without Immer.
+// Reducer functions MUST return new state (spread instead of mutation).
 
 export type PayloadAction<P> = {
   readonly type: string
   readonly payload: P
 }
 
-// --- Reducer-Definition: einfache Funktion oder { prepare, reducer } ---
+// --- Reducer definition: plain function or { prepare, reducer } ---
 //
-// prepare wird gebraucht für nicht-deterministische Werte (IDs, Timestamps, Random).
-// Reducer müssen pure sein — gleicher Input, gleicher Output. Redux DevTools,
-// Hot Reload und Strict Mode können Reducer mehrfach mit der gleichen Action aufrufen.
-// Ein crypto.randomUUID() im Reducer erzeugt dann jedes Mal eine andere ID → kaputt.
-// prepare läuft VOR dem Dispatch (nur einmal), das Ergebnis landet fix in der Action.
+// prepare is needed for non-deterministic values (IDs, timestamps, random).
+// Reducers must be pure — same input, same output. Redux DevTools,
+// Hot Reload and Strict Mode may call reducers multiple times with the same action.
+// A crypto.randomUUID() inside a reducer would produce a different ID each time — broken.
+// prepare runs BEFORE dispatch (only once), the result is fixed in the action payload.
 
 type ReducerFunction<S> = ((state: S) => S) | ((state: S, action: PayloadAction<any>) => S)
 
@@ -23,7 +23,7 @@ type ReducerWithPrepare<S> = {
 
 type ReducerDefinition<S> = ReducerFunction<S> | ReducerWithPrepare<S>
 
-// --- Action Creator Inferenz ---
+// --- Action Creator inference ---
 
 type InferActionCreatorFromFunction<Name extends string, Key extends string, R> =
   R extends (...args: infer A) => any
@@ -65,12 +65,12 @@ export function createSlice<
     const definition = config.reducers[key] as ReducerDefinition<S>
 
     if (typeof definition === 'function') {
-      // Einfacher Reducer — Action Creator nimmt optionalen Payload
+      // Plain reducer — action creator takes optional payload
       actionCreators[key] = (payload?: unknown) =>
         payload !== undefined ? { type, payload } : { type }
       lookup[type] = definition as (state: S, action: any) => S
     } else {
-      // { prepare, reducer } — Action Creator ruft prepare() auf
+      // { prepare, reducer } — action creator calls prepare()
       actionCreators[key] = (...args: unknown[]) => ({
         type,
         ...definition.prepare(...args),

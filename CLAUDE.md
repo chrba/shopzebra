@@ -40,6 +40,49 @@ Die Kernregeln unten sind eine Kurzfassung — bei Zweifelsfällen immer das vol
 - `const` statt `let`, `readonly` auf allen Properties
 - `type` statt `interface` für Datenstrukturen. `interface` nur für Contracts (Klassen-Implementierung)
 - Types beschreiben, Funktionen transformieren
+- **Kommentare im Code immer auf Englisch** — keine deutschen Kommentare in Source-Files
+
+---
+
+## Design-Treue
+
+**Die Wireframes und Views in `architecture/product-spec.md` sind die verbindliche Design-Vorlage.** Jede UI-Komponente muss 1:1 dem Design entsprechen — keine Abweichungen, keine Eigeninterpretationen.
+
+**Regeln:**
+- **Vor** dem Bauen eines Views: Wireframe in `product-spec.md` lesen und exakt umsetzen
+- **Nichts erfinden:** Keine UI-Patterns einführen die nicht im Design stehen. Wenn das Design `[+]` im Header zeigt → baue einen Button im Header. Nicht stattdessen ein Inline-Form, Bottom-Sheet oder anderes Pattern erfinden, auch wenn es "besser" erscheint
+- **Nichts weglassen:** Jedes Element aus dem Wireframe muss implementiert werden. Ein Feature ist erst fertig wenn alle Elemente aus dem Design vorhanden sind
+- **Nichts hinzufügen:** Keine UI-Elemente hinzufügen die nicht im Design sind (z.B. keine Subtitles, Chips oder Tiles die im Wireframe nicht existieren)
+- **Pages = Pages:** Wenn ein Flow im Design eine neue Page impliziert (z.B. `[+]` → Neue-Liste-Page → Einkaufsliste), dann werden separate Pages mit Navigation gebaut — kein Inline-Expand, kein Modal als Ersatz
+- **Flows beachten:** Navigation zwischen Views muss dem Spec entsprechen (z.B. [+] → CreateListPage → nach Erstellen → ShoppingListPage)
+- **Abweichungen nur** wenn der User sie explizit genehmigt
+
+**Häufiger Fehler:** Statt das Wireframe zu implementieren, "bessere" UX-Patterns erfinden (Inline-Forms statt eigener Pages, Expanding-Tiles statt Navigation). Das ist Designing, nicht Implementing. Implementiere was da steht.
+
+---
+
+## Platform & Deployment Target
+
+**ShopZebra ist eine native mobile App**, deployed auf Android und iOS via Capacitor. Jede Technologie- und Implementierungsentscheidung muss mit dieser Constraint getroffen werden.
+
+**Development:**
+- React + Vite im Browser für schnelle Iteration
+- Capacitor Plugins mit Browser-Fallbacks für lokale Entwicklung
+- Test auf iOS Simulator (Mac) oder Android Emulator
+
+**Production:**
+- Capacitor native build für Android und iOS
+- Alle Features müssen auf mobilen Geräten funktionieren
+- Keine Web-only APIs — nur Capacitor Plugins oder mit Fallbacks
+
+**Regeln:**
+- **Kein `localStorage` direkt** — nutze `@capacitor/preferences` oder Wrapper mit Fallback
+- **Touch-first UX** — keine Hover-States als primäre Interaktion, min. 44px Touch-Targets
+- **Mobile Performance** — Bundle-Size, Tree-Shaking, Code-Splitting beachten
+- **Native Features** — Spracheingabe, Haptics, Share, Push Notifications via Capacitor Plugins
+- **Offline-first** — App muss ohne Netzwerk voll funktionsfähig sein (siehe UX-Prinzip 6)
+
+Wenn eine Library oder ein Pattern nur im Browser funktioniert → ablehnen oder Capacitor-kompatible Alternative finden.
 
 ---
 
