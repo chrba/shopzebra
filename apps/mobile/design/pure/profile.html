@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopZebra - Profil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ========================================
+     Profil
+     Konto-Verwaltung, Bild, Name, Passwort,
+     Benachrichtigungen, Abmelden, Loeschen
+     ======================================== */
+
+  /* ===== Theme: Dark ===== */
+  [data-theme="dark"] {
+    --body-bg: #0a0a0e;
+    --screen-bg: #121216;
+    --screen-gradient: none;
+    --surface: rgba(255,255,255,0.04);
+    --surface-hover: rgba(255,255,255,0.06);
+    --surface-border: rgba(255,255,255,0.06);
+    --teal: #4E9DA6;
+    --orange: #E8923A;
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255,255,255,0.5);
+    --text-dim: rgba(255,255,255,0.35);
+    --card-bg: rgba(255,255,255,0.03);
+    --card-border: rgba(255,255,255,0.06);
+    --card-blur: 0px;
+    --input-bg: rgba(255,255,255,0.04);
+    --input-border: rgba(255,255,255,0.08);
+    --input-focus: rgba(78,157,166,0.3);
+    --frame-shadow: 0 0 60px rgba(0,0,0,0.5), 0 0 120px rgba(78,157,166,0.05);
+    --frame-border: 1px solid rgba(255,255,255,0.08);
+    --icon-radius: 50%;
+    --green-bg: rgba(107,191,107,0.12);
+    --red-bg: rgba(224,123,123,0.12);
+  }
+
+  /* ===== Theme: Glass ===== */
+  [data-theme="glass"] {
+    --body-bg: #1a1a2e;
+    --screen-bg: #0a0a12;
+    --screen-gradient:
+      radial-gradient(ellipse at 20% 80%, rgba(120, 50, 180, 0.35) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(50, 120, 180, 0.3) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 50%, rgba(180, 50, 120, 0.2) 0%, transparent 60%);
+    --surface: rgba(255,255,255,0.06);
+    --surface-hover: rgba(255,255,255,0.09);
+    --surface-border: rgba(255,255,255,0.1);
+    --teal: #4E9DA6;
+    --orange: #E8923A;
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255,255,255,0.5);
+    --text-dim: rgba(255,255,255,0.35);
+    --card-bg: rgba(255,255,255,0.06);
+    --card-border: rgba(255,255,255,0.1);
+    --card-blur: blur(20px);
+    --input-bg: rgba(255,255,255,0.06);
+    --input-border: rgba(255,255,255,0.1);
+    --input-focus: rgba(78,157,166,0.4);
+    --frame-shadow: 0 0 0 2px rgba(255,255,255,0.08), 0 40px 80px rgba(0,0,0,0.6), 0 0 120px rgba(139,92,246,0.15);
+    --frame-border: none;
+    --icon-radius: 14px;
+    --green-bg: rgba(80,180,80,0.15);
+    --red-bg: rgba(236,72,153,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--body-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    color: var(--text-primary);
+    transition: background 0.4s ease;
+  }
+
+  .phone-frame {
+    width: 390px;
+    height: 844px;
+    background: var(--screen-bg);
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    border: var(--frame-border);
+    box-shadow: var(--frame-shadow);
+    transition: background 0.4s ease, border-color 0.3s ease, box-shadow 0.4s ease;
+  }
+
+  .screen {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 40px;
+    scrollbar-width: none;
+    background-color: var(--screen-bg);
+    background-image: var(--screen-gradient);
+    transition: background 0.4s ease;
+  }
+  .screen::-webkit-scrollbar { display: none; }
+
+  /* ===== Status Bar ===== */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 28px 8px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--screen-bg);
+  }
+  .status-time { font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
+  .status-icons { display: flex; align-items: center; gap: 6px; }
+  .status-icons svg { width: 16px; height: 16px; fill: white; }
+  .theme-toggle {
+    width: 20px; height: 20px; background: transparent; border: none;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    opacity: 0.5; padding: 0; margin: 0 6px; transition: opacity 0.2s ease;
+  }
+  .theme-toggle:hover { opacity: 0.85; }
+  .theme-toggle svg { width: 16px; height: 16px; fill: white; }
+
+  /* ===== Nav Header ===== */
+  .nav-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 24px 16px;
+  }
+  .nav-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: var(--teal);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    text-decoration: none;
+  }
+  .nav-back svg { width: 20px; height: 20px; fill: var(--teal); }
+  .nav-title {
+    font-family: 'Bricolage Grotesque', 'Plus Jakarta Sans', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .nav-spacer { width: 70px; }
+
+  /* ===== Profile Avatar ===== */
+  .profile-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 24px 28px;
+  }
+  .avatar-wrap {
+    position: relative;
+    margin-bottom: 14px;
+    cursor: pointer;
+  }
+  .avatar-wrap:active { transform: scale(0.96); }
+  .profile-avatar {
+    width: 88px;
+    height: 88px;
+    border-radius: var(--icon-radius);
+    background: #6BBF6B;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    font-weight: 800;
+    color: white;
+    transition: border-radius 0.3s ease;
+  }
+  .avatar-badge {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--teal);
+    border: 3px solid var(--screen-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .avatar-badge svg { width: 14px; height: 14px; fill: white; }
+  .avatar-hint {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 500;
+    margin-top: -4px;
+    margin-bottom: 4px;
+  }
+
+  /* ===== Section Cards ===== */
+  .section {
+    margin: 0 20px 16px;
+  }
+  .section-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    padding-left: 4px;
+  }
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 4px 16px;
+    backdrop-filter: var(--card-blur);
+    -webkit-backdrop-filter: var(--card-blur);
+    transition: background 0.3s ease, border-color 0.3s ease;
+  }
+
+  /* ===== Setting Rows ===== */
+  .setting-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 0;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+  }
+  .setting-row:not(:last-child) {
+    border-bottom: 1px solid var(--surface-border);
+  }
+  .setting-row:active { opacity: 0.7; }
+  .setting-row.no-tap { cursor: default; }
+  .setting-row.no-tap:active { opacity: 1; }
+  .setting-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .setting-icon svg { width: 18px; height: 18px; fill: var(--text-secondary); }
+  .setting-icon.teal { background: rgba(78,157,166,0.12); }
+  .setting-icon.teal svg { fill: var(--teal); }
+  .setting-icon.orange { background: rgba(232,146,58,0.12); }
+  .setting-icon.orange svg { fill: var(--orange); }
+  .setting-content { flex: 1; min-width: 0; }
+  .setting-label-text {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .setting-value {
+    font-size: 13px;
+    color: var(--text-dim);
+    font-weight: 500;
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .setting-chevron {
+    width: 18px;
+    height: 18px;
+    fill: var(--text-dim);
+    flex-shrink: 0;
+  }
+
+  /* ===== Editable Name Input ===== */
+  .name-input {
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-family: inherit;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    -webkit-appearance: none;
+    display: none;
+  }
+  .name-input:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px var(--input-focus);
+  }
+  .name-input.visible { display: block; }
+
+  /* ===== Toggle Switch ===== */
+  .toggle {
+    width: 48px;
+    height: 28px;
+    border-radius: 14px;
+    background: var(--surface-border);
+    position: relative;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    border: none;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .toggle.active { background: var(--teal); }
+  .toggle-knob {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: white;
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    transition: transform 0.3s ease;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+  .toggle.active .toggle-knob { transform: translateX(20px); }
+
+  /* ===== Danger Zone ===== */
+  .logout-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 0;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+  }
+  .logout-row:not(:last-child) {
+    border-bottom: 1px solid var(--surface-border);
+  }
+  .logout-row:active { opacity: 0.7; }
+  .logout-row svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .logout-row .label { font-size: 15px; font-weight: 600; flex: 1; }
+  .delete-link {
+    display: block;
+    text-align: center;
+    color: #E07B7B;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 12px 0 0;
+    background: none;
+    border: none;
+    font-family: inherit;
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+    width: 100%;
+  }
+  .delete-link:hover { opacity: 0.8; }
+
+  /* ===== Legal Footer ===== */
+  .legal-footer {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 24px 24px 8px;
+  }
+  .legal-footer a {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+  .legal-footer a:hover { color: var(--text-secondary); }
+  .version-footer {
+    text-align: center;
+    padding: 8px 0;
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+
+  /* ===== Confirm Dialog ===== */
+  .dialog-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 24px;
+  }
+  .dialog-overlay.show { display: flex; }
+  .dialog-box {
+    background: var(--screen-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 24px;
+    width: 100%;
+    max-width: 320px;
+    text-align: center;
+    backdrop-filter: var(--card-blur);
+    -webkit-backdrop-filter: var(--card-blur);
+  }
+  .dialog-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .dialog-message { font-size: 14px; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5; }
+  .dialog-actions { display: flex; gap: 10px; }
+  .dialog-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.1s ease;
+  }
+  .dialog-btn:active { transform: scale(0.97); }
+  .dialog-btn.cancel { background: var(--surface); color: var(--text-primary); }
+  .dialog-btn.danger { background: #E07B7B; color: white; }
+
+  /* ===== Toast ===== */
+  .toast {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--green-bg);
+    border: 1px solid rgba(107,191,107,0.2);
+    color: #6BBF6B;
+    padding: 12px 24px;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0;
+    transition: all 0.3s ease;
+    pointer-events: none;
+    z-index: 200;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Hidden file input */
+  .hidden-input { display: none; }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <div class="screen">
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-time">9:41</div>
+      <div class="status-icons">
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle theme"></button>
+        <svg viewBox="0 0 16 16"><path d="M1.5 4.5C4 2 7.5 1 8 1s4 1 6.5 3.5l-1.2 1.2C11.2 3.6 9 2.5 8 2.5S4.8 3.6 2.7 5.7L1.5 4.5zM4 7.3C5.3 6 6.8 5.2 8 5.2s2.7.8 4 2.1L10.8 8.5C9.8 7.5 9 7 8 7s-1.8.5-2.8 1.5L4 7.3zM6.5 10c.8-.8 1.2-1 1.5-1s.7.2 1.5 1L8 11.5 6.5 10z"/></svg>
+        <svg viewBox="0 0 16 16"><path d="M1 4h2v8H1V4zm3.5 2h2v6h-2V6zM8 3h2v9H8V3zm3.5 1h2v8h-2V4z"/></svg>
+        <svg viewBox="0 0 24 14"><rect x="0.5" y="0.5" width="20" height="13" rx="2.5" stroke="white" stroke-opacity="0.35" fill="none"/><path opacity="0.4" d="M22 5v4a2 2 0 000-4z" fill="white"/><rect x="2" y="2" width="15" height="9" rx="1.5" fill="white"/></svg>
+      </div>
+    </div>
+
+    <!-- Nav Header -->
+    <div class="nav-header">
+      <a class="nav-back" href="lists.html">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        Listen
+      </a>
+      <div class="nav-title">Profil</div>
+      <div class="nav-spacer"></div>
+    </div>
+
+    <!-- Avatar + Name -->
+    <div class="profile-hero">
+      <div class="avatar-wrap" onclick="document.getElementById('avatarInput').click()">
+        <div class="profile-avatar" id="profileAvatar">A</div>
+        <div class="avatar-badge">
+          <svg viewBox="0 0 24 24"><path d="M12 12m-3.2 0a3.2 3.2 0 1 0 6.4 0 3.2 3.2 0 1 0-6.4 0M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9z"/></svg>
+        </div>
+      </div>
+      <div class="avatar-hint">Foto &auml;ndern</div>
+      <input type="file" id="avatarInput" class="hidden-input" accept="image/*" onchange="handleAvatarUpload(this)">
+    </div>
+
+    <!-- Persoenliche Daten -->
+    <div class="section">
+      <div class="section-label">Pers&ouml;nliche Daten</div>
+      <div class="card">
+        <div class="setting-row" onclick="editName()">
+          <div class="setting-icon teal">
+            <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          </div>
+          <div class="setting-content">
+            <div class="setting-label-text" id="nameDisplay">Anna Weber</div>
+            <input class="name-input" id="nameInput" value="Anna Weber" onblur="saveName()" onkeydown="if(event.key==='Enter')this.blur()">
+          </div>
+          <svg class="setting-chevron" viewBox="0 0 24 24" id="nameChevron"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+        </div>
+        <div class="setting-row no-tap">
+          <div class="setting-icon">
+            <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+          </div>
+          <div class="setting-content">
+            <div class="setting-label-text">E-Mail</div>
+            <div class="setting-value">anna.weber@gmail.com</div>
+          </div>
+        </div>
+        <div class="setting-row" onclick="handleChangePassword()">
+          <div class="setting-icon">
+            <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+          </div>
+          <div class="setting-content">
+            <div class="setting-label-text">Passwort &auml;ndern</div>
+          </div>
+          <svg class="setting-chevron" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Benachrichtigungen -->
+    <div class="section">
+      <div class="section-label">Benachrichtigungen</div>
+      <div class="card">
+        <div class="setting-row no-tap">
+          <div class="setting-icon orange">
+            <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+          </div>
+          <div class="setting-content">
+            <div class="setting-label-text">Push-Benachrichtigungen</div>
+            <div class="setting-value">Listen-Updates, Einladungen</div>
+          </div>
+          <button class="toggle active" id="toggleNotif" onclick="toggleNotif()">
+            <div class="toggle-knob"></div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Konto -->
+    <div class="section">
+      <div class="section-label">Konto</div>
+      <div class="card">
+        <div class="logout-row" onclick="handleLogout()">
+          <div class="setting-icon">
+            <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+          </div>
+          <div class="label">Abmelden</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legal + Version -->
+    <div class="legal-footer">
+      <a href="#" onclick="showToast('Impressum'); return false;">Impressum</a>
+      <a href="#" onclick="showToast('Datenschutz'); return false;">Datenschutz</a>
+      <a href="#" onclick="showToast('AGB'); return false;">AGB</a>
+    </div>
+    <button class="delete-link" onclick="showDeleteDialog()">Konto l&ouml;schen</button>
+    <div class="version-footer">ShopZebra v1.0.0</div>
+  </div>
+
+  <!-- Delete Confirmation Dialog -->
+  <div class="dialog-overlay" id="deleteDialog">
+    <div class="dialog-box">
+      <div class="dialog-title">Konto l&ouml;schen?</div>
+      <div class="dialog-message">Dein Konto und alle Daten werden unwiderruflich gel&ouml;scht. Diese Aktion kann nicht r&uuml;ckg&auml;ngig gemacht werden.</div>
+      <div class="dialog-actions">
+        <button class="dialog-btn cancel" onclick="hideDeleteDialog()">Abbrechen</button>
+        <button class="dialog-btn danger" onclick="confirmDelete()">L&ouml;schen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+  // ===== Theme =====
+  var MOON_SVG = '<svg viewBox="0 0 24 24" fill="white"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>';
+  var SUN_SVG = '<svg viewBox="0 0 24 24" fill="white"><path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79 1.42-1.41zM4 10.5H1v2h3v-2zm9-9.95h-2V3.5h2V.55zm7.45 3.91l-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zm-3.21 13.7l1.79 1.8 1.41-1.41-1.8-1.79-1.4 1.4zM20 10.5v2h3v-2h-3zm-8-5c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm-1 16.95h2V19.5h-2v2.95zm-7.45-3.91l1.41 1.41 1.79-1.8-1.41-1.41-1.79 1.8z"/></svg>';
+  function getTheme() { return localStorage.getItem('shopzebra_theme') || 'dark'; }
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('shopzebra_theme', t);
+    document.getElementById('themeToggle').innerHTML = t === 'dark' ? MOON_SVG : SUN_SVG;
+  }
+  function toggleTheme() { applyTheme(getTheme() === 'dark' ? 'glass' : 'dark'); }
+  applyTheme(getTheme());
+
+  // ===== Avatar Upload =====
+  function handleAvatarUpload(input) {
+    if (input.files && input.files[0]) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var avatar = document.getElementById('profileAvatar');
+        avatar.style.backgroundImage = 'url(' + e.target.result + ')';
+        avatar.style.backgroundSize = 'cover';
+        avatar.style.backgroundPosition = 'center';
+        avatar.textContent = '';
+        showToast('Foto aktualisiert');
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  // ===== Inline Name Edit =====
+  function editName() {
+    var display = document.getElementById('nameDisplay');
+    var input = document.getElementById('nameInput');
+    var chevron = document.getElementById('nameChevron');
+    display.style.display = 'none';
+    chevron.style.display = 'none';
+    input.classList.add('visible');
+    input.focus();
+    input.select();
+  }
+
+  function saveName() {
+    var display = document.getElementById('nameDisplay');
+    var input = document.getElementById('nameInput');
+    var chevron = document.getElementById('nameChevron');
+    var newName = input.value.trim();
+    if (newName) {
+      display.textContent = newName;
+      // Update avatar initial
+      document.getElementById('profileAvatar').textContent =
+        document.getElementById('profileAvatar').style.backgroundImage ? '' : newName.charAt(0).toUpperCase();
+    }
+    input.classList.remove('visible');
+    display.style.display = '';
+    chevron.style.display = '';
+    showToast('Name gespeichert');
+  }
+
+  // ===== Password =====
+  function handleChangePassword() {
+    // In production: Cognito changePassword or forgot-password flow
+    showToast('Passwort-\u00C4nderung wird ge\u00F6ffnet...');
+  }
+
+  // ===== Notifications =====
+  function toggleNotif() {
+    var btn = document.getElementById('toggleNotif');
+    btn.classList.toggle('active');
+    showToast(btn.classList.contains('active') ? 'Benachrichtigungen aktiviert' : 'Benachrichtigungen deaktiviert');
+  }
+
+  // ===== Logout =====
+  function handleLogout() {
+    // In production: Cognito signOut
+    showToast('Abgemeldet');
+  }
+
+  // ===== Delete Account =====
+  function showDeleteDialog() {
+    document.getElementById('deleteDialog').classList.add('show');
+  }
+  function hideDeleteDialog() {
+    document.getElementById('deleteDialog').classList.remove('show');
+  }
+  function confirmDelete() {
+    hideDeleteDialog();
+    // In production: Cognito deleteUser
+    showToast('Konto wird gel\u00F6scht...');
+  }
+
+  // ===== Toast =====
+  function showToast(msg) {
+    var toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(function() { toast.classList.remove('show'); }, 2500);
+  }
+</script>
+
+</body>
+</html>

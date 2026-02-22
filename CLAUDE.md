@@ -1,273 +1,121 @@
 # ShopZebra — Einkaufslisten-App für Familien
 
+## Architecture
+
+All code must follow the principles, decisions, and practices defined in the `architecture/` directory. **Read the relevant doc before you act:**
+
+- **Technologie- oder Architektur-Entscheidung** (neue Library, neues Pattern, Ansatz wählen) → lies `architecture/design-principals.md` (Simple vs Easy) + `architecture/design-decisions.md`
+- **Komponente, Hook, Slice oder Route implementieren** → lies `architecture/react-best-practices.md`
+- **Neues Feature oder View bauen** → lies `architecture/product-spec.md` für Wireframes und Feature-Details
+- **Ordner oder Package anlegen, Build-Fragen** → lies `architecture/project-structure.md` für Monorepo-Struktur
+
+Die Kernregeln unten sind eine Kurzfassung — bei Zweifelsfällen immer das vollständige Dokument lesen.
+
+### Kernregeln (Kurzfassung — Details in `architecture/`)
+
+**Simple > Easy** — Bei jeder Technologie- und Implementierungsentscheidung: Nicht "wie schnell bin ich produktiv?" sondern "was passiert wenn es schwierig wird? Muss ich dann die ganze Maschine verstehen?" → `architecture/design-principals.md`
+
+**State & Logik:**
+- Gesamter App-State lebt im Redux Store. Kein `useState` für App-State — nur für ephemeren UI-State (Dropdown offen, Suchfeld-Input)
+- Business-Logik gehört in den Reducer, nie in Komponenten. Komponente dispatcht nur ein Event, Reducer entscheidet was passiert
+- Kein Immer — Reducers schreiben explizite immutable Updates (`{ ...state, items: [...state.items, newItem] }`). Eigenes `createSlice`/`createReducer` ohne Immer
+- Kein redundanter State. Alles was berechenbar ist, wird berechnet — via Selektoren, nicht gespeichert
+- Selektoren gehören in den Slice, nicht in die Komponente
+
+**React-Patterns:**
+- Kein `useEffect` für Datenladen → TanStack Route Loaders
+- Kein `useEffect` für State-Ableitung → Selektoren oder Berechnung im Render
+- Kein `useReducer`, kein `useContext` für App-State — Redux übernimmt das
+- Custom Hooks bevorzugt für externe Systeme (WebSocket, Capacitor). Bevor du einen Hook für Domänen-Logik erstellst: Ist das simple oder nur easy? Oft ist ein Thunk die simplere Lösung
+
+**Projekt-Struktur:**
+- Feature-basierte Organisation in `features/`. Kein `shared/`, `common/`, `utils/`, `helpers/`-Ordner
+- Kein `types/`-Verzeichnis — Types leben im Slice oder Feature-Ordner
+- Barrel files (`index.ts`) nur als bewusste Public API einer Domäne, nicht als Convenience-Re-Export
+- Domänen kommunizieren über Redux Actions, nie über direkte Imports
+
+**TypeScript:**
+- `any` vermeiden — `unknown` + Type Guards bevorzugen. `any` nur in Ausnahmen wenn es wirklich vereinfacht, nie als Default
+- Kein `as` Type-Casting — nur wenn alle anderen Optionen erschöpft sind
+- `const` statt `let`, `readonly` auf allen Properties
+- `type` statt `interface` für Datenstrukturen. `interface` nur für Contracts (Klassen-Implementierung)
+- Types beschreiben, Funktionen transformieren
+- **Kommentare im Code immer auf Englisch** — keine deutschen Kommentare in Source-Files
+
+---
+
+## Design-Treue
+
+**Die Wireframes und Views in `architecture/product-spec.md` sind die verbindliche Design-Vorlage.** Jede UI-Komponente muss 1:1 dem Design entsprechen — keine Abweichungen, keine Eigeninterpretationen.
+
+**Regeln:**
+- **Vor** dem Bauen eines Views: Wireframe in `product-spec.md` lesen und exakt umsetzen
+- **Nichts erfinden:** Keine UI-Patterns einführen die nicht im Design stehen. Wenn das Design `[+]` im Header zeigt → baue einen Button im Header. Nicht stattdessen ein Inline-Form, Bottom-Sheet oder anderes Pattern erfinden, auch wenn es "besser" erscheint
+- **Nichts weglassen:** Jedes Element aus dem Wireframe muss implementiert werden. Ein Feature ist erst fertig wenn alle Elemente aus dem Design vorhanden sind
+- **Nichts hinzufügen:** Keine UI-Elemente hinzufügen die nicht im Design sind (z.B. keine Subtitles, Chips oder Tiles die im Wireframe nicht existieren)
+- **Pages = Pages:** Wenn ein Flow im Design eine neue Page impliziert (z.B. `[+]` → Neue-Liste-Page → Einkaufsliste), dann werden separate Pages mit Navigation gebaut — kein Inline-Expand, kein Modal als Ersatz
+- **Flows beachten:** Navigation zwischen Views muss dem Spec entsprechen (z.B. [+] → CreateListPage → nach Erstellen → ShoppingListPage)
+- **Abweichungen nur** wenn der User sie explizit genehmigt
+
+**Häufiger Fehler:** Statt das Wireframe zu implementieren, "bessere" UX-Patterns erfinden (Inline-Forms statt eigener Pages, Expanding-Tiles statt Navigation). Das ist Designing, nicht Implementing. Implementiere was da steht.
+
+---
+
+## Platform & Deployment Target
+
+**ShopZebra ist eine native mobile App**, deployed auf Android und iOS via Capacitor. Jede Technologie- und Implementierungsentscheidung muss mit dieser Constraint getroffen werden.
+
+**Development:**
+- React + Vite im Browser für schnelle Iteration
+- Capacitor Plugins mit Browser-Fallbacks für lokale Entwicklung
+- Test auf iOS Simulator (Mac) oder Android Emulator
+
+**Production:**
+- Capacitor native build für Android und iOS
+- Alle Features müssen auf mobilen Geräten funktionieren
+- Keine Web-only APIs — nur Capacitor Plugins oder mit Fallbacks
+
+**Regeln:**
+- **Kein `localStorage` direkt** — nutze `@capacitor/preferences` oder Wrapper mit Fallback
+- **Touch-first UX** — keine Hover-States als primäre Interaktion, min. 44px Touch-Targets
+- **Mobile Performance** — Bundle-Size, Tree-Shaking, Code-Splitting beachten
+- **Native Features** — Spracheingabe, Haptics, Share, Push Notifications via Capacitor Plugins
+- **Offline-first** — App muss ohne Netzwerk voll funktionsfähig sein (siehe UX-Prinzip 6)
+
+Wenn eine Library oder ein Pattern nur im Browser funktioniert → ablehnen oder Capacitor-kompatible Alternative finden.
+
+---
+
 ## Vision
 
 Eine Einkaufslisten-App, die Familien beim Planen und Einkaufen hilft. Fokus auf Echtzeit-Kollaboration, Meal Planning mit automatischer Listenerstellung und schnelle Bedienung im Supermarkt.
 
 ---
 
-## Views
+## App-Bereiche
 
-### 1. Einkaufsliste (Hauptscreen)
+- **Einkaufsliste** — Hauptscreen beim Einkaufen. One-Tap Check-off, Kategorien nach Laden-Layout, Fortschrittsbalken
+- **Listen-Übersicht** — Alle Listen auf einen Blick, letzte Aktivität, Teilnehmer
+- **Wochenplan** — Rezepte auf Tage verteilen, Zutaten mit einem Tap auf die Einkaufsliste
+- **Rezepte** — Eigene Sammlung + Import per URL, Portionsgrößen anpassbar
+- **Aktivitäten** — Family Feed mit Timeline, Emoji-Reaktionen, Schnell-Nachrichten
+- **Einstellungen** — Über Profil-Icon: Familienmitglieder, Ernährungspräferenzen, Laden-Layouts
 
-Der Screen, der beim Einkaufen benutzt wird.
+Navigation: Bottom Tab Bar (Listen | Planen | Rezepte | Aktivität) + Profil-Icon oben rechts.
 
-```
-┌──────────────────────────────┐
-│ REWE Wocheneinkauf        ✏️ │
-│ 8 von 15 Items         ━━━░ │
-│──────────────────────────────│
-│ ▾ Obst & Gemüse (3)         │
-│  [Äpfel 2kg] [Möhren]       │
-│  [Zitronen 3St]              │
-│──────────────────────────────│
-│ ▾ Milchprodukte (2)          │
-│  [Milch 1.5%] [Gouda]       │
-│──────────────────────────────│
-│ ▸ Erledigt (8)               │
-│──────────────────────────────│
-│ ┌──────────────────────┐ 🎤 │
-│ │ Item hinzufügen...   │    │
-│ └──────────────────────┘    │
-└──────────────────────────────┘
-```
-
-- Kategorien einklappbar, sortiert nach Laden-Layout
-- Grid- oder Listenansicht umschaltbar
-- Erledigte Items unten, einklappbar, mit Undo
-- Floating Eingabeleiste + Spracheingabe
-- Fortschrittsbalken oben
-- One-Tap Check-off mit haptischem Feedback
-- Große Tap-Targets für Einhand-Bedienung
-
-### 2. Listen-Übersicht
-
-Alle Einkaufslisten auf einen Blick.
-
-```
-┌──────────────────────────────┐
-│ Meine Listen              [+]│
-│──────────────────────────────│
-│ REWE Wocheneinkauf           │
-│    15 Items · 3 Mitglieder   │
-│    Zuletzt: Mama +Milch 14:02│
-│──────────────────────────────│
-│ dm Drogerie                  │
-│    4 Items · Papa             │
-│──────────────────────────────│
-│ Geburtstagsparty Lena        │
-│    22 Items · Familie         │
-└──────────────────────────────┘
-```
-
-- Letzte Aktivität pro Liste sichtbar
-- Anzahl Items + Teilnehmer auf einen Blick
-- Schnelles Erstellen neuer Listen
-- Listen teilen per Link/QR-Code
-
-### 3. Wochenplan / Meal Planning
-
-Mahlzeiten auf Wochentage verteilen, dann Zutaten auf die Einkaufsliste schieben.
-
-```
-┌──────────────────────────────┐
-│ KW 7 · Februar            ◀▶│
-│──────────────────────────────│
-│ Mo  Spaghetti Bolognese      │
-│ Di  Gemüsecurry              │
-│ Mi  Reste / Auswärts         │
-│ Do  Hähnchen mit Reis        │
-│ Fr  Pizza (selbstgemacht)    │
-│ Sa  Brunch                   │
-│ So  Sonntagsbraten           │
-│──────────────────────────────│
-│ [Zutaten auf Einkaufsliste]  │
-└──────────────────────────────┘
-```
-
-- Rezepte per Drag-and-Drop oder Tap auf Tage setzen
-- Alle Familienmitglieder sehen den Plan ("Was gibt's heute?")
-- Portionsgrößen anpassbar (Standard: Familiengröße)
-- Wochennavigation vor/zurück
-
-#### Kern-Workflow: Zutaten auf Einkaufsliste
-
-Wenn man "Zutaten auf Einkaufsliste" tippt:
-
-```
-┌──────────────────────────────┐
-│ Zutaten für Mo–So            │
-│──────────────────────────────│
-│ ✅ Spaghetti 500g            │
-│ ✅ Hackfleisch 400g          │
-│ ✅ Kokosmilch 1 Dose         │
-│ ✅ Currypaste 2 EL           │
-│ ☐  Salz  (Basics)           │
-│ ☐  Pfeffer (Basics)         │
-│──────────────────────────────│
-│ Auf welche Liste?            │
-│ ┌──────────────────────────┐ │
-│ │ ▼ REWE Wocheneinkauf    │ │
-│ └──────────────────────────┘ │
-│                              │
-│ [Ausgewählte hinzufügen (12)]│
-└──────────────────────────────┘
-```
-
-- Alle Zutaten vorausgewählt
-- Basics (Salz, Pfeffer, Öl) standardmäßig abgewählt
-- Dropdown zur Listenwahl
-- Mengen automatisch zusammenrechnen (2 Rezepte brauchen Zwiebeln → "Zwiebeln 3St")
-- Duplikate erkennen: Hinweis wenn Item schon auf der Liste steht
-
-### 4. Rezepte
-
-Eigene Rezeptsammlung und Import.
-
-```
-┌──────────────────────────────┐
-│ Rezepte          🔍 [Import] │
-│──────────────────────────────│
-│ ▾ Eigene Rezepte (12)        │
-│   Omas Gulasch · 4 Pers      │
-│   Pasta Carbonara · 2 Pers   │
-│   Gemüsecurry · 4 Pers       │
-│──────────────────────────────│
-│ ▾ Inspiration                │
-│   Saisonale Vorschläge       │
-│   Schnell & Einfach          │
-│   Familien-Favoriten         │
-└──────────────────────────────┘
-```
-
-- Rezepte importieren per URL oder manuell erstellen
-- Portionsgröße anpassbar
-- Jedes Rezept hat: Name, Zutaten mit Mengen, Zubereitung, Foto
-- Zutaten direkt zur Einkaufsliste hinzufügen (auch ohne Wochenplan)
-- In den Wochenplan ziehen
-
-### 5. Aktivitäten / Family Feed
-
-Timeline aller Änderungen und Familien-Kommunikation.
-
-```
-┌──────────────────────────────┐
-│ Aktivitäten                  │
-│──────────────────────────────│
-│ 14:02 Mama hat Milch hinzu-  │
-│       gefügt → REWE Liste    │
-│       ❤️ 👍                   │
-│──────────────────────────────│
-│ 13:45 Papa hat 5 Items       │
-│       abgehakt               │
-│──────────────────────────────│
-│ 13:30 Lena: "Können wir      │
-│       Schokopudding kaufen?" │
-│──────────────────────────────│
-│ [Nachricht senden...]        │
-│ [Ich gehe einkaufen!]        │
-└──────────────────────────────┘
-```
-
-- Timeline aller Listen-Änderungen
-- Emoji-Reaktionen auf Einträge
-- Vordefinierte Schnell-Nachrichten ("Ich gehe einkaufen!", "Bitte noch Milch!")
-- Freie Textnachrichten
-
-### 6. Einstellungen
-
-Kein eigener Tab — erreichbar über Profil-Icon oben rechts.
-
-- Familienmitglieder verwalten (einladen, entfernen)
-- Ernährungspräferenzen pro Person (Allergien, vegetarisch, glutenfrei)
-- Benachrichtigungen konfigurieren (pro Liste, pro Aktionstyp)
-- Laden-Layouts anpassen (Kategorie-Reihenfolge pro Laden)
-- Theme (Dark/Light)
-- Kundenkarten-Wallet
+Details zu Views und Wireframes: `architecture/product-spec.md`
 
 ---
 
-## Navigation (Bottom Tab Bar)
+## UX-Prinzipien
 
-```
-┌──────┬───────┬────────┬──────────┐
-│Listen│Planen │Rezepte │Aktivität │
-└──────┴───────┴────────┴──────────┘
-```
-
-- **Listen** → Listen-Übersicht, Tap auf Liste → Einkaufsliste
-- **Planen** → Wochenplan
-- **Rezepte** → Rezeptsammlung
-- **Aktivität** → Family Feed (Badge mit Anzahl neuer Updates)
-- **Profil-Icon** oben rechts → Einstellungen
-
----
-
-## Design-Prinzipien
-
-1. **Speed first** — Jede Aktion max. 1-2 Taps. Die App wird mit einer Hand am Einkaufswagen bedient.
-2. **Thumb-Zone** — Primäre Aktionen (Abhaken, Hinzufügen) im unteren Bildschirmbereich.
-3. **Visuell statt Text** — Icons/Illustrationen für Produkte, farbcodierte Kategorien. Schneller erkennbar als reiner Text.
+1. **Speed first** — Max. 1-2 Taps pro Aktion. Einhand-Bedienung am Einkaufswagen.
+2. **Thumb-Zone** — Primäre Aktionen im unteren Bildschirmbereich.
+3. **Visuell statt Text** — Icons, Illustrationen, farbcodierte Kategorien.
 4. **Große Tap-Targets** — Kein versehentliches Abhaken beim Scrollen.
-5. **Undo überall** — Jede Aktion rückgängig machbar per Swipe oder Toast-Notification.
+5. **Undo überall** — Jede Aktion rückgängig machbar.
 6. **Offline-first** — Voll funktionsfähig ohne Netz, Sync wenn wieder online.
-7. **Echtzeit-Sync** — Änderungen sofort auf allen Geräten aller Familienmitglieder.
+7. **Echtzeit-Sync** — Änderungen sofort auf allen Geräten.
 8. **Hoher Kontrast** — Lesbar unter Neonlicht im Supermarkt.
-9. **Dark Mode + Light Mode** — Standard.
-10. **Haptisches Feedback** — Leichte Vibration bei Check-off und wichtigen Aktionen.
-
----
-
-## Kern-Features
-
-### Einkaufsliste
-- Items hinzufügen per Tippen, Autocomplete, Spracheingabe
-- Automatische Kategorie-Sortierung nach Supermarkt-Gängen
-- Mengen und Notizen pro Item
-- One-Tap Check-off mit Undo
-- Fortschrittsanzeige
-- Grid- und Listenansicht
-
-### Kollaboration
-- Listen teilen per Link/QR-Code
-- Echtzeit-Sync über alle Geräte
-- Push-Benachrichtigungen bei Änderungen
-- Attribution: wer hat was hinzugefügt
-- Schnell-Nachrichten und Emoji-Reaktionen
-- "Ich gehe einkaufen!" Notification
-
-### Meal Planning
-- Wochenplan mit Drag-and-Drop
-- Rezepte auf Tage verteilen
-- Alle Zutaten mit einem Tap auf die Einkaufsliste
-- Mengen automatisch zusammenrechnen
-- Basics (Salz, Pfeffer) standardmäßig ausschließen
-- Duplikaterkennung
-
-### Rezepte
-- Eigene Rezepte erstellen
-- Import per URL
-- Portionsgrößen anpassbar
-- Direkt zur Liste oder in den Wochenplan
-
-### Smart Features
-- Autocomplete mit Kaufhistorie (66% der Items wiederholen sich)
-- Komplementäre Vorschläge (Spaghetti → Parmesan vorschlagen)
-- Personalisierte Laden-Sortierung
-- Wiederkehrende Items
-
----
-
-## Wettbewerbs-Positionierung
-
-| Feature | Bring! | ShopZebra |
-|---------|--------|-----------|
-| Visuelle Einkaufsliste | ✅ | ✅ |
-| Echtzeit-Kollaboration | ✅ | ✅ |
-| Rezepte | ✅ (nur Inspiration) | ✅ (eigene + Import) |
-| Wochenplan / Meal Planning | ❌ | ✅ |
-| Rezept → automatisch Einkaufsliste | ❌ (nur einzeln) | ✅ (ganzer Wochenplan) |
-| Mengen zusammenrechnen | ❌ | ✅ |
-| Family Feed / Aktivitäten | ✅ | ✅ |
-| Werbefrei | ❌ (Free-Version) | ✅ |
-| Laden-spezifische Sortierung | Teilweise | ✅ |
+9. **Dark Mode + Light Mode**
+10. **Kein Haptisches Feedback** — Keine Vibration bei Check-off und wichtigen Aktionen, das nervt nur.

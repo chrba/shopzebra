@@ -1,0 +1,1914 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopZebra - Category</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  [data-theme="dark"] {
+    --body-bg: #0a0a0e;
+    --screen-bg: #121216;
+    --screen-gradient: none;
+    --surface: rgba(255,255,255,0.04);
+    --surface-border: rgba(255,255,255,0.06);
+    --surface-selected: rgba(78,157,166,0.06);
+    --surface-selected-border: rgba(78,157,166,1);
+    --surface-selected-shadow: 0 0 15px rgba(78,157,166,0.25), 0 0 30px rgba(78,157,166,0.1);
+    --teal: #4E9DA6;
+    --green: #6BBF6B;
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255,255,255,0.5);
+    --text-dim: rgba(255,255,255,0.35);
+    --header-title-color: #6BBF6B;
+    --header-title-shadow: 0 0 20px rgba(107,191,107,0.3);
+    --search-bg: rgba(255,255,255,0.05);
+    --search-border: rgba(255,255,255,0.08);
+    --stepper-bg: rgba(0,0,0,0.6);
+    --stepper-border: rgba(78,157,166,0.3);
+    --bottom-bar-bg: rgba(18,18,22,0.9);
+    --summary-bg: rgba(18,18,22,0.92);
+    --frame-shadow: 0 0 60px rgba(0,0,0,0.5), 0 0 120px rgba(78,157,166,0.05);
+    --frame-border: 1px solid rgba(255,255,255,0.08);
+    --tile-radius: 20px;
+  }
+
+  [data-theme="glass"] {
+    --body-bg: #1a1a2e;
+    --screen-bg: #0a0a12;
+    --screen-gradient: radial-gradient(ellipse at 30% 70%, rgba(80, 160, 80, 0.3) 0%, transparent 60%),
+                       radial-gradient(ellipse at 70% 30%, rgba(50, 120, 180, 0.25) 0%, transparent 60%),
+                       radial-gradient(ellipse at 50% 90%, rgba(120, 50, 180, 0.15) 0%, transparent 60%);
+    --surface: rgba(255,255,255,0.06);
+    --surface-border: rgba(255,255,255,0.08);
+    --surface-selected: rgba(78,157,166,0.1);
+    --surface-selected-border: rgba(78,157,166,0.5);
+    --surface-selected-shadow: 0 0 20px rgba(78,157,166,0.12);
+    --teal: #4E9DA6;
+    --green: #7BCF7B;
+    --text-primary: rgba(255,255,255,0.9);
+    --text-secondary: rgba(255,255,255,0.5);
+    --text-dim: rgba(255,255,255,0.3);
+    --header-title-color: #7BCF7B;
+    --header-title-shadow: none;
+    --search-bg: rgba(255,255,255,0.06);
+    --search-border: rgba(255,255,255,0.1);
+    --stepper-bg: rgba(255,255,255,0.08);
+    --stepper-border: rgba(255,255,255,0.1);
+    --bottom-bar-bg: rgba(10,10,18,0.8);
+    --summary-bg: #0a0a12;
+    --frame-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 120px rgba(139,92,246,0.15), 0 0 80px rgba(236,72,153,0.1);
+    --frame-border: 1px solid rgba(255,255,255,0.08);
+    --tile-radius: 16px;
+  }
+
+  body {
+    background: var(--body-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+    transition: background 0.4s ease;
+  }
+
+  .phone-frame {
+    width: 390px;
+    height: 844px;
+    background: var(--screen-bg);
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    border: var(--frame-border);
+    box-shadow: var(--frame-shadow);
+    transition: box-shadow 0.4s ease, border-color 0.4s ease;
+  }
+
+  .screen {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 110px;
+    scrollbar-width: none;
+    background: var(--screen-bg);
+    transition: background 0.4s ease;
+  }
+  .screen::-webkit-scrollbar { display: none; }
+
+  [data-theme="glass"] .screen {
+    background-color: #0a0a12;
+    background-image: var(--screen-gradient);
+    background-attachment: fixed;
+  }
+
+  /* Status Bar */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 28px 8px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--screen-bg);
+    transition: background 0.4s ease;
+  }
+  [data-theme="glass"] .status-bar { background: var(--screen-bg); }
+  .status-time {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    width: 54px;
+    transition: color 0.4s ease;
+  }
+  .status-icons {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    width: 72px;
+    justify-content: flex-end;
+  }
+  .status-icons svg {
+    width: 18px;
+    height: 18px;
+    fill: var(--text-primary);
+    transition: fill 0.4s ease;
+  }
+
+  /* Theme Toggle */
+  .theme-toggle {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: rgba(255,255,255,0.06);
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    padding: 0;
+  }
+  .theme-toggle:hover { background: rgba(255,255,255,0.12); }
+  .theme-toggle svg { width: 16px; height: 16px; fill: rgba(255,255,255,0.5); transition: fill 0.2s; }
+
+  /* Header */
+  .header { padding: 8px 20px 16px; }
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+  .nav-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: var(--teal);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+  .nav-back svg { width: 20px; height: 20px; fill: var(--teal); }
+  .header-title {
+    font-family: 'Bricolage Grotesque', 'Plus Jakarta Sans', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--header-title-color);
+    text-shadow: var(--header-title-shadow);
+    letter-spacing: -0.3px;
+    transition: color 0.4s ease, text-shadow 0.4s ease;
+  }
+  .header-subtitle {
+    font-size: 13px;
+    color: var(--text-secondary);
+    padding-left: 48px;
+    transition: color 0.4s ease;
+  }
+
+
+  /* Selected Summary */
+  .selected-summary {
+    position: sticky;
+    top: 44px;
+    z-index: 40;
+    background: var(--screen-bg);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: none;
+    min-height: 52px;
+    transition: opacity 0.3s ease;
+  }
+  .selected-summary.visible .summary-hint { display: none; }
+  .selected-summary.visible .summary-emojis,
+  .selected-summary.visible .summary-count { opacity: 1; }
+  .summary-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .summary-hint-icon {
+    font-size: 18px;
+    filter: grayscale(1) opacity(0.4);
+  }
+  .summary-emojis {
+    display: flex;
+    gap: 4px;
+    flex: 1;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .summary-emoji-circle {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all 0.3s ease;
+  }
+  .summary-count {
+    font-size: 12px;
+    color: var(--teal);
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s ease, color 0.4s ease;
+  }
+  [data-theme="glass"] .selected-summary {
+    background: var(--screen-bg);
+    background-image: var(--screen-gradient);
+    background-attachment: fixed;
+  }
+  [data-theme="glass"] .summary-emoji-circle {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(78,157,166,0.35);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 0 8px rgba(78,157,166,0.1);
+  }
+
+  /* Search */
+  .search-container { padding: 0 20px 12px; }
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: 16px;
+    background: var(--search-bg);
+    border: 1.5px solid var(--search-border);
+    transition: all 0.3s ease;
+  }
+  .search-bar:focus-within {
+    border-color: var(--teal);
+    background: rgba(78,157,166,0.05);
+  }
+  .search-bar svg { width: 18px; height: 18px; fill: var(--text-dim); flex-shrink: 0; }
+  .search-bar input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-size: 15px;
+    font-family: inherit;
+    transition: color 0.4s ease;
+  }
+  .search-bar input::placeholder { color: var(--text-dim); }
+  .search-clear {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: rgba(255,255,255,0.1); border: none;
+    display: none; align-items: center; justify-content: center;
+    cursor: pointer; padding: 0;
+  }
+  .search-clear.visible { display: flex; }
+  .search-clear svg { width: 12px; height: 12px; fill: var(--text-secondary); }
+  [data-theme="glass"] .search-bar { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+
+  /* Product Grid */
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 0 20px;
+  }
+
+  .product-tile {
+    aspect-ratio: 1 / 1;
+    border-radius: var(--tile-radius);
+    background: var(--surface);
+    border: 1.5px solid var(--surface-border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .product-tile:active { transform: scale(0.95); }
+  .product-tile.selected {
+    border-color: var(--surface-selected-border);
+    background: var(--surface-selected);
+    box-shadow: var(--surface-selected-shadow);
+  }
+  [data-theme="glass"] .product-tile { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  .product-emoji {
+    font-size: 36px;
+    line-height: 1;
+    transition: transform 0.3s ease;
+  }
+  .product-tile.selected .product-emoji { transform: scale(1.1); }
+  .product-name {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-align: center;
+    line-height: 1.2;
+    padding: 0 6px;
+    transition: color 0.3s ease;
+  }
+  .product-tile.selected .product-name { color: var(--text-primary); }
+  .product-unit {
+    font-size: 9px;
+    color: var(--text-dim);
+    transition: color 0.3s ease;
+  }
+
+  /* Detail button — subtle pencil, always visible */
+  .detail-btn {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 5;
+    padding: 0;
+    opacity: 0.18;
+  }
+  .product-tile.selected .detail-btn { opacity: 0.35; }
+  .detail-btn:hover { opacity: 0.7; }
+  .detail-btn:active { transform: scale(0.85); opacity: 0.7; }
+  .detail-btn svg { width: 11px; height: 11px; fill: var(--text-primary); }
+
+  /* Tile status text (compact info below name) */
+  .tile-status {
+    font-size: 9px;
+    color: var(--teal);
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.2;
+    padding: 0 4px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tile-status-dim {
+    opacity: 0.4;
+  }
+
+  /* No results */
+  .no-results {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 20px;
+    gap: 8px;
+  }
+  .no-results.visible { display: flex; }
+  .no-results-emoji { font-size: 40px; }
+  .no-results-text { font-size: 15px; color: var(--text-secondary); }
+
+  /* Bottom Bar */
+  .bottom-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 16px 20px;
+    padding-bottom: 34px;
+    background: var(--bottom-bar-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--surface-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 50;
+    transition: background 0.4s ease;
+  }
+  .bottom-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .bottom-count {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    transition: color 0.4s ease;
+  }
+  .bottom-hint {
+    font-size: 11px;
+    color: var(--text-dim);
+    transition: color 0.4s ease;
+  }
+  .done-btn {
+    padding: 12px 32px;
+    border-radius: 16px;
+    border: none;
+    background: var(--green);
+    color: #0a0a0e;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  .done-btn:hover { filter: brightness(1.1); transform: scale(1.02); }
+  .done-btn:active { transform: scale(0.98); }
+
+  /* Bottom Sheet */
+  .sheet-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .sheet-backdrop.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--screen-bg);
+    border-radius: 20px 20px 0 0;
+    z-index: 210;
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    max-height: 70%;
+    display: flex;
+    flex-direction: column;
+  }
+  .sheet-backdrop.visible .sheet {
+    transform: translateY(0);
+  }
+  .sheet-handle {
+    width: 36px;
+    height: 4px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 2px;
+    margin: 10px auto 0;
+    flex-shrink: 0;
+  }
+  .sheet-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px 12px;
+    flex-shrink: 0;
+  }
+  .sheet-emoji { font-size: 32px; line-height: 1; }
+  .sheet-title-group { flex: 1; }
+  .sheet-title { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+  .sheet-subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .sheet-content {
+    padding: 0 16px 34px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  /* Section label in sheet */
+  .sheet-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 12px 4px 8px;
+  }
+
+  /* Variant chips */
+  .variant-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 0 8px;
+  }
+  .variant-chip {
+    padding: 8px 14px;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1.5px solid var(--surface-border);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .variant-chip:active { transform: scale(0.95); }
+  .variant-chip.selected {
+    border-color: var(--teal);
+    background: rgba(78,157,166,0.12);
+    color: var(--text-primary);
+  }
+
+  /* Qty chips */
+  .qty-chips {
+    display: flex;
+    gap: 8px;
+    padding: 0 0 8px;
+  }
+  .qty-chip {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1.5px solid var(--surface-border);
+    color: var(--text-secondary);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .qty-chip:active { transform: scale(0.95); }
+  .qty-chip.selected {
+    border-color: var(--teal);
+    background: rgba(78,157,166,0.12);
+    color: var(--teal);
+    font-weight: 700;
+  }
+  .qty-custom-input {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1.5px dashed var(--surface-border);
+    color: var(--text-secondary);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    text-align: center;
+    outline: none;
+    transition: all 0.2s;
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  .qty-custom-input::-webkit-outer-spin-button,
+  .qty-custom-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .qty-custom-input:focus {
+    border-color: var(--teal);
+    border-style: solid;
+    color: var(--teal);
+  }
+  .qty-custom-input.has-value {
+    border-color: var(--teal);
+    border-style: solid;
+    background: rgba(78,157,166,0.12);
+    color: var(--teal);
+    font-weight: 700;
+  }
+
+  /* Note input */
+  .sheet-note-input {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1.5px solid var(--surface-border);
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s, color 0.2s;
+    margin-bottom: 2px;
+    resize: none;
+    overflow: hidden;
+    line-height: 1.4;
+    min-height: 38px;
+    max-height: 58px;
+  }
+  .sheet-note-input:focus {
+    border-color: var(--teal);
+    color: var(--text-primary);
+  }
+  .sheet-note-input::placeholder { color: var(--text-dim); }
+  .sheet-note-char-count {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-align: right;
+    padding: 0 4px 6px;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .sheet-note-input:focus + .sheet-note-char-count {
+    opacity: 1;
+  }
+
+  /* Custom variant input */
+  .custom-variant-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0 8px;
+  }
+  .custom-variant-row input {
+    flex: 1;
+    padding: 8px 14px;
+    border-radius: 12px;
+    border: 1.5px dashed var(--surface-border);
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .custom-variant-row input:focus { border-color: var(--teal); }
+  .custom-variant-row input::placeholder { color: var(--text-dim); }
+  .custom-variant-add-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: var(--teal);
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    opacity: 0.3;
+    pointer-events: none;
+    flex-shrink: 0;
+  }
+  .custom-variant-add-btn.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .custom-variant-add-btn:active { transform: scale(0.9); }
+
+  /* Add Product Tile */
+  .add-product-tile {
+    aspect-ratio: 1 / 1;
+    border-radius: var(--tile-radius);
+    background: transparent;
+    border: 1.5px dashed var(--surface-border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .add-product-tile:active { transform: scale(0.95); }
+  .add-product-tile:hover {
+    border-color: var(--teal);
+    background: rgba(78,157,166,0.05);
+  }
+  .add-product-tile svg { width: 28px; height: 28px; fill: var(--text-dim); transition: fill 0.2s; }
+  .add-product-tile:hover svg { fill: var(--teal); }
+  .add-product-tile-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-dim);
+  }
+
+  /* Emoji Picker */
+  .emoji-picker-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 0 0 8px;
+    max-height: 180px;
+    overflow-y: auto;
+  }
+  .emoji-picker-grid::-webkit-scrollbar { display: none; }
+  .emoji-section-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 6px 0 2px;
+    width: 100%;
+  }
+  .emoji-section-label:first-child { padding-top: 0; }
+  .emoji-item {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--surface);
+    border: 1.5px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    padding: 0;
+    font-family: inherit;
+  }
+  .emoji-item:active { transform: scale(0.9); }
+  .emoji-item.selected {
+    border-color: var(--teal);
+    background: rgba(78,157,166,0.15);
+    transform: scale(1.1);
+  }
+
+  /* Form Input */
+  .form-input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1.5px solid var(--surface-border);
+    background: var(--surface);
+    color: var(--text-primary);
+    font-size: 15px;
+    font-family: inherit;
+    font-weight: 500;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 8px;
+  }
+  .form-input:focus { border-color: var(--teal); }
+  .form-input::placeholder { color: var(--text-dim); }
+
+  /* Add Product Button */
+  .add-product-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 14px;
+    border: none;
+    background: var(--teal);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+    opacity: 0.35;
+    pointer-events: none;
+  }
+  .add-product-btn.active { opacity: 1; pointer-events: auto; }
+  .add-product-btn:active { transform: scale(0.98); }
+
+  /* Sheet emoji editable */
+  .sheet-emoji.editable {
+    cursor: pointer;
+    transition: transform 0.2s;
+    position: relative;
+  }
+  .sheet-emoji.editable:active { transform: scale(0.85); }
+  .sheet-emoji-hint {
+    position: absolute;
+    bottom: -2px;
+    right: -8px;
+    font-size: 11px;
+    opacity: 0.4;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <div class="screen" id="screen">
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-time">9:41</div>
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle theme"></button>
+      <div class="status-icons">
+        <svg viewBox="0 0 24 24"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M2 22h20V2z M20 20H6.83L20 6.83V20z"/></svg>
+        <svg viewBox="0 0 24 24"><rect x="2" y="6" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="4" y="8" width="12" height="8" rx="1"/><path d="M22 10v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-top">
+        <a class="nav-back" id="backLink" href="list.html">
+          <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+          Liste
+        </a>
+        <div class="header-title" id="headerTitle"></div>
+      </div>
+      <div class="header-subtitle" id="subtitle">40 Produkte</div>
+    </div>
+
+    <!-- Selected Summary -->
+    <div class="selected-summary" id="summaryBar">
+      <div class="summary-hint">So leer hier... <span class="summary-hint-icon">💔</span></div>
+      <div class="summary-emojis" id="summaryEmojis"></div>
+      <div class="summary-count" id="summaryCount"></div>
+    </div>
+
+    <!-- Search -->
+    <div class="search-container">
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <input type="text" id="searchInput" placeholder="Produkt suchen..." oninput="handleSearch()">
+        <button class="search-clear" id="searchClear" onclick="clearSearch()">
+          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Product Grid -->
+    <div class="product-grid" id="productGrid"></div>
+
+    <!-- No Results -->
+    <div class="no-results" id="noResults">
+      <div class="no-results-emoji">🔍</div>
+      <div class="no-results-text">Kein Produkt gefunden</div>
+    </div>
+
+  </div>
+
+  <!-- Bottom Sheet for refinement -->
+  <div class="sheet-backdrop" id="sheetBackdrop" onclick="closeSheet()">
+    <div class="sheet" onclick="event.stopPropagation()">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div class="sheet-emoji" id="sheetEmoji"></div>
+        <div class="sheet-title-group">
+          <div class="sheet-title" id="sheetTitle"></div>
+          <div class="sheet-subtitle" id="sheetSubtitle">Details anpassen</div>
+        </div>
+      </div>
+      <div class="sheet-content" id="sheetContent"></div>
+    </div>
+  </div>
+
+  <!-- Bottom Bar -->
+  <div class="bottom-bar">
+    <div class="bottom-info">
+      <div class="bottom-count" id="bottomCount">0 ausgew&auml;hlt</div>
+      <div class="bottom-hint">aus dieser Kategorie</div>
+    </div>
+    <button class="done-btn" onclick="finish()">Fertig</button>
+  </div>
+</div>
+
+<script>
+
+const URL_PARAMS = new URLSearchParams(window.location.search);
+const LIST_ID = URL_PARAMS.get('list') || 'default';
+const CATEGORY = URL_PARAMS.get('cat') || 'fruits-vegetables';
+const STORAGE_KEY = 'shopzebra_items_' + LIST_ID;
+const CUSTOM_VARIANTS_KEY = 'shopzebra_custom_variants_' + LIST_ID;
+const SELECTION_MEMORY_KEY = 'shopzebra_selection_memory_' + LIST_ID;
+const NOTES_KEY = 'shopzebra_notes_' + LIST_ID;
+
+function loadNotes() {
+  const stored = localStorage.getItem(NOTES_KEY);
+  if (stored) { try { return JSON.parse(stored); } catch(e) {} }
+  return {};
+}
+function saveNote(productId, text) {
+  const notes = loadNotes();
+  if (text) { notes[productId] = text; } else { delete notes[productId]; }
+  localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+}
+function getNote(productId) {
+  return loadNotes()[productId] || '';
+}
+
+const PRODUCTS_BY_CATEGORY = {
+  'fruits-vegetables': [
+    { id: 'pineapple', emoji: '\u{1F34D}', name: 'Ananas', unit: 'St' },
+    { id: 'apples', emoji: '\u{1F34E}', name: '\u00C4pfel', unit: 'kg', variants: [
+      'Elstar', 'Braeburn', 'Gala', 'Granny Smith', 'Pink Lady', 'Golden Delicious', 'Jonagold'
+    ]},
+    { id: 'avocado', emoji: '\u{1F951}', name: 'Avocado', unit: 'St' },
+    { id: 'bananas', emoji: '\u{1F34C}', name: 'Bananen', unit: 'St' },
+    { id: 'berries', emoji: '\u{1F353}', name: 'Beeren', unit: 'Schale', variants: [
+      'Erdbeeren', 'Blaubeeren', 'Himbeeren', 'Brombeeren', 'Johannisbeeren', 'Stachelbeeren'
+    ]},
+    { id: 'pears', emoji: '\u{1F350}', name: 'Birnen', unit: 'kg', variants: [
+      'Conference', 'Williams', 'Abate'
+    ]},
+    { id: 'pomegranate', emoji: '\u{1F34F}', name: 'Granatapfel', unit: 'St' },
+    { id: 'cherries', emoji: '\u{1F352}', name: 'Kirschen', unit: 'Schale' },
+    { id: 'kiwi', emoji: '\u{1F95D}', name: 'Kiwi', unit: 'St' },
+    { id: 'coconut', emoji: '\u{1F965}', name: 'Kokosnuss', unit: 'St' },
+    { id: 'mango', emoji: '\u{1F96D}', name: 'Mango', unit: 'St' },
+    { id: 'melon', emoji: '\u{1F348}', name: 'Melone', unit: 'St', variants: [
+      'Wassermelone', 'Honigmelone', 'Galiamelone', 'Cantaloupemelone'
+    ]},
+    { id: 'stone-fruit', emoji: '\u{1F351}', name: 'Steinobst', unit: 'kg', variants: [
+      'Pfirsiche', 'Nektarinen', 'Aprikosen', 'Pflaumen', 'Mirabellen'
+    ]},
+    { id: 'grapes', emoji: '\u{1F347}', name: 'Trauben', unit: 'kg', variants: [
+      'Wei\u00DFe kernlos', 'Rote kernlos', 'Wei\u00DFe', 'Rote'
+    ]},
+    { id: 'citrus-fruits', emoji: '\u{1F34A}', name: 'Zitrusfr\u00FCchte', unit: 'St', variants: [
+      'Orangen', 'Zitronen', 'Limetten', 'Mandarinen', 'Clementinen', 'Grapefruit', 'Blutorangen'
+    ]},
+    { id: 'eggplant', emoji: '\u{1F346}', name: 'Aubergine', unit: 'St' },
+    { id: 'beans', emoji: '\u{1FAD8}', name: 'Bohnen', unit: '250g', variants: [
+      'Gr\u00FCne Bohnen', 'Kidney-Bohnen', 'Wei\u00DFe Bohnen'
+    ]},
+    { id: 'broccoli', emoji: '\u{1F966}', name: 'Brokkoli', unit: 'St' },
+    { id: 'peas', emoji: '\u{1FADB}', name: 'Erbsen', unit: '250g', variants: [
+      'Zuckererbsen', 'Erbsen TK', 'Erbsen frisch'
+    ]},
+    { id: 'fennel', emoji: '\u{1F331}', name: 'Fenchel', unit: 'St' },
+    { id: 'cucumber', emoji: '\u{1F952}', name: 'Gurke', unit: 'St', variants: [
+      'Salatgurke', 'Minigurken', 'Schmorgurke'
+    ]},
+    { id: 'ginger', emoji: '\u{1FADA}', name: 'Ingwer', unit: 'St' },
+    { id: 'potatoes', emoji: '\u{1F954}', name: 'Kartoffeln', unit: 'kg', variants: [
+      'Festkochend', 'Mehligkochend', 'Vorwiegend festkochend', 'Drillinge', 'S\u00FC\u00DFkartoffeln'
+    ]},
+    { id: 'garlic', emoji: '\u{1F9C4}', name: 'Knoblauch', unit: 'Knolle' },
+    { id: 'cabbage', emoji: '\u{1F96C}', name: 'Kohl', unit: 'St', variants: [
+      'Rotkohl', 'Wei\u00DFkohl', 'Spitzkohl', 'Chinakohl', 'Wirsing', 'Rosenkohl', 'Blumenkohl', 'Kohlrabi', 'Gr\u00FCnkohl'
+    ]},
+    { id: 'pumpkin', emoji: '\u{1F383}', name: 'K\u00FCrbis', unit: 'St', variants: [
+      'Hokkaido', 'Butternut', 'Muskatk\u00FCrbis', 'Spaghettikürbis'
+    ]},
+    { id: 'leek', emoji: '\u{1F3F7}\u{FE0F}', name: 'Lauch', unit: 'St' },
+    { id: 'corn', emoji: '\u{1F33D}', name: 'Mais', unit: 'St' },
+    { id: 'carrots', emoji: '\u{1F955}', name: 'M\u00F6hren', unit: 'kg' },
+    { id: 'bell-pepper', emoji: '\u{1FAD1}', name: 'Paprika', unit: 'St', variants: [
+      'Rot', 'Gelb', 'Gr\u00FCn', 'Orange', 'Spitzpaprika'
+    ]},
+    { id: 'mushrooms', emoji: '\u{1F344}', name: 'Pilze', unit: '200g', variants: [
+      'Champignons', 'Kr\u00E4uterseitlinge', 'Austernpilze', 'Shiitake', 'Pfifferlinge'
+    ]},
+    { id: 'radishes', emoji: '\u{1F3F7}\u{FE0F}', name: 'Radieschen', unit: 'Bund' },
+    { id: 'beetroot', emoji: '\u{1F3F7}\u{FE0F}', name: 'Rote Beete', unit: 'Bund' },
+    { id: 'lettuce', emoji: '\u{1F957}', name: 'Salat', unit: 'St', variants: [
+      'Kopfsalat', 'Eisbergsalat', 'Feldsalat', 'Rucola', 'Romana', 'Lollo Rosso', 'Batavia'
+    ]},
+    { id: 'celery', emoji: '\u{1FAB4}', name: 'Sellerie', unit: 'St', variants: [
+      'Knollensellerie', 'Staudensellerie'
+    ]},
+    { id: 'asparagus', emoji: '\u{1F3F7}\u{FE0F}', name: 'Spargel', unit: 'Bund', variants: [
+      'Wei\u00DFer Spargel', 'Gr\u00FCner Spargel'
+    ]},
+    { id: 'spinach', emoji: '\u{1F343}', name: 'Spinat', unit: 'Beutel' },
+    { id: 'tomatoes', emoji: '\u{1F345}', name: 'Tomaten', unit: 'kg', variants: [
+      'Rispentomaten', 'Cherrytomaten', 'Roma', 'Fleischtomaten', 'Cocktailtomaten'
+    ]},
+    { id: 'zucchini', emoji: '\u{1F3F7}\u{FE0F}', name: 'Zucchini', unit: 'St' },
+    { id: 'onions', emoji: '\u{1F9C5}', name: 'Zwiebeln', unit: 'Netz', variants: [
+      'Gelbe Zwiebeln', 'Rote Zwiebeln', 'Schalotten', 'Fr\u00FChlingszwiebeln'
+    ]},
+    { id: 'herbs', emoji: '\u{1F33F}', name: 'Kr\u00E4uter', unit: 'Bund', variants: [
+      'Basilikum', 'Petersilie', 'Schnittlauch', 'Dill', 'Koriander', 'Minze', 'Rosmarin', 'Thymian', 'Oregano', 'Salbei'
+    ]}
+  ],
+  'dairy-cheese': [
+    { id: 'milk', emoji: '\u{1F95B}', name: 'Milch', unit: 'L', variants: ['1,5% fettarm', '3,5% Vollmilch', 'Laktosefrei', 'H-Milch', 'Frischmilch'] },
+    { id: 'butter', emoji: '\u{1F9C8}', name: 'Butter', unit: 'St', variants: ['Deutsche Markenbutter', 'Irische Butter', 'Sauerrahmbutter'] },
+    { id: 'cheese-slices', emoji: '\u{1F9C0}', name: 'K\u00E4se Scheiben', unit: 'Pck', variants: ['Gouda', 'Emmentaler', 'Edamer', 'Butterk\u00E4se', 'Maasdamer', 'Tilsiter'] },
+    { id: 'cheese-block', emoji: '\u{1F9C0}', name: 'K\u00E4se St\u00FCck', unit: 'St', variants: ['Parmesan', 'Gruy\u00E8re', 'Cheddar', 'Brie', 'Camembert', 'Mozzarella', 'Feta', 'Bergk\u00E4se'] },
+    { id: 'cream-cheese', emoji: '\u{1F95B}', name: 'Frischk\u00E4se', unit: 'Becher', variants: ['Natur', 'Kr\u00E4uter', 'Philadelphia', 'Doppelrahmstufe'] },
+    { id: 'yogurt', emoji: '\u{1F963}', name: 'Joghurt', unit: 'Becher', variants: ['Naturjoghurt', 'Griechisch', 'Fruchtjoghurt', 'Skyr', 'Trinkjoghurt'] },
+    { id: 'quark', emoji: '\u{1F95B}', name: 'Quark', unit: 'Becher', variants: ['Magerquark', 'Speisequark 20%', 'Speisequark 40%', 'Kr\u00E4uterquark'] },
+    { id: 'cream', emoji: '\u{1F95B}', name: 'Sahne', unit: 'Becher', variants: ['Schlagsahne', 'Saure Sahne', 'Cr\u00E8me fra\u00eeche', 'Schmand', 'Kochsahne'] },
+    { id: 'eggs', emoji: '\u{1F95A}', name: 'Eier', unit: 'Pck', variants: ['6er Freiland', '10er Freiland', '6er Bio', '10er Bio'] },
+    { id: 'plant-milk', emoji: '\u{1F95B}', name: 'Pflanzenmilch', unit: 'L', variants: ['Hafermilch', 'Sojamilch', 'Mandelmilch', 'Kokosmilch', 'Reismilch'] },
+    { id: 'pudding', emoji: '\u{1F36E}', name: 'Pudding', unit: 'Becher', variants: ['Schoko', 'Vanille', 'Griessbrei', 'Milchreis'] },
+    { id: 'margarine', emoji: '\u{1F9C8}', name: 'Margarine', unit: 'Becher', variants: ['Rama', 'L\u00E4tta', 'Becel'] },
+    { id: 'tofu', emoji: '\u{1F9C8}', name: 'Tofu', unit: 'Pck', variants: ['Natur', 'Ger\u00E4uchert', 'Seidentofu', 'Mariniert'] }
+  ],
+  'bread-bakery': [
+    { id: 'bread', emoji: '\u{1F35E}', name: 'Brot', unit: 'St', variants: ['Vollkorn', 'Mischbrot', 'Roggenbrot', 'Dinkel', 'Weizenbrot', 'Sauerteig', 'Pumpernickel'] },
+    { id: 'rolls', emoji: '\u{1F35E}', name: 'Br\u00F6tchen', unit: 'St', variants: ['Normal', 'Vollkorn', 'K\u00F6rnerbr\u00F6tchen', 'Laugen', 'Ciabatta'] },
+    { id: 'toast', emoji: '\u{1F35E}', name: 'Toast', unit: 'Pck', variants: ['Weizen', 'Vollkorn', 'Buttermilch', 'K\u00F6rner'] },
+    { id: 'croissant', emoji: '\u{1F950}', name: 'Croissant', unit: 'St' },
+    { id: 'baguette', emoji: '\u{1F956}', name: 'Baguette', unit: 'St' },
+    { id: 'pretzel', emoji: '\u{1F968}', name: 'Brezel', unit: 'St' },
+    { id: 'cake', emoji: '\u{1F370}', name: 'Kuchen', unit: 'St', variants: ['Apfelkuchen', 'K\u00E4sekuchen', 'Marmorkuchen', 'Streuselkuchen'] },
+    { id: 'tortillas', emoji: '\u{1FAD3}', name: 'Tortillas', unit: 'Pck', variants: ['Weizen', 'Vollkorn', 'Mais'] },
+    { id: 'crispbread', emoji: '\u{1F35E}', name: 'Kn\u00E4ckebrot', unit: 'Pck' },
+    { id: 'flour', emoji: '\u{1F33E}', name: 'Mehl', unit: 'kg', variants: ['Weizenmehl 405', 'Weizenmehl 550', 'Dinkelmehl', 'Vollkornmehl'] }
+  ],
+  'meat-fish': [
+    { id: 'chicken', emoji: '\u{1F357}', name: 'H\u00E4hnchen', unit: 'g', variants: ['Brust', 'Schenkel', 'Fl\u00FCgel', 'Ganzes H\u00E4hnchen', 'Hackfleisch'] },
+    { id: 'beef', emoji: '\u{1F969}', name: 'Rind', unit: 'g', variants: ['Hackfleisch', 'Steak', 'Gulasch', 'Rouladen', 'Filet'] },
+    { id: 'pork', emoji: '\u{1F969}', name: 'Schwein', unit: 'g', variants: ['Hackfleisch', 'Schnitzel', 'Filet', 'Kotelett', 'Gulasch', 'Bauch'] },
+    { id: 'mixed-ground-meat', emoji: '\u{1F356}', name: 'Hackfleisch gemischt', unit: 'g' },
+    { id: 'sausage', emoji: '\u{1F953}', name: 'Wurst', unit: 'Pck', variants: ['Salami', 'Schinken', 'Mortadella', 'Leberwurst', 'Lyoner', 'Wiener W\u00FCrstchen'] },
+    { id: 'bacon', emoji: '\u{1F953}', name: 'Bacon', unit: 'Pck' },
+    { id: 'salmon', emoji: '\u{1F99E}', name: 'Lachs', unit: 'g', variants: ['Frisch', 'R\u00E4ucherlachs', 'TK Filet'] },
+    { id: 'tuna', emoji: '\u{1F41F}', name: 'Thunfisch', unit: 'Dose', variants: ['In \u00D6l', 'In Wasser', 'Im eigenen Saft'] },
+    { id: 'shrimp', emoji: '\u{1F990}', name: 'Garnelen', unit: 'g', variants: ['Frisch', 'TK', 'Riesengarnelen'] },
+    { id: 'fish-sticks', emoji: '\u{1F41F}', name: 'Fischst\u00E4bchen', unit: 'Pck' },
+    { id: 'trout', emoji: '\u{1F41F}', name: 'Forelle', unit: 'St' },
+    { id: 'meat-substitute', emoji: '\u{1F331}', name: 'Fleischersatz', unit: 'Pck', variants: ['Beyond Burger', 'Veganes Hack', 'Vegane Nuggets', 'Seitan', 'Tempeh'] }
+  ],
+  'ingredients-spices': [
+    { id: 'salt', emoji: '\u{1F9C2}', name: 'Salz', unit: 'Pck' },
+    { id: 'pepper', emoji: '\u{1F3F7}\u{FE0F}', name: 'Pfeffer', unit: 'Pck' },
+    { id: 'olive-oil', emoji: '\u{1FAD2}', name: 'Oliven\u00F6l', unit: 'Fl', variants: ['Extra Vergine', 'Zum Braten'] },
+    { id: 'sunflower-oil', emoji: '\u{1FAD2}', name: 'Sonnenblumen\u00F6l', unit: 'Fl' },
+    { id: 'vinegar', emoji: '\u{1FAD2}', name: 'Essig', unit: 'Fl', variants: ['Balsamico', 'Wei\u00DFweinessig', 'Apfelessig'] },
+    { id: 'sugar', emoji: '\u{1F3F7}\u{FE0F}', name: 'Zucker', unit: 'kg', variants: ['Wei\u00DF', 'Braun', 'Puderzucker', 'Vanillezucker'] },
+    { id: 'mustard', emoji: '\u{1F3F7}\u{FE0F}', name: 'Senf', unit: 'Glas', variants: ['Mittelscharf', 'S\u00FC\u00DF', 'Dijon'] },
+    { id: 'ketchup', emoji: '\u{1F3F7}\u{FE0F}', name: 'Ketchup', unit: 'Fl' },
+    { id: 'mayo', emoji: '\u{1F3F7}\u{FE0F}', name: 'Mayonnaise', unit: 'Glas' },
+    { id: 'soy-sauce', emoji: '\u{1F3F7}\u{FE0F}', name: 'Sojasauce', unit: 'Fl' },
+    { id: 'pasta', emoji: '\u{1F35D}', name: 'Nudeln', unit: 'Pck', variants: ['Spaghetti', 'Penne', 'Fusilli', 'Farfalle', 'Tagliatelle', 'Lasagneplatten'] },
+    { id: 'rice', emoji: '\u{1F35A}', name: 'Reis', unit: 'Pck', variants: ['Basmati', 'Jasmin', 'Langkorn', 'Risotto', 'Sushi-Reis'] },
+    { id: 'tomato-puree', emoji: '\u{1F345}', name: 'Passierte Tomaten', unit: 'Pck' },
+    { id: 'tomato-paste', emoji: '\u{1F345}', name: 'Tomatenmark', unit: 'Tube' },
+    { id: 'coconut-milk-can', emoji: '\u{1F965}', name: 'Kokosmilch', unit: 'Dose' },
+    { id: 'broth', emoji: '\u{1F372}', name: 'Br\u00FChe', unit: 'Glas', variants: ['Gem\u00FCse', 'H\u00FChner', 'Rinder'] },
+    { id: 'spices', emoji: '\u{1F3F7}\u{FE0F}', name: 'Gew\u00FCrze', unit: 'Pck', variants: ['Paprika', 'Curry', 'Kurkuma', 'Zimt', 'Muskat', 'Kreuzkümmel', 'Chilliflocken', 'Oregano getr.'] },
+    { id: 'baking-powder', emoji: '\u{1F3F7}\u{FE0F}', name: 'Backpulver', unit: 'Pck' },
+    { id: 'yeast', emoji: '\u{1F3F7}\u{FE0F}', name: 'Hefe', unit: 'W\u00FCrfel', variants: ['Frische Hefe', 'Trockenhefe'] },
+    { id: 'nuts', emoji: '\u{1F95C}', name: 'N\u00FCsse', unit: 'Pck', variants: ['Waln\u00FCsse', 'Mandeln', 'Haseln\u00FCsse', 'Cashews', 'Erdnüsse', 'Pinienkerne'] },
+    { id: 'breadcrumbs', emoji: '\u{1F35E}', name: 'Paniermehl', unit: 'Pck' },
+    { id: 'oatmeal', emoji: '\u{1F33E}', name: 'Haferflocken', unit: 'Pck', variants: ['Zart', 'Kernig'] },
+    { id: 'canned-corn', emoji: '\u{1F33D}', name: 'Mais (Dose)', unit: 'Dose' },
+    { id: 'canned-beans', emoji: '\u{1FAD8}', name: 'Bohnen (Dose)', unit: 'Dose', variants: ['Kidneybohnen', 'Kichererbsen', 'Wei\u00DFe Bohnen'] },
+    { id: 'lentils', emoji: '\u{1F3F7}\u{FE0F}', name: 'Linsen', unit: 'Pck', variants: ['Rote Linsen', 'Belugalinsen', 'Tellerlinsen'] },
+    { id: 'couscous', emoji: '\u{1F35A}', name: 'Couscous', unit: 'Pck' },
+    { id: 'quinoa', emoji: '\u{1F33E}', name: 'Quinoa', unit: 'Pck' },
+    { id: 'bulgur', emoji: '\u{1F33E}', name: 'Bulgur', unit: 'Pck' },
+    { id: 'asian-noodles', emoji: '\u{1F35C}', name: 'Asia-Nudeln', unit: 'Pck', variants: ['Glasnudeln', 'Reisnudeln', 'Udon', 'Mie-Nudeln'] },
+    { id: 'tortellini', emoji: '\u{1F95F}', name: 'Tortellini', unit: 'Pck', variants: ['K\u00E4se', 'Fleisch', 'Spinat'] },
+    { id: 'pesto', emoji: '\u{1F33F}', name: 'Pesto', unit: 'Glas', variants: ['Basilikum', 'Rosso', 'Rucola'] },
+    { id: 'canned-tomatoes', emoji: '\u{1F345}', name: 'Dosentomaten', unit: 'Dose', variants: ['Gehackt', 'Ganz', 'St\u00FCckig'] },
+    { id: 'olives', emoji: '\u{1FAD2}', name: 'Oliven', unit: 'Glas', variants: ['Gr\u00FCn', 'Schwarz', 'Kalamata'] },
+    { id: 'pickles', emoji: '\u{1F952}', name: 'Gew\u00FCrzgurken', unit: 'Glas' },
+    { id: 'sauerkraut', emoji: '\u{1F96C}', name: 'Sauerkraut', unit: 'Dose' },
+    { id: 'curry-paste', emoji: '\u{1F35B}', name: 'Currypaste', unit: 'Glas', variants: ['Rot', 'Gelb', 'Gr\u00FCn'] },
+    { id: 'hot-sauce', emoji: '\u{1F336}\u{FE0F}', name: 'Scharfe Sauce', unit: 'Fl', variants: ['Sambal Oelek', 'Sriracha', 'Tabasco', 'Harissa'] },
+    { id: 'bbq-sauce', emoji: '\u{1F356}', name: 'BBQ Sauce', unit: 'Fl' },
+    { id: 'worcester-sauce', emoji: '\u{1F3F7}\u{FE0F}', name: 'Worcestersauce', unit: 'Fl' }
+  ],
+  'drugstore-household': [
+    { id: 'toilet-paper', emoji: '\u{1F9FB}', name: 'Toilettenpapier', unit: 'Pck' },
+    { id: 'paper-towels', emoji: '\u{1F9FB}', name: 'K\u00FCchenpapier', unit: 'Pck' },
+    { id: 'dish-soap', emoji: '\u{1F9F4}', name: 'Sp\u00FClmittel', unit: 'Fl' },
+    { id: 'laundry-detergent', emoji: '\u{1F9F4}', name: 'Waschmittel', unit: 'Fl', variants: ['Fl\u00FCssig', 'Pulver', 'Pods/Caps'] },
+    { id: 'fabric-softener', emoji: '\u{1F9F4}', name: 'Weichsp\u00FCler', unit: 'Fl' },
+    { id: 'all-purpose-cleaner', emoji: '\u{1F9F4}', name: 'Allzweckreiniger', unit: 'Fl' },
+    { id: 'trash-bags', emoji: '\u{1F5D1}\u{FE0F}', name: 'M\u00FCllbeutel', unit: 'Rolle' },
+    { id: 'aluminum-foil', emoji: '\u{1F3F7}\u{FE0F}', name: 'Alufolie', unit: 'Rolle' },
+    { id: 'cling-wrap', emoji: '\u{1F3F7}\u{FE0F}', name: 'Frischhaltefolie', unit: 'Rolle' },
+    { id: 'sponges', emoji: '\u{1F9FD}', name: 'Schw\u00E4mme', unit: 'Pck' },
+    { id: 'toothpaste', emoji: '\u{1FAA5}', name: 'Zahnpasta', unit: 'Tube' },
+    { id: 'toothbrush', emoji: '\u{1FAA5}', name: 'Zahnb\u00FCrste', unit: 'St' },
+    { id: 'shampoo', emoji: '\u{1F9F4}', name: 'Shampoo', unit: 'Fl' },
+    { id: 'shower-gel', emoji: '\u{1F6BF}', name: 'Duschgel', unit: 'Fl' },
+    { id: 'hand-soap', emoji: '\u{1F9FC}', name: 'Handseife', unit: 'St' },
+    { id: 'deodorant', emoji: '\u{1F3F7}\u{FE0F}', name: 'Deo', unit: 'St' },
+    { id: 'tissues', emoji: '\u{1F3F7}\u{FE0F}', name: 'Taschent\u00FCcher', unit: 'Pck' },
+    { id: 'batteries', emoji: '\u{1F50B}', name: 'Batterien', unit: 'Pck', variants: ['AA', 'AAA', '9V'] },
+    { id: 'candles', emoji: '\u{1F56F}\u{FE0F}', name: 'Kerzen', unit: 'Pck' },
+    { id: 'dishwasher-tabs', emoji: '\u{1F3F7}\u{FE0F}', name: 'Sp\u00FCltabs', unit: 'Pck' }
+  ],
+  'beverages': [
+    { id: 'water', emoji: '\u{1F4A7}', name: 'Wasser', unit: 'Fl', variants: ['Still', 'Medium', 'Sprudel'] },
+    { id: 'juice', emoji: '\u{1F9C3}', name: 'Saft', unit: 'L', variants: ['Apfelsaft', 'Orangensaft', 'Multivitamin', 'Traubensaft', 'Tomatensaft', 'Apfelschorle'] },
+    { id: 'softdrinks', emoji: '\u{1F964}', name: 'Softdrinks', unit: 'Fl', variants: ['Cola', 'Fanta', 'Sprite', 'Spezi', 'Schwip Schwap'] },
+    { id: 'lemonade', emoji: '\u{1F34B}', name: 'Limonade', unit: 'Fl', variants: ['Zitrone', 'Bionade', 'Fritz-Limo', 'Almdudler'] },
+    { id: 'iced-tea', emoji: '\u{1F9CA}', name: 'Eistee', unit: 'Fl', variants: ['Pfirsich', 'Zitrone', 'Waldbeere'] },
+    { id: 'energy-drinks', emoji: '\u{26A1}', name: 'Energydrinks', unit: 'Dose' },
+    { id: 'coffee', emoji: '\u{2615}', name: 'Kaffee', unit: 'Pck', variants: ['Filterkaffee', 'Espresso Bohnen', 'Pads', 'Kapseln', 'Instant', 'Ganze Bohne'] },
+    { id: 'tea', emoji: '\u{1F375}', name: 'Tee', unit: 'Pck', variants: ['Schwarztee', 'Gr\u00FCntee', 'Kr\u00E4utertee', 'Fr\u00FCchtetee', 'Kamille', 'Pfefferminze', 'Rooibos', 'Ingwertee'] },
+    { id: 'cocoa', emoji: '\u{2615}', name: 'Kakao', unit: 'Dose', variants: ['Kakaopulver', 'Trinkschokolade', 'Ovomaltine'] },
+    { id: 'beer', emoji: '\u{1F37A}', name: 'Bier', unit: 'Fl', variants: ['Pils', 'Weizen', 'Helles', 'Alkoholfrei', 'Radler', 'Kellerbier'] },
+    { id: 'wine', emoji: '\u{1F377}', name: 'Wein', unit: 'Fl', variants: ['Rotwein', 'Wei\u00DFwein', 'Ros\u00E9'] },
+    { id: 'sparkling-wine', emoji: '\u{1F942}', name: 'Sekt & Prosecco', unit: 'Fl', variants: ['Sekt', 'Prosecco', 'Champagner'] },
+    { id: 'spirits', emoji: '\u{1F943}', name: 'Spirituosen', unit: 'Fl', variants: ['Gin', 'Wodka', 'Rum', 'Whisky', 'Lik\u00F6r'] }
+  ],
+  'breakfast-cereals': [
+    { id: 'muesli', emoji: '\u{1F963}', name: 'M\u00FCsli', unit: 'Pck', variants: ['Fr\u00FCchtem\u00FCsli', 'Schokom\u00FCsli', 'Nussm\u00FCsli', 'Knusperm\u00FCsli', 'Bircher M\u00FCsli', 'Protein M\u00FCsli'] },
+    { id: 'cornflakes', emoji: '\u{1F963}', name: 'Cornflakes', unit: 'Pck', variants: ['Classic', 'Schoko', 'Zimtflakes', 'Smacks', 'Crunchy Nut'] },
+    { id: 'porridge', emoji: '\u{1F963}', name: 'Porridge', unit: 'Pck', variants: ['Classic', 'Schoko', 'Beeren', 'Apfel-Zimt'] },
+    { id: 'cereal-bars', emoji: '\u{1F36B}', name: 'Riegel', unit: 'Pck', variants: ['M\u00FCsliriegel', 'Proteinriegel', 'Fruchtriegel', 'Schokoriegel', 'Haferriegel'] },
+    { id: 'jam', emoji: '\u{1F353}', name: 'Marmelade', unit: 'Glas', variants: ['Erdbeere', 'Aprikose', 'Himbeere', 'Kirsche', 'Mehrfrucht', 'Bitterorange'] },
+    { id: 'honey', emoji: '\u{1F36F}', name: 'Honig', unit: 'Glas', variants: ['Bl\u00FCtenhonig', 'Waldhonig', 'Akazienhonig', 'Rapshonig'] },
+    { id: 'chocolate-spread', emoji: '\u{1F36B}', name: 'Nuss-Nougat-Creme', unit: 'Glas', variants: ['Nutella', 'Ovomaltine', 'Nudossi'] },
+    { id: 'peanut-butter', emoji: '\u{1F95C}', name: 'Erdnussbutter', unit: 'Glas', variants: ['Crunchy', 'Creamy'] },
+    { id: 'syrup', emoji: '\u{1F341}', name: 'Sirup', unit: 'Fl', variants: ['Ahornsirup', 'Agavendicksaft', 'Zuckerr\u00FCbensirup'] },
+    { id: 'fruit-puree', emoji: '\u{1F34E}', name: 'Fruchtmus', unit: 'Glas', variants: ['Apfelmus', 'Mangomus', 'Birnenmus'] }
+  ],
+  'sweets-snacks': [
+    { id: 'chocolate', emoji: '\u{1F36B}', name: 'Schokolade', unit: 'Tafel', variants: ['Vollmilch', 'Zartbitter', 'Wei\u00DF', 'Nuss', 'Karamell', 'Marzipan'] },
+    { id: 'cookies', emoji: '\u{1F36A}', name: 'Kekse', unit: 'Pck', variants: ['Butterkekse', 'Schokokekse', 'Doppelkekse', 'Haferkekse', 'Spekulatius'] },
+    { id: 'chips', emoji: '\u{1F954}', name: 'Chips', unit: 'T\u00FCte', variants: ['Paprika', 'Salz', 'Sour Cream', 'Ungarisch', 'Chili'] },
+    { id: 'gummy-bears', emoji: '\u{1F36C}', name: 'Fruchtgummi', unit: 'T\u00FCte', variants: ['Goldb\u00E4ren', 'Saure', 'Cola-Fl\u00E4schchen', 'Lakritz'] },
+    { id: 'ice-cream', emoji: '\u{1F368}', name: 'Eis', unit: 'Pck', variants: ['Vanille', 'Schoko', 'Erdbeere', 'Am Stiel', 'Becher', 'Magnum'] },
+    { id: 'popcorn', emoji: '\u{1F37F}', name: 'Popcorn', unit: 'T\u00FCte', variants: ['S\u00FC\u00DF', 'Salzig', 'Karamell'] },
+    { id: 'salty-snacks', emoji: '\u{1F968}', name: 'Salzgeb\u00E4ck', unit: 'T\u00FCte', variants: ['Salzstangen', 'Mini-Brezeln', 'Cracker', 'Erdnussflips'] },
+    { id: 'wafers', emoji: '\u{1F9C7}', name: 'Waffeln', unit: 'Pck', variants: ['Schoko-Waffeln', 'Eiswaffeln', 'Stroopwafels'] },
+    { id: 'candy', emoji: '\u{1F36C}', name: 'Bonbons', unit: 'T\u00FCte', variants: ['Fruchtbonbons', 'Karamell', 'Husten-Bonbons', 'Toffee'] },
+    { id: 'trail-mix', emoji: '\u{1F95C}', name: 'Studentenfutter', unit: 'T\u00FCte' },
+    { id: 'dried-fruits', emoji: '\u{1F347}', name: 'Trockenobst', unit: 'Pck', variants: ['Rosinen', 'Cranberries', 'Datteln', 'Feigen', 'Aprikosen'] },
+    { id: 'pralines', emoji: '\u{1F36C}', name: 'Pralinen', unit: 'Pck', variants: ['Ferrero', 'Merci', 'Lindt', 'Mon Ch\u00E9ri'] }
+  ],
+  'frozen': [
+    { id: 'frozen-pizza', emoji: '\u{1F355}', name: 'TK Pizza', unit: 'Pck', variants: ['Margherita', 'Salami', 'Spinat', 'Thunfisch', 'Hawaii', 'Vier K\u00E4se'] },
+    { id: 'fries', emoji: '\u{1F35F}', name: 'Pommes & Co', unit: 'Pck', variants: ['Pommes Frites', 'Wedges', 'Kroketten', 'S\u00FC\u00DFkartoffel-Pommes', 'R\u00F6sti'] },
+    { id: 'frozen-vegetables', emoji: '\u{1F966}', name: 'TK Gem\u00FCse', unit: 'Pck', variants: ['Erbsen', 'Brokkoli', 'Spinat', 'Rahmspinat', 'Mischgem\u00FCse', 'Kaisergem\u00FCse'] },
+    { id: 'frozen-fruit', emoji: '\u{1F353}', name: 'TK Obst', unit: 'Pck', variants: ['Beeren-Mix', 'Himbeeren', 'Mango', 'Erdbeeren'] },
+    { id: 'frozen-meals', emoji: '\u{1F372}', name: 'TK Fertiggerichte', unit: 'Pck', variants: ['Lasagne', 'Schnitzel', 'Gulasch', 'Currywurst', 'Chicken Nuggets'] },
+    { id: 'frozen-rolls', emoji: '\u{1F950}', name: 'Aufbackbr\u00F6tchen', unit: 'Pck', variants: ['Normal', 'Laugenbr\u00F6tchen', 'Ciabatta'] },
+    { id: 'frozen-fish', emoji: '\u{1F41F}', name: 'TK Fisch', unit: 'Pck', variants: ['Fischst\u00E4bchen', 'Schlemmerfilet', 'Lachsfilet', 'Backfisch'] },
+    { id: 'frozen-herbs', emoji: '\u{1F33F}', name: 'TK Kr\u00E4uter', unit: 'Pck', variants: ['8-Kr\u00E4uter', 'Petersilie', 'Schnittlauch', 'Basilikum'] }
+  ]
+};
+
+const ALL_PRODUCTS = PRODUCTS_BY_CATEGORY[CATEGORY] || [];
+
+// === Custom Products ===
+const CUSTOM_PRODUCTS_KEY = 'shopzebra_custom_products';
+const EMOJI_OVERRIDES_KEY = 'shopzebra_emoji_overrides';
+
+const EMOJI_SECTIONS = [
+  { label: 'Obst', emojis: ['\u{1F34E}','\u{1F350}','\u{1F34A}','\u{1F34B}','\u{1F34C}','\u{1F349}','\u{1F347}','\u{1F353}','\u{1F352}','\u{1F351}','\u{1F96D}','\u{1F34D}','\u{1F965}','\u{1F95D}'] },
+  { label: 'Gem\u00FCse', emojis: ['\u{1F96C}','\u{1F966}','\u{1F952}','\u{1F336}\u{FE0F}','\u{1F33D}','\u{1F955}','\u{1F9C4}','\u{1F9C5}','\u{1F954}','\u{1F346}','\u{1F345}','\u{1F951}','\u{1F344}'] },
+  { label: 'Brot', emojis: ['\u{1F35E}','\u{1F956}','\u{1F968}','\u{1F96F}','\u{1F950}','\u{1F9C7}','\u{1F95E}','\u{1F35D}','\u{1F33E}','\u{1F963}'] },
+  { label: 'Milch & Fleisch', emojis: ['\u{1F9C0}','\u{1F95A}','\u{1F9C8}','\u{1F95B}','\u{1F969}','\u{1F357}','\u{1F953}','\u{1F356}','\u{1F990}','\u{1F41F}'] },
+  { label: 'Getr\u00E4nke', emojis: ['\u{2615}','\u{1F375}','\u{1F9C3}','\u{1F964}','\u{1F37A}','\u{1F377}','\u{1F942}','\u{1F4A7}','\u{1F9CA}'] },
+  { label: 'S\u00FC\u00DFes', emojis: ['\u{1F36B}','\u{1F36C}','\u{1F36A}','\u{1F370}','\u{1F36E}','\u{1F36F}','\u{1F369}','\u{1F37F}','\u{1F368}'] },
+  { label: 'Sonstiges', emojis: ['\u{1F372}','\u{1F35B}','\u{1F35C}','\u{1F355}','\u{1F35F}','\u{1F9F4}','\u{1F9FC}','\u{1F9FB}','\u{1F50B}','\u{1F9C2}','\u{1F3F7}\u{FE0F}'] }
+];
+
+const UNIT_OPTIONS = ['St', 'kg', 'g', 'L', 'ml', 'Pck', 'Fl', 'Dose', 'Glas', 'Tube', 'Bund', 'Becher', 'T\u00FCte', 'Rolle', 'Schale', 'Tafel'];
+
+function loadCustomProducts(catId) {
+  const stored = localStorage.getItem(CUSTOM_PRODUCTS_KEY);
+  let all = {};
+  if (stored) { try { all = JSON.parse(stored); } catch(e) {} }
+  return all[catId] || [];
+}
+function saveCustomProduct(catId, product) {
+  const stored = localStorage.getItem(CUSTOM_PRODUCTS_KEY);
+  let all = {};
+  if (stored) { try { all = JSON.parse(stored); } catch(e) {} }
+  if (!all[catId]) all[catId] = [];
+  all[catId].push(product);
+  localStorage.setItem(CUSTOM_PRODUCTS_KEY, JSON.stringify(all));
+}
+function loadEmojiOverrides() {
+  const stored = localStorage.getItem(EMOJI_OVERRIDES_KEY);
+  if (stored) { try { return JSON.parse(stored); } catch(e) {} }
+  return {};
+}
+function saveEmojiOverride(productId, emoji) {
+  const overrides = loadEmojiOverrides();
+  overrides[productId] = emoji;
+  localStorage.setItem(EMOJI_OVERRIDES_KEY, JSON.stringify(overrides));
+}
+
+// Load custom products into runtime array
+loadCustomProducts(CATEGORY).forEach(p => ALL_PRODUCTS.push(p));
+
+// Apply emoji overrides
+const _emojiOverrides = loadEmojiOverrides();
+ALL_PRODUCTS.forEach(p => { if (_emojiOverrides[p.id]) p.emoji = _emojiOverrides[p.id]; });
+
+// === Data helpers ===
+function loadItems() {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) { try { return JSON.parse(stored); } catch(e) {} }
+  return [];
+}
+function saveItems(items) { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
+function getCategoryItems() { return loadItems().filter(i => i.cat === CATEGORY); }
+function makeVariantId(productId, variantName) { return productId + '--' + variantName; }
+
+function getItemQty(itemId) {
+  const found = loadItems().find(i => i.id === itemId);
+  return found ? found.qty : 0;
+}
+
+function isProductSelected(productId) {
+  const items = loadItems();
+  return items.some(i => i.id === productId || i.parentId === productId);
+}
+
+function setItemQty(itemId, qty, product, displayName) {
+  const items = loadItems();
+  const idx = items.findIndex(i => i.id === itemId);
+  if (qty <= 0) {
+    if (idx !== -1) items.splice(idx, 1);
+  } else {
+    if (idx !== -1) {
+      items[idx].qty = qty;
+    } else {
+      items.push({
+        id: itemId,
+        emoji: product.emoji,
+        name: displayName || product.name,
+        qty: qty,
+        unit: product.unit,
+        cat: CATEGORY,
+        parentId: itemId !== product.id ? product.id : undefined
+      });
+    }
+  }
+  saveItems(items);
+}
+
+function removeAllForProduct(productId) {
+  const items = loadItems().filter(i => i.id !== productId && i.parentId !== productId);
+  saveItems(items);
+}
+
+function getProductInfo(productId) {
+  const items = loadItems();
+  const related = items.filter(i => i.id === productId || i.parentId === productId);
+  const variants = related.filter(i => i.parentId === productId);
+  const generic = related.find(i => i.id === productId && !i.parentId);
+  return {
+    isSelected: related.length > 0,
+    genericQty: generic ? generic.qty : 0,
+    variants: variants,
+    totalQty: related.reduce((s, i) => s + i.qty, 0)
+  };
+}
+
+// === Selection Memory (remembers refinements when deselecting) ===
+function loadMemory() {
+  const stored = localStorage.getItem(SELECTION_MEMORY_KEY);
+  if (stored) { try { return JSON.parse(stored); } catch(e) {} }
+  return {};
+}
+function saveMemory(mem) { localStorage.setItem(SELECTION_MEMORY_KEY, JSON.stringify(mem)); }
+
+function memorizeProduct(productId) {
+  const info = getProductInfo(productId);
+  if (!info.isSelected) return;
+  const mem = loadMemory();
+  mem[productId] = {
+    genericQty: info.genericQty,
+    variants: info.variants.map(v => ({ name: v.name, qty: v.qty }))
+  };
+  saveMemory(mem);
+}
+
+function recallProduct(productId) {
+  const mem = loadMemory();
+  return mem[productId] || null;
+}
+
+// === Custom Variants ===
+function loadCustomVariants(productId) {
+  const stored = localStorage.getItem(CUSTOM_VARIANTS_KEY);
+  let all = {};
+  if (stored) { try { all = JSON.parse(stored); } catch(e) {} }
+  return all[productId] || [];
+}
+function saveCustomVariant(productId, name) {
+  const stored = localStorage.getItem(CUSTOM_VARIANTS_KEY);
+  let all = {};
+  if (stored) { try { all = JSON.parse(stored); } catch(e) {} }
+  if (!all[productId]) all[productId] = [];
+  if (!all[productId].includes(name)) all[productId].push(name);
+  localStorage.setItem(CUSTOM_VARIANTS_KEY, JSON.stringify(all));
+}
+
+// === Sheet Mode ===
+let sheetMode = 'edit'; // 'edit' or 'add'
+let showEmojiPicker = false;
+let addSheetState = { emoji: '\u{1F3F7}\u{FE0F}', name: '', unit: 'St' };
+
+// === Long-press support ===
+let longPressTimer = null;
+let longPressTriggered = false;
+let touchStartPos = null;
+
+function selectIfNeeded(productId) {
+  if (isProductSelected(productId)) return;
+  const product = ALL_PRODUCTS.find(p => p.id === productId);
+  if (!product) return;
+  const memory = recallProduct(productId);
+  if (memory) {
+    if (memory.genericQty > 0) setItemQty(productId, memory.genericQty, product);
+    for (const v of memory.variants) {
+      setItemQty(makeVariantId(productId, v.name), v.qty, product, v.name);
+    }
+  } else {
+    setItemQty(productId, 1, product);
+  }
+  renderAll();
+}
+
+// === Tile interactions ===
+function tileClick(productId) {
+  if (longPressTriggered) {
+    longPressTriggered = false;
+    return;
+  }
+  const product = ALL_PRODUCTS.find(p => p.id === productId);
+  if (!product) return;
+
+  if (isProductSelected(productId)) {
+    // Deselect: memorize first, then remove
+    memorizeProduct(productId);
+    removeAllForProduct(productId);
+  } else {
+    // Select: recall previous state or just add generic with qty 1
+    const memory = recallProduct(productId);
+    if (memory) {
+      // Restore from memory
+      if (memory.genericQty > 0) {
+        setItemQty(productId, memory.genericQty, product);
+      } else if (memory.variants.length === 0) {
+        // Memory exists but was empty somehow, just add generic
+        setItemQty(productId, 1, product);
+      }
+      for (const v of memory.variants) {
+        const vid = makeVariantId(productId, v.name);
+        setItemQty(vid, v.qty, product, v.name);
+      }
+    } else {
+      setItemQty(productId, 1, product);
+    }
+  }
+  renderAll();
+}
+
+function openDetailSheet(productId, event) {
+  event.stopPropagation();
+  selectIfNeeded(productId);
+  openSheet(productId);
+}
+
+// === Bottom Sheet ===
+let currentSheetProductId = null;
+
+function openSheet(productId) {
+  sheetMode = 'edit';
+  showEmojiPicker = false;
+  const product = ALL_PRODUCTS.find(p => p.id === productId);
+  if (!product) return;
+  currentSheetProductId = productId;
+
+  const emojiEl = document.getElementById('sheetEmoji');
+  emojiEl.textContent = product.emoji;
+  emojiEl.className = 'sheet-emoji editable';
+  emojiEl.onclick = function() { showEmojiPicker = !showEmojiPicker; renderSheetContent(); };
+  document.getElementById('sheetTitle').textContent = product.name;
+
+  const hasVariants = (product.variants && product.variants.length > 0) || loadCustomVariants(productId).length > 0;
+  document.getElementById('sheetSubtitle').textContent = hasVariants ? 'Varianten & Details' : 'Details anpassen';
+
+  renderSheetContent();
+  document.getElementById('sheetBackdrop').classList.add('visible');
+}
+
+function closeSheet() {
+  document.getElementById('sheetBackdrop').classList.remove('visible');
+  currentSheetProductId = null;
+  sheetMode = 'edit';
+  showEmojiPicker = false;
+  renderAll();
+}
+
+function renderSheetContent() {
+  if (sheetMode === 'add') { renderAddSheetContent(); return; }
+  const productId = currentSheetProductId;
+  const product = ALL_PRODUCTS.find(p => p.id === productId);
+  if (!product) return;
+
+  const info = getProductInfo(productId);
+  let html = '';
+
+  // Emoji picker (toggle via sheet emoji tap)
+  if (showEmojiPicker) {
+    html += '<div class="sheet-section-label">Emoji \u00E4ndern</div>';
+    html += '<div class="emoji-picker-grid">';
+    for (const section of EMOJI_SECTIONS) {
+      html += '<div class="emoji-section-label">' + section.label + '</div>';
+      for (let i = 0; i < section.emojis.length; i++) {
+        const em = section.emojis[i];
+        const sel = em === product.emoji ? ' selected' : '';
+        html += '<button class="emoji-item' + sel + '" onclick="changeProductEmoji(\'' + productId + '\',' + EMOJI_SECTIONS.indexOf(section) + ',' + i + ')">' + em + '</button>';
+      }
+    }
+    html += '</div>';
+  }
+
+  // Variant chips (if product has variants)
+  const allVariants = (product.variants || []).slice();
+  const custom = loadCustomVariants(productId);
+  for (const c of custom) {
+    if (!allVariants.includes(c)) allVariants.push(c);
+  }
+
+  if (allVariants.length > 0) {
+    html += '<div class="sheet-section-label">Varianten</div>';
+    html += '<div class="variant-chips">';
+    for (const v of allVariants) {
+      const vid = makeVariantId(productId, v);
+      const isSelected = getItemQty(vid) > 0;
+      const escapedV = v.replace(/'/g, "\\'");
+      html += '<button class="variant-chip' + (isSelected ? ' selected' : '') +
+        '" onclick="toggleVariant(\'' + productId + '\', \'' + escapedV + '\')">' + v + '</button>';
+    }
+    html += '</div>';
+  }
+
+  // Custom variant input
+  html += '<div class="custom-variant-row">';
+  html += '<input type="text" id="customVariantInput" placeholder="Eigene Sorte hinzuf\u00FCgen..." oninput="onCustomInput(this)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();addCustom()}">';
+  html += '<button class="custom-variant-add-btn" id="customAddBtn" onclick="addCustom()">+</button>';
+  html += '</div>';
+
+  // Qty chips + custom input
+  html += '<div class="sheet-section-label">Menge (' + product.unit + ')</div>';
+  html += '<div class="qty-chips">';
+  const genericQty = info.genericQty || 1;
+  const isCustomQty = genericQty > 5;
+  for (let i = 1; i <= 5; i++) {
+    const sel = (!isCustomQty && genericQty === i) ? ' selected' : '';
+    html += '<button class="qty-chip' + sel + '" onclick="setGenericQty(' + i + ')">' + i + '</button>';
+  }
+  html += '<input type="number" class="qty-custom-input' + (isCustomQty ? ' has-value' : '') + '" ' +
+    'placeholder="..." ' +
+    'value="' + (isCustomQty ? genericQty : '') + '" ' +
+    'min="1" max="99" ' +
+    'onfocus="this.select()" ' +
+    'oninput="onQtyCustomInput(this)" ' +
+    'onkeydown="if(event.key===\'Enter\'){this.blur()}">';
+  html += '</div>';
+
+  // Note input
+  const currentNote = getNote(productId);
+  const escapedNote = currentNote.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  html += '<textarea class="sheet-note-input" ' +
+    'id="sheetNoteInput" ' +
+    'placeholder="Notiz hinzuf\u00FCgen\u2026" ' +
+    'maxlength="100" ' +
+    'rows="1" ' +
+    'oninput="onSheetNoteInput(this)" ' +
+    'onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.blur()}">' + escapedNote + '</textarea>';
+  html += '<div class="sheet-note-char-count" id="sheetNoteCharCount">' + currentNote.length + '/100</div>';
+
+  document.getElementById('sheetContent').innerHTML = html;
+
+  // Auto-resize note textarea if it has content
+  const noteEl = document.getElementById('sheetNoteInput');
+  if (noteEl && noteEl.value) {
+    noteEl.style.height = 'auto';
+    noteEl.style.height = Math.min(noteEl.scrollHeight, 58) + 'px';
+  }
+}
+
+function onSheetNoteInput(el) {
+  const text = el.value.substring(0, 100);
+  saveNote(currentSheetProductId, text);
+  document.getElementById('sheetNoteCharCount').textContent = text.length + '/100';
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 58) + 'px';
+}
+
+function toggleVariant(productId, variantName) {
+  const product = ALL_PRODUCTS.find(p => p.id === productId);
+  if (!product) return;
+  const vid = makeVariantId(productId, variantName);
+  const currentQty = getItemQty(vid);
+  if (currentQty > 0) {
+    setItemQty(vid, 0, product, variantName);
+  } else {
+    setItemQty(vid, 1, product, variantName);
+  }
+  renderSheetContent();
+}
+
+function setGenericQty(qty) {
+  const product = ALL_PRODUCTS.find(p => p.id === currentSheetProductId);
+  if (!product) return;
+  setItemQty(currentSheetProductId, qty, product);
+  renderSheetContent();
+}
+
+function onQtyCustomInput(input) {
+  const val = parseInt(input.value, 10);
+  if (val > 0 && val <= 99) {
+    const product = ALL_PRODUCTS.find(p => p.id === currentSheetProductId);
+    if (!product) return;
+    setItemQty(currentSheetProductId, val, product);
+    input.classList.add('has-value');
+    // Deselect chip buttons visually
+    input.parentElement.querySelectorAll('.qty-chip').forEach(c => c.classList.remove('selected'));
+  }
+}
+
+function onCustomInput(input) {
+  const btn = document.getElementById('customAddBtn');
+  btn.classList.toggle('active', input.value.trim().length > 0);
+}
+
+function addCustom() {
+  const input = document.getElementById('customVariantInput');
+  const name = input.value.trim();
+  if (!name || !currentSheetProductId) return;
+  const product = ALL_PRODUCTS.find(p => p.id === currentSheetProductId);
+  if (!product) return;
+  saveCustomVariant(currentSheetProductId, name);
+  const vid = makeVariantId(currentSheetProductId, name);
+  setItemQty(vid, 1, product, name);
+  renderSheetContent();
+}
+
+// === Change Emoji ===
+function changeProductEmoji(productId, sectionIdx, emojiIdx) {
+  const emoji = EMOJI_SECTIONS[sectionIdx].emojis[emojiIdx];
+  const product = ALL_PRODUCTS.find(p => p.id === productId);
+  if (!product) return;
+  product.emoji = emoji;
+  saveEmojiOverride(productId, emoji);
+  // Update items in storage too
+  const items = loadItems();
+  items.forEach(i => { if (i.id === productId || i.parentId === productId) i.emoji = emoji; });
+  saveItems(items);
+  document.getElementById('sheetEmoji').textContent = emoji;
+  showEmojiPicker = false;
+  renderSheetContent();
+}
+
+// === Add Product Sheet ===
+function openAddSheet() {
+  sheetMode = 'add';
+  showEmojiPicker = false;
+  addSheetState = { emoji: '\u{1F3F7}\u{FE0F}', name: '', unit: 'St' };
+  currentSheetProductId = null;
+
+  const emojiEl = document.getElementById('sheetEmoji');
+  emojiEl.textContent = addSheetState.emoji;
+  emojiEl.className = 'sheet-emoji editable';
+  emojiEl.onclick = function() { showEmojiPicker = !showEmojiPicker; renderAddSheetContent(); };
+  document.getElementById('sheetTitle').textContent = 'Neues Produkt';
+  document.getElementById('sheetSubtitle').textContent = 'Zur Kategorie hinzuf\u00FCgen';
+  renderAddSheetContent();
+  document.getElementById('sheetBackdrop').classList.add('visible');
+}
+
+function renderAddSheetContent() {
+  let html = '';
+
+  // Emoji picker
+  if (showEmojiPicker) {
+    html += '<div class="sheet-section-label">Emoji w\u00E4hlen</div>';
+    html += '<div class="emoji-picker-grid">';
+    for (let s = 0; s < EMOJI_SECTIONS.length; s++) {
+      const section = EMOJI_SECTIONS[s];
+      html += '<div class="emoji-section-label">' + section.label + '</div>';
+      for (let i = 0; i < section.emojis.length; i++) {
+        const em = section.emojis[i];
+        const sel = em === addSheetState.emoji ? ' selected' : '';
+        html += '<button class="emoji-item' + sel + '" onclick="selectAddEmoji(' + s + ',' + i + ')">' + em + '</button>';
+      }
+    }
+    html += '</div>';
+  }
+
+  // Name input
+  html += '<div class="sheet-section-label">Name</div>';
+  html += '<input type="text" class="form-input" id="addProductName" placeholder="z.B. Haferflocken" value="' + addSheetState.name.replace(/"/g, '&quot;') + '" oninput="onAddNameInput(this)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();submitAddProduct()}">';
+
+  // Unit chips
+  html += '<div class="sheet-section-label">Einheit</div>';
+  html += '<div class="variant-chips">';
+  for (const u of UNIT_OPTIONS) {
+    const sel = u === addSheetState.unit ? ' selected' : '';
+    const escapedU = u.replace(/'/g, "\\'");
+    html += '<button class="variant-chip' + sel + '" onclick="selectAddUnit(\'' + escapedU + '\')">' + u + '</button>';
+  }
+  html += '</div>';
+
+  // Submit button
+  const active = addSheetState.name.trim().length > 0 ? ' active' : '';
+  html += '<button class="add-product-btn' + active + '" onclick="submitAddProduct()">Hinzuf\u00FCgen</button>';
+
+  document.getElementById('sheetContent').innerHTML = html;
+}
+
+function selectAddEmoji(sectionIdx, emojiIdx) {
+  addSheetState.emoji = EMOJI_SECTIONS[sectionIdx].emojis[emojiIdx];
+  document.getElementById('sheetEmoji').textContent = addSheetState.emoji;
+  showEmojiPicker = false;
+  renderAddSheetContent();
+}
+
+function selectAddUnit(unit) {
+  addSheetState.unit = unit;
+  renderAddSheetContent();
+}
+
+function onAddNameInput(input) {
+  addSheetState.name = input.value;
+  const btn = document.querySelector('.add-product-btn');
+  if (btn) btn.classList.toggle('active', input.value.trim().length > 0);
+}
+
+function submitAddProduct() {
+  const name = addSheetState.name.trim();
+  if (!name) return;
+  const id = 'custom-' + name.toLowerCase().replace(/[^a-z0-9\u00e4\u00f6\u00fc\u00df]/g, '-').replace(/-+/g, '-');
+
+  // Check for duplicates
+  if (ALL_PRODUCTS.find(p => p.id === id)) {
+    alert('Produkt existiert bereits!');
+    return;
+  }
+
+  const product = { id: id, emoji: addSheetState.emoji, name: name, unit: addSheetState.unit };
+  saveCustomProduct(CATEGORY, product);
+  ALL_PRODUCTS.push(product);
+
+  // Auto-select with qty 1
+  setItemQty(id, 1, product);
+
+  document.getElementById('subtitle').textContent = ALL_PRODUCTS.length + ' Produkte';
+  closeSheet();
+}
+
+// === Rendering ===
+function renderAll() {
+  renderGrid();
+  renderSummaryBar();
+  updateBottomBar();
+}
+
+function renderGrid() {
+  const grid = document.getElementById('productGrid');
+  const query = document.getElementById('searchInput').value.toLowerCase().trim();
+  const filtered = query
+    ? ALL_PRODUCTS.filter(p => {
+        if (p.name.toLowerCase().includes(query)) return true;
+        if (p.variants) {
+          for (const v of p.variants) {
+            if (v.toLowerCase().includes(query)) return true;
+          }
+        }
+        return false;
+      })
+    : ALL_PRODUCTS;
+
+  document.getElementById('noResults').classList.toggle('visible', filtered.length === 0);
+
+  grid.innerHTML = filtered.map(p => {
+    const info = getProductInfo(p.id);
+    const selected = info.isSelected;
+
+    // Build status text (also show from memory when deselected)
+    let statusHtml = '';
+    const statusParts = [];
+    if (selected) {
+      if (info.variants.length > 0) {
+        statusParts.push(info.variants.length === 1 ? info.variants[0].name : info.variants.length + ' Sorten');
+      }
+      if (info.genericQty > 1) {
+        statusParts.push(info.genericQty + ' ' + p.unit);
+      }
+    } else {
+      const mem = recallProduct(p.id);
+      if (mem) {
+        if (mem.variants.length > 0) {
+          statusParts.push(mem.variants.length === 1 ? mem.variants[0].name : mem.variants.length + ' Sorten');
+        }
+        if (mem.genericQty > 1) {
+          statusParts.push(mem.genericQty + ' ' + p.unit);
+        }
+      }
+    }
+    if (statusParts.length > 0) {
+      const dimClass = selected ? 'tile-status' : 'tile-status tile-status-dim';
+      statusHtml = '<div class="' + dimClass + '">' + statusParts.join(' \u00B7 ') + '</div>';
+    } else if (!selected) {
+      statusHtml = '<div class="product-unit">' + p.unit + '</div>';
+    }
+
+    // Detail button (pencil icon) - always visible, click selects + opens sheet
+    const detailBtnHtml = '<button class="detail-btn" onclick="openDetailSheet(\'' + p.id + '\', event)" ontouchstart="event.stopPropagation()">' +
+      '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>' +
+      '</button>';
+
+    return '<div class="product-tile' + (selected ? ' selected' : '') + '" data-product-id="' + p.id + '" onclick="tileClick(\'' + p.id + '\')">' +
+      detailBtnHtml +
+      '<div class="product-emoji">' + p.emoji + '</div>' +
+      '<div class="product-name">' + p.name + '</div>' +
+      statusHtml +
+    '</div>';
+  }).join('');
+
+  // Add "+" tile at end (not during search)
+  if (!query) {
+    grid.innerHTML += '<div class="add-product-tile" onclick="openAddSheet()">' +
+      '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>' +
+      '<span class="add-product-tile-label">Hinzuf\u00FCgen</span>' +
+    '</div>';
+  }
+}
+
+function renderSummaryBar() {
+  const catItems = getCategoryItems();
+  const bar = document.getElementById('summaryBar');
+  const emojisContainer = document.getElementById('summaryEmojis');
+  const countEl = document.getElementById('summaryCount');
+
+  if (catItems.length === 0) {
+    bar.classList.remove('visible');
+    return;
+  }
+
+  bar.classList.add('visible');
+  const seen = {};
+  let emojiHtml = '';
+  for (const item of catItems) {
+    const parentId = item.parentId || item.id;
+    if (!seen[parentId]) {
+      seen[parentId] = true;
+      emojiHtml += '<div class="summary-emoji-circle">' + item.emoji + '</div>';
+    }
+  }
+  emojisContainer.innerHTML = emojiHtml;
+  const uniqueProducts = Object.keys(seen).length;
+  countEl.textContent = uniqueProducts + ' Produkte';
+}
+
+function updateBottomBar() {
+  const catItems = getCategoryItems();
+  const uniqueProducts = {};
+  for (const item of catItems) {
+    const pid = item.parentId || item.id;
+    uniqueProducts[pid] = true;
+  }
+  document.getElementById('bottomCount').textContent = Object.keys(uniqueProducts).length + ' ausgew\u00E4hlt';
+}
+
+function handleSearch() {
+  const query = document.getElementById('searchInput').value;
+  document.getElementById('searchClear').classList.toggle('visible', query.length > 0);
+  renderGrid();
+}
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('searchClear').classList.remove('visible');
+  renderGrid();
+}
+
+function finish() {
+  window.location.href = 'list.html?id=' + LIST_ID;
+}
+
+/* Theme */
+function getTheme() { return localStorage.getItem('shopzebra_theme') || 'dark'; }
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('shopzebra_theme', theme);
+  const btn = document.getElementById('themeToggle');
+  if (theme === 'dark') {
+    btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>';
+  } else {
+    btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79 1.42-1.41zM4 10.5H1v2h3v-2zm9-9.95h-2V3.5h2V.55zm7.45 3.91l-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zm-3.21 13.7l1.79 1.8 1.41-1.41-1.8-1.79-1.4 1.4zM20 10.5v2h3v-2h-3zm-8-5c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm-1 16.95h2V19.5h-2v2.95zm-7.45-3.91l1.41 1.41 1.79-1.8-1.41-1.41-1.79 1.8z"/></svg>';
+  }
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'dark' ? 'glass' : 'dark');
+}
+
+/* Category display names */
+const CATEGORY_NAMES = {
+  'fruits-vegetables': 'Obst & Gem\u00FCse',
+  'dairy-cheese': 'Milch & K\u00E4se',
+  'bread-bakery': 'Brot & Geb\u00E4ck',
+  'meat-fish': 'Fleisch & Fisch',
+  'ingredients-spices': 'Zutaten & Gew\u00FCrze',
+  'beverages': 'Getr\u00E4nke',
+  'breakfast-cereals': 'Fr\u00FChst\u00FCck & Cerealien',
+  'sweets-snacks': 'S\u00FC\u00DFes & Snacks',
+  'frozen': 'Tiefk\u00FChl',
+  'drugstore-household': 'Drogerie & Haushalt'
+};
+
+/* Init */
+applyTheme(getTheme());
+document.getElementById('backLink').href = 'list.html?id=' + LIST_ID;
+document.getElementById('headerTitle').textContent = CATEGORY_NAMES[CATEGORY] || CATEGORY;
+document.getElementById('subtitle').textContent = ALL_PRODUCTS.length + ' Produkte';
+renderAll();
+
+/* Long-press event delegation on grid */
+const grid = document.getElementById('productGrid');
+
+grid.addEventListener('touchstart', (e) => {
+  const tile = e.target.closest('.product-tile');
+  if (!tile || e.target.closest('.detail-btn')) return;
+  const productId = tile.dataset.productId;
+  if (!productId) return;
+  touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  longPressTriggered = false;
+  longPressTimer = setTimeout(() => {
+    longPressTriggered = true;
+    selectIfNeeded(productId);
+    openSheet(productId);
+  }, 500);
+}, { passive: true });
+
+grid.addEventListener('touchmove', (e) => {
+  if (!longPressTimer) return;
+  if (touchStartPos) {
+    const dx = e.touches[0].clientX - touchStartPos.x;
+    const dy = e.touches[0].clientY - touchStartPos.y;
+    if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+  }
+}, { passive: true });
+
+grid.addEventListener('touchend', () => {
+  clearTimeout(longPressTimer);
+  longPressTimer = null;
+});
+
+/* Mouse long-press for desktop testing */
+grid.addEventListener('mousedown', (e) => {
+  const tile = e.target.closest('.product-tile');
+  if (!tile || e.target.closest('.detail-btn')) return;
+  const productId = tile.dataset.productId;
+  if (!productId) return;
+  longPressTriggered = false;
+  longPressTimer = setTimeout(() => {
+    longPressTriggered = true;
+    selectIfNeeded(productId);
+    openSheet(productId);
+  }, 500);
+});
+
+grid.addEventListener('mouseup', () => {
+  clearTimeout(longPressTimer);
+  longPressTimer = null;
+});
+
+grid.addEventListener('mouseleave', () => {
+  clearTimeout(longPressTimer);
+  longPressTimer = null;
+});
+</script>
+
+</body>
+</html>
