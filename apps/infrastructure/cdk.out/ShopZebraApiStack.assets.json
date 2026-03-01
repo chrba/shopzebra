@@ -1,0 +1,36 @@
+{
+  "version": "50.0.0",
+  "files": {
+    "c1f69c5a82c6c0a716dc5afab58dfacb4dd5f3204654f08b6e6c3f709b4336a5": {
+      "displayName": "ApiFunction/Code",
+      "source": {
+        "path": "asset.c1f69c5a82c6c0a716dc5afab58dfacb4dd5f3204654f08b6e6c3f709b4336a5",
+        "packaging": "zip"
+      },
+      "destinations": {
+        "current_account-eu-central-1-43d1cc2d": {
+          "bucketName": "cdk-hnb659fds-assets-${AWS::AccountId}-eu-central-1",
+          "objectKey": "c1f69c5a82c6c0a716dc5afab58dfacb4dd5f3204654f08b6e6c3f709b4336a5.zip",
+          "region": "eu-central-1",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-file-publishing-role-${AWS::AccountId}-eu-central-1"
+        }
+      }
+    },
+    "2ded0a6fab55b2178e21604aada098aedcfd5172f8234bd3017d482d6e660978": {
+      "displayName": "ShopZebraApiStack Template",
+      "source": {
+        "path": "ShopZebraApiStack.template.json",
+        "packaging": "file"
+      },
+      "destinations": {
+        "current_account-eu-central-1-7de1bc17": {
+          "bucketName": "cdk-hnb659fds-assets-${AWS::AccountId}-eu-central-1",
+          "objectKey": "2ded0a6fab55b2178e21604aada098aedcfd5172f8234bd3017d482d6e660978.json",
+          "region": "eu-central-1",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-file-publishing-role-${AWS::AccountId}-eu-central-1"
+        }
+      }
+    }
+  },
+  "dockerImages": {}
+}
