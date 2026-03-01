@@ -1,3 +1,7 @@
+// App entry point — mounts the React tree with Redux
+// Provider and strict mode. Amplify is imported first
+// so the Cognito SDK is ready before routing starts.
+
 import './amplify'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'

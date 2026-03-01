@@ -13,6 +13,7 @@ import { performForgotPassword, performResetPassword } from './state/authThunks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
+/** Circled exclamation mark shown next to validation errors. */
 function ErrorIcon() {
   return (
     <svg
@@ -29,6 +30,7 @@ function validateEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
+/** First step: enter email to receive a reset code. */
 function RequestCodeForm() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
@@ -128,6 +130,7 @@ function RequestCodeForm() {
   )
 }
 
+/** Second step: enter the 6-digit code and a new password. */
 function ResetPasswordForm() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
@@ -296,6 +299,7 @@ function ResetPasswordForm() {
   )
 }
 
+/** Password reset flow — request code by email, then set a new password. */
 export function ForgotPasswordPage() {
   const navigate = useNavigate()
   const resetPending = useAppSelector(selectResetPending)

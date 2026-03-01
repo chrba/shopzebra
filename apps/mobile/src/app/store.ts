@@ -1,11 +1,16 @@
+// Central Redux store — single source of truth for all
+// app state. Features register their reducers here;
+// side-effect middlewares (sync, storage, theme) are
+// added to the pipeline so they react to every dispatch.
+
 import { configureStore } from '@reduxjs/toolkit'
 import { useDispatch, useSelector } from 'react-redux'
-import { listsReducer } from '../features/lists/state/listsSlice'
+import { listsReducer } from '../features/lists/model/listsSlice'
 import { authReducer } from '../features/auth/state/authSlice'
 import { appReducer } from './appSlice'
 import { themeMiddleware } from './themeMiddleware'
-import { listsPersistenceMiddleware } from './listsPersistenceMiddleware'
-import { syncMiddleware } from '../sync/syncMiddleware'
+import { clientStorageMiddleware } from './clientStorageMiddleware'
+import { syncMiddleware } from './syncMiddleware'
 
 export const store = configureStore({
   reducer: {
@@ -16,7 +21,7 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
       themeMiddleware,
-      listsPersistenceMiddleware,
+      clientStorageMiddleware,
       syncMiddleware,
     ),
 })

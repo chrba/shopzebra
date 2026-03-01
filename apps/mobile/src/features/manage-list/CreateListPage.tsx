@@ -1,15 +1,24 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useAppDispatch } from '../../app/store'
-import { listCreated } from '../lists/state/listsSlice'
-import { ListEditor } from './ListEditor'
+import { listCreated, listPreferencesSet } from '../lists/model/listsSlice'
+import { FAMILY_MEMBERS } from '../lists/model/listsSlice'
+import { ListEditor, type FamilyMember } from './ListEditor'
+
+const familyMembersList: readonly FamilyMember[] = Object.entries(FAMILY_MEMBERS).map(
+  ([id, member]) => ({ id, name: member.name, color: member.color }),
+)
 
 const DEFAULT_VALUES = {
   emoji: '\u{1F6D2}',
   name: '',
   color: 'green' as const,
-  selectedMembers: ['M', 'P'],
+  selectedMemberIds: ['mama', 'papa'],
 }
 
+/**
+ * Page for creating a new shopping list.
+ * Dispatches domain + preferences actions on submit.
+ */
 export function CreateListPage() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
@@ -19,14 +28,20 @@ export function CreateListPage() {
       title="Neue Liste"
       submitLabel="Liste erstellen"
       initialValues={DEFAULT_VALUES}
+      familyMembers={familyMembersList}
       onSubmit={(result) => {
+        const id = crypto.randomUUID()
         dispatch(
           listCreated({
-            id: crypto.randomUUID(),
+            id,
             name: result.name,
-            emoji: result.emoji,
-            color: result.color,
-            members: result.members,
+            memberIds: result.memberIds,
+          }),
+        )
+        dispatch(
+          listPreferencesSet({
+            listId: id,
+            preferences: { color: result.color, emoji: result.emoji },
           }),
         )
         navigate({ to: '/lists' })

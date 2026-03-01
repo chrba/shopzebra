@@ -14,6 +14,7 @@ import { performSignUp, performConfirmSignUp } from './state/authThunks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
+/** Multi-color Google "G" logo for the social login button. */
 function GoogleIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0">
@@ -37,6 +38,7 @@ function GoogleIcon() {
   )
 }
 
+/** White Apple logo for the social login button. */
 function AppleIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="white" className="h-5 w-5 shrink-0">
@@ -45,6 +47,7 @@ function AppleIcon() {
   )
 }
 
+/** Circled exclamation mark shown next to validation errors. */
 function ErrorIcon() {
   return (
     <svg
@@ -61,6 +64,7 @@ function validateEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
+/** Email/password registration form with social login alternatives. */
 function SignUpForm() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
@@ -248,6 +252,7 @@ function SignUpForm() {
   )
 }
 
+/** 6-digit code input shown after sign-up to verify the email address. */
 function ConfirmationForm() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
@@ -346,6 +351,7 @@ function ConfirmationForm() {
   )
 }
 
+/** Registration screen with email/password, social sign-up, and confirmation code entry. */
 export function SignUpPage() {
   const navigate = useNavigate()
   const confirmationPending = useAppSelector(selectConfirmationPending)

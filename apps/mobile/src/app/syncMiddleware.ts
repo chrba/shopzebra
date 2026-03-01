@@ -9,11 +9,11 @@
 //   User creates list → store updates → middleware → API call
 //   Server pushes list → store updates → middleware → skipped (already synced)
 //
-// Each feature decides which actions to sync (see listsSync.ts).
+// Each feature decides which actions to sync (see listsSyncHandler.ts).
 // New features just add their handler to the array below.
 
 import type { Middleware } from '@reduxjs/toolkit'
-import { listsSyncHandler } from '../features/lists/state/listsSync'
+import { listsSyncHandler } from '../features/lists/model/listsSyncHandler'
 
 type SyncHandler = (action: { readonly type: string; readonly payload?: unknown }) => Promise<void> | null
 

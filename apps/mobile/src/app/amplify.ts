@@ -1,3 +1,8 @@
+// AWS Amplify configuration — connects the app to Cognito
+// for authentication (email/password, Google, Apple).
+// Imported as a side-effect in main.tsx so the SDK is
+// configured before any auth call runs.
+
 import { Amplify } from 'aws-amplify'
 
 Amplify.configure({

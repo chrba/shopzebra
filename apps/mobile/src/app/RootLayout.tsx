@@ -1,3 +1,7 @@
+// Shell around every page — renders the bottom navigation
+// bar on most screens but hides it on fullscreen routes
+// like sign-in, sign-up and list creation.
+
 import { Outlet, useRouterState } from '@tanstack/react-router'
 import { BottomNav } from '../ui/BottomNav'
 

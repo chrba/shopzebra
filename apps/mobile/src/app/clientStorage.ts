@@ -1,3 +1,12 @@
+// Platform-agnostic key-value storage.
+//
+// On native (iOS/Android) this uses Capacitor Preferences
+// which persists to the device's secure storage.
+// In the browser it falls back to localStorage.
+//
+// All app modules that need to persist data should use
+// this wrapper — never import localStorage directly.
+
 import { Capacitor } from '@capacitor/core'
 import { Preferences } from '@capacitor/preferences'
 

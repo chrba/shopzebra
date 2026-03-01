@@ -2,8 +2,16 @@ import { createSlice, type PayloadAction } from '../../../app/createSlice'
 
 // --- Types ---
 
+/**
+ * Identity provider used to authenticate the user.
+ * Determines which credentials flow is active.
+ */
 export type AuthProvider = 'email' | 'google' | 'apple'
 
+/**
+ * The currently authenticated user. Available after
+ * sign-in or session restore; null when signed out.
+ */
 export type AuthUser = {
   readonly userId: string
   readonly email: string

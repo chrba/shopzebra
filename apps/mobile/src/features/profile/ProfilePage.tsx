@@ -18,6 +18,7 @@ import {
 
 // --- Icons ---
 
+/** Left arrow in the nav header to navigate back to lists. */
 function BackIcon() {
   return (
     <svg viewBox="0 0 24 24" className="size-5 fill-current">
@@ -26,6 +27,7 @@ function BackIcon() {
   )
 }
 
+/** Silhouette avatar for the "Name" settings row. */
 function PersonIcon() {
   return (
     <svg viewBox="0 0 24 24" className="size-[18px] fill-current">
@@ -34,6 +36,7 @@ function PersonIcon() {
   )
 }
 
+/** Envelope icon for the email settings row. */
 function EmailIcon() {
   return (
     <svg viewBox="0 0 24 24" className="size-[18px] fill-current">
@@ -42,6 +45,7 @@ function EmailIcon() {
   )
 }
 
+/** Padlock icon for the "change password" row. */
 function LockIcon() {
   return (
     <svg viewBox="0 0 24 24" className="size-[18px] fill-current">
@@ -50,6 +54,7 @@ function LockIcon() {
   )
 }
 
+/** Notification bell for the push-notifications toggle row. */
 function BellIcon() {
   return (
     <svg viewBox="0 0 24 24" className="size-[18px] fill-current">
@@ -58,6 +63,7 @@ function BellIcon() {
   )
 }
 
+/** Door-with-arrow icon for the sign-out button. */
 function LogoutIcon() {
   return (
     <svg viewBox="0 0 24 24" className="size-[18px] fill-current">
@@ -66,6 +72,7 @@ function LogoutIcon() {
   )
 }
 
+/** Camera badge overlaid on the avatar to indicate photo change. */
 function CameraIcon() {
   return (
     <svg viewBox="0 0 24 24" className="size-3.5 fill-white">
@@ -74,6 +81,7 @@ function CameraIcon() {
   )
 }
 
+/** Dimmed right-pointing arrow indicating a tappable row. */
 function ChevronRightIcon() {
   return (
     <svg viewBox="0 0 24 24" className="size-[18px] shrink-0 fill-[var(--text-dim,rgba(255,255,255,0.35))]">
@@ -84,6 +92,10 @@ function ChevronRightIcon() {
 
 // --- Component ---
 
+/**
+ * User profile screen — avatar, personal data,
+ * notifications, sign-out, account deletion.
+ */
 export function ProfilePage() {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
@@ -123,7 +135,7 @@ export function ProfilePage() {
         <div className="w-[70px]" />
       </header>
 
-      {/* Avatar + Foto ändern */}
+      {/* Avatar + change photo */}
       <div className="flex flex-col items-center px-6 pt-2 pb-7">
         <div className="relative mb-3.5 active:scale-[0.96]">
           <div className="flex size-[88px] items-center justify-center rounded-full bg-[#6BBF6B] text-4xl font-extrabold text-white">
@@ -138,7 +150,7 @@ export function ProfilePage() {
         </span>
       </div>
 
-      {/* Persönliche Daten */}
+      {/* Personal data */}
       <div className="mx-5 mb-4">
         <div className="text-muted-foreground mb-2 pl-1 text-xs font-semibold uppercase tracking-wider">
           Persönliche Daten
@@ -185,7 +197,7 @@ export function ProfilePage() {
             </div>
           </div>
 
-          {/* Passwort ändern — only for email/password accounts */}
+          {/* Change password — only for email/password accounts */}
           {!isFederated && (
             <button className="flex w-full items-center gap-3 px-4 py-3.5 text-left active:opacity-70">
               <div className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-white/[0.04] text-muted-foreground">
@@ -200,7 +212,7 @@ export function ProfilePage() {
         </div>
       </div>
 
-      {/* Benachrichtigungen */}
+      {/* Notifications */}
       <div className="mx-5 mb-4">
         <div className="text-muted-foreground mb-2 pl-1 text-xs font-semibold uppercase tracking-wider">
           Benachrichtigungen
@@ -230,7 +242,7 @@ export function ProfilePage() {
         </div>
       </div>
 
-      {/* Konto */}
+      {/* Account */}
       <div className="mx-5 mb-4">
         <div className="text-muted-foreground mb-2 pl-1 text-xs font-semibold uppercase tracking-wider">
           Konto
@@ -261,7 +273,7 @@ export function ProfilePage() {
         </button>
       </div>
 
-      {/* Konto löschen */}
+      {/* Delete account */}
       <button
         className="mx-auto pt-3 text-[13px] font-medium text-destructive opacity-50 transition-opacity hover:opacity-80"
         onClick={() => setDeleteDialogOpen(true)}

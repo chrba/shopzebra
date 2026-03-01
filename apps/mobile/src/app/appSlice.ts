@@ -1,3 +1,7 @@
+// Global app-level state that doesn't belong to any feature.
+// Currently tracks the active theme; will hold connectivity
+// status and other cross-cutting concerns as they emerge.
+
 import { createSlice, type PayloadAction } from './createSlice'
 import type { Theme } from './theme'
 

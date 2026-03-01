@@ -13,6 +13,16 @@ type SwipeToDeleteProps = {
   readonly onDelete: () => void
 }
 
+/**
+ * Wrapper that reveals a red delete button when the child is swiped left.
+ * @param props.children The content that can be swiped.
+ * @param props.isOpen Whether the delete zone is currently revealed.
+ * @param props.onOpen Called when the swipe exceeds the
+ *   threshold and the delete zone should open.
+ * @param props.onClose Called when the swipe snaps back
+ *   or the foreground is tapped while open.
+ * @param props.onDelete Called when the delete button in the revealed zone is tapped.
+ */
 export function SwipeToDelete({
   children,
   isOpen,

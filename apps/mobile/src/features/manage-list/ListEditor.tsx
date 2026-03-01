@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import type { ListColor, Member } from '../lists/state/listsSlice'
+import type { ListColor } from '../lists/model/listsSlice'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
@@ -37,51 +37,91 @@ const COLOR_BG_MAP: Record<ListColor, string> = {
   yellow: 'bg-[rgba(232,196,74,0.12)]',
 }
 
-const MEMBERS: readonly {
-  readonly letter: string
-  readonly name: string
-  readonly color: string
-}[] = [
-  { letter: 'M', name: 'Mama', color: '#6BBF6B' },
-  { letter: 'P', name: 'Papa', color: '#5BA8D5' },
-  { letter: 'L', name: 'Lena', color: '#E07B7B' },
-  { letter: 'O', name: 'Opa', color: '#A07BCC' },
-]
+// --- Private components ---
 
-function resolveMembers(letters: readonly string[]): readonly Member[] {
-  return letters.map((letter) => {
-    const member = MEMBERS.find((m) => m.letter === letter)
-    return { letter, color: member?.color ?? '#888' }
-  })
+/** Left arrow used in the nav header to go back to lists. */
+function BackIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-5 fill-current">
+      <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+    </svg>
+  )
+}
+
+/** Small pencil overlay on the emoji preview circle. */
+function PencilIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="fill-muted-foreground size-3.5">
+      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+    </svg>
+  )
+}
+
+/** Tiny checkmark badge on selected member avatars. */
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-2.5 fill-white">
+      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+    </svg>
+  )
 }
 
 // --- Public API ---
 
-export type ListEditorValues = {
-  readonly emoji: string
+export type FamilyMember = {
+  /** Unique member identifier (e.g. "mama", "papa"). */
+  readonly id: string
+  /** Display name shown on the avatar. */
   readonly name: string
+  /** CSS color for the avatar circle. */
+  readonly color: string
+}
+
+export type ListEditorValues = {
+  /** Pre-selected emoji for the list icon. */
+  readonly emoji: string
+  /** Pre-filled list name (empty for new lists). */
+  readonly name: string
+  /** Pre-selected color theme. */
   readonly color: ListColor
-  readonly selectedMembers: readonly string[]
+  /** IDs of family members pre-selected for sharing. */
+  readonly selectedMemberIds: readonly string[]
 }
 
 export type ListEditorResult = {
+  /** Trimmed list name entered by the user. */
   readonly name: string
+  /** Chosen emoji for the list icon. */
   readonly emoji: string
+  /** Chosen color theme. */
   readonly color: ListColor
-  readonly members: readonly Member[]
+  /** IDs of family members selected for sharing. */
+  readonly memberIds: readonly string[]
 }
 
 type ListEditorProps = {
   readonly title: string
   readonly submitLabel: string
   readonly initialValues: ListEditorValues
+  readonly familyMembers: readonly FamilyMember[]
   readonly onSubmit: (result: ListEditorResult) => void
 }
 
+/**
+ * Full-screen form for picking emoji, name, color and members of a shopping list.
+ * @param props.title Page title shown in the header (e.g. "Neue Liste", "Liste bearbeiten").
+ * @param props.submitLabel Label for the submit button
+ *   (e.g. "Liste erstellen", "Speichern").
+ * @param props.initialValues Pre-filled form values
+ *   (empty defaults for create, current values for edit).
+ * @param props.familyMembers Available family members to choose from for sharing.
+ * @param props.onSubmit Called with the form result when the user taps the submit button.
+ */
 export function ListEditor({
   title,
   submitLabel,
   initialValues,
+  familyMembers,
   onSubmit,
 }: ListEditorProps) {
   const navigate = useNavigate()
@@ -89,8 +129,8 @@ export function ListEditor({
   const [emoji, setEmoji] = useState(initialValues.emoji)
   const [name, setName] = useState(initialValues.name)
   const [color, setColor] = useState<ListColor>(initialValues.color)
-  const [selectedMembers, setSelectedMembers] = useState<readonly string[]>(
-    initialValues.selectedMembers,
+  const [selectedMemberIds, setSelectedMemberIds] = useState<readonly string[]>(
+    initialValues.selectedMemberIds,
   )
   const [error, setError] = useState('')
 
@@ -106,7 +146,7 @@ export function ListEditor({
       name: trimmed,
       emoji,
       color,
-      members: resolveMembers(selectedMembers),
+      memberIds: selectedMemberIds,
     })
   }
 
@@ -119,9 +159,7 @@ export function ListEditor({
           className="text-teal gap-1.5 px-0 text-[15px] font-semibold"
           onClick={() => navigate({ to: '/lists' })}
         >
-          <svg viewBox="0 0 24 24" className="size-5 fill-current">
-            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
-          </svg>
+          <BackIcon />
           Listen
         </Button>
         <h1 className="font-display text-[17px] font-bold">{title}</h1>
@@ -139,9 +177,7 @@ export function ListEditor({
           {emoji}
           {/* Pencil overlay */}
           <div className="border-background bg-secondary absolute -right-0.5 -bottom-0.5 flex size-7 items-center justify-center rounded-full border-2">
-            <svg viewBox="0 0 24 24" className="fill-muted-foreground size-3.5">
-              <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
-            </svg>
+            <PencilIcon />
           </div>
         </div>
         <p className="text-muted-foreground text-xs font-medium">
@@ -201,20 +237,20 @@ export function ListEditor({
           spacing={1}
           className="flex gap-3"
         >
-          {COLORS.map((c) => (
+          {COLORS.map((colorOption) => (
             <ToggleGroupItem
-              key={c.name}
-              value={c.name}
+              key={colorOption.name}
+              value={colorOption.name}
               className={cn(
                 'size-11 min-w-0 rounded-full p-0 transition-all hover:bg-transparent data-[state=on]:bg-transparent',
                 'data-[state=on]:ring-background data-[state=on]:scale-110 data-[state=on]:ring-2 data-[state=on]:ring-offset-2 data-[state=on]:ring-offset-transparent',
               )}
               style={{
-                backgroundColor: c.hex,
-                borderColor: c.name === color ? 'white' : 'transparent',
+                backgroundColor: colorOption.hex,
+                borderColor: colorOption.name === color ? 'white' : 'transparent',
                 borderWidth: '3px',
               }}
-              aria-label={c.name}
+              aria-label={colorOption.name}
             />
           ))}
         </ToggleGroup>
@@ -227,15 +263,15 @@ export function ListEditor({
         </label>
         <ToggleGroup
           type="multiple"
-          value={[...selectedMembers]}
-          onValueChange={(v) => setSelectedMembers(v)}
+          value={[...selectedMemberIds]}
+          onValueChange={(v) => setSelectedMemberIds(v)}
           spacing={1}
           className="flex items-center gap-2.5"
         >
-          {MEMBERS.map((m) => (
+          {familyMembers.map((m) => (
             <ToggleGroupItem
-              key={m.letter}
-              value={m.letter}
+              key={m.id}
+              value={m.id}
               className={cn(
                 'group relative flex size-11 min-w-0 items-center justify-center rounded-full p-0 text-base font-bold text-white transition-all hover:text-white active:scale-90 data-[state=on]:text-white',
                 'opacity-35 data-[state=on]:opacity-100',
@@ -243,11 +279,9 @@ export function ListEditor({
               style={{ backgroundColor: m.color }}
               aria-label={m.name}
             >
-              {m.letter}
+              {m.name[0]}
               <div className="bg-teal border-background absolute -right-0.5 -bottom-0.5 flex size-[18px] items-center justify-center rounded-full border-2 opacity-0 transition-opacity group-data-[state=on]:opacity-100">
-                <svg viewBox="0 0 24 24" className="size-2.5 fill-white">
-                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-                </svg>
+                <CheckIcon />
               </div>
             </ToggleGroupItem>
           ))}

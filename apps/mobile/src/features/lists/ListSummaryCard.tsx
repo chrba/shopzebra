@@ -3,14 +3,40 @@ import {
   CardContent,
   CardTitle,
   CardDescription,
-  CardFooter,
 } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import type { ShoppingList, ListColor } from './state/listsSlice'
+import type { ListColor } from './model/listsSlice'
 
-type ListTileProps = {
-  readonly list: ShoppingList
+/** Pencil icon shown in the bottom-right corner of each list card. */
+function EditIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14">
+      <path
+        d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
+        fill="currentColor"
+        className="text-muted-foreground"
+      />
+    </svg>
+  )
+}
+
+export type ListSummaryViewModel = {
+  /** Unique list identifier. */
+  readonly id: string
+  /** Display name of the shopping list. */
+  readonly name: string
+  /** Color theme used for the icon background glow. */
+  readonly color: ListColor
+  /** Emoji shown as the list icon. */
+  readonly emoji: string
+  /** Number of items on this list. */
+  readonly itemCount: number
+  /** Avatars of family members sharing this list. */
+  readonly members: readonly { readonly letter: string; readonly color: string }[]
+}
+
+type ListSummaryCardProps = {
+  readonly list: ListSummaryViewModel
   readonly onClick: () => void
   readonly onEdit: () => void
 }
@@ -31,7 +57,13 @@ function formatMembers(
   return `${members.length} Pers.`
 }
 
-export function ListTile({ list, onClick, onEdit }: ListTileProps) {
+/**
+ * Single shopping list card in the overview grid — shows emoji, name, item count, members.
+ * @param props.list View model with all data needed to render the card.
+ * @param props.onClick Called when the card body is tapped (navigates to the list).
+ * @param props.onEdit Called when the pencil edit button is tapped.
+ */
+export function ListSummaryCard({ list, onClick, onEdit }: ListSummaryCardProps) {
   return (
     <Card
       className="group relative cursor-pointer gap-0 rounded-2xl px-4 py-5 transition-all duration-[250ms] select-none active:scale-[0.97]"
@@ -42,12 +74,6 @@ export function ListTile({ list, onClick, onEdit }: ListTileProps) {
         if (e.key === 'Enter') onClick()
       }}
     >
-      {list.badge && (
-        <Badge className="bg-orange absolute top-3 right-3 z-2 text-[10px] font-bold text-white">
-          {list.badge}
-        </Badge>
-      )}
-
       <Button
         variant="ghost"
         size="icon-xs"
@@ -58,13 +84,7 @@ export function ListTile({ list, onClick, onEdit }: ListTileProps) {
         }}
         aria-label="Liste bearbeiten"
       >
-        <svg viewBox="0 0 24 24" width="14" height="14">
-          <path
-            d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
-            fill="currentColor"
-            className="text-muted-foreground"
-          />
-        </svg>
+        <EditIcon />
       </Button>
 
       <CardContent className="flex flex-col gap-2.5 px-0 py-0">
@@ -88,15 +108,6 @@ export function ListTile({ list, onClick, onEdit }: ListTileProps) {
           )}
         </CardDescription>
       </CardContent>
-
-      {list.activity && (
-        <CardFooter className="text-muted-foreground px-0 pt-2.5 text-[11px] leading-snug">
-          <span className="text-secondary-foreground font-semibold">
-            {list.activity.who}
-          </span>{' '}
-          {list.activity.what} &middot; {list.activity.when}
-        </CardFooter>
-      )}
     </Card>
   )
 }

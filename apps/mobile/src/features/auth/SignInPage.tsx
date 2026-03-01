@@ -13,6 +13,7 @@ import { performSignIn } from './state/authThunks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
+/** Multi-color Google "G" logo for the social login button. */
 function GoogleIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0">
@@ -36,6 +37,7 @@ function GoogleIcon() {
   )
 }
 
+/** White Apple logo for the social login button. */
 function AppleIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="white" className="h-5 w-5 shrink-0">
@@ -44,6 +46,7 @@ function AppleIcon() {
   )
 }
 
+/** Open eye indicating password is visible. */
 function EyeIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className="size-5">
@@ -52,6 +55,7 @@ function EyeIcon() {
   )
 }
 
+/** Crossed-out eye indicating password is hidden. */
 function EyeOffIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className="size-5">
@@ -60,6 +64,7 @@ function EyeOffIcon() {
   )
 }
 
+/** Circled exclamation mark shown next to validation errors. */
 function ErrorIcon() {
   return (
     <svg
@@ -76,6 +81,7 @@ function validateEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
+/** Login screen with email/password and social sign-in (Google, Apple). */
 export function SignInPage() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
