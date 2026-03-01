@@ -9,7 +9,7 @@ export const listsPersistenceMiddleware: Middleware = (api) => (next) => (action
 
   const actionType = (action as { readonly type: string }).type
 
-  if (actionType === 'lists/listCreated' || actionType === 'lists/listDeleted') {
+  if (actionType === 'lists/listCreated' || actionType === 'lists/listUpdated' || actionType === 'lists/listDeleted') {
     const state = api.getState() as { readonly lists: { readonly lists: readonly ShoppingList[] } }
     void setItem(LISTS_KEY, JSON.stringify(state.lists.lists))
   }
