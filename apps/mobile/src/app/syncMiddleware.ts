@@ -13,9 +13,10 @@
 // New features just add their handler to the array below.
 
 import type { Middleware } from '@reduxjs/toolkit'
+import { isPayloadAction, type PayloadAction } from './createSlice'
 import { listsSyncHandler } from '../features/lists/model/listsSyncHandler'
 
-type SyncHandler = (action: { readonly type: string; readonly payload?: unknown }) => Promise<void> | null
+type SyncHandler = (action: PayloadAction<unknown>) => Promise<void> | null
 
 const handlers: readonly SyncHandler[] = [
   listsSyncHandler,
@@ -24,11 +25,11 @@ const handlers: readonly SyncHandler[] = [
 export const syncMiddleware: Middleware = (_api) => (next) => (action) => {
   const result = next(action)
 
-  const meta = (action as { readonly meta?: { readonly remote?: boolean } }).meta
-  if (meta?.remote) return result
+  if (!isPayloadAction(action)) return result
+  if (action.meta?.remote) return result
 
   for (const handler of handlers) {
-    const promise = handler(action as { readonly type: string; readonly payload?: unknown })
+    const promise = handler(action)
     if (promise) {
       void promise // Later: void syncOrQueue(promise) for offline queue
       break

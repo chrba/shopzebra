@@ -1,9 +1,19 @@
 // Custom createSlice — same API as RTK, but without Immer.
 // Reducer functions MUST return new state (spread instead of mutation).
 
+export type ActionMeta = {
+  readonly eventId: string
+  readonly remote?: boolean
+}
+
 export type PayloadAction<P> = {
   readonly type: string
   readonly payload: P
+  readonly meta?: ActionMeta
+}
+
+export function isPayloadAction(action: unknown): action is PayloadAction<unknown> {
+  return typeof action === 'object' && action !== null && 'type' in action
 }
 
 // --- Reducer definition: plain function or { prepare, reducer } ---

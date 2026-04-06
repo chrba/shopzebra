@@ -5,6 +5,7 @@ import * as apigwv2_integrations from 'aws-cdk-lib/aws-apigatewayv2-integrations
 import * as apigwv2_authorizers from 'aws-cdk-lib/aws-apigatewayv2-authorizers'
 import * as path from 'path'
 import type { Construct } from 'constructs'
+import {} from "cargo-lambda-cdk";
 
 const COGNITO_USER_POOL_ID = 'eu-central-1_z6PK2KOsC'
 const COGNITO_CLIENT_ID = '1j2an4jbfpd0pjvqjil4c1ure5'
@@ -29,6 +30,8 @@ export class ShopZebraApiStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(10),
       memorySize: 256,
     })
+
+    const hello2 = new RustFunction(this, "EventHandler", {})
 
     // HTTP API (API Gateway v2)
     const httpApi = new apigwv2.HttpApi(this, 'HttpApi', {
@@ -61,10 +64,5 @@ export class ShopZebraApiStack extends cdk.Stack {
       authorizer,
     })
 
-    // Output the API URL
-    new cdk.CfnOutput(this, 'ApiUrl', {
-      value: httpApi.url ?? 'undefined',
-      description: 'ShopZebra API Gateway URL',
-    })
   }
 }

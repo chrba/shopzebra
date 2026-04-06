@@ -14,6 +14,26 @@ struct ErrorBody {
     error: String,
 }
 
+
+impl From<ApiError> for  Result<Response<Body>, Error> {
+    fn from(value: ApiError) -> Self {
+             let (status, message) = match value {
+            ApiError::Unauthorized => (401, "Unauthorized".to_string()),
+            ApiError::BadRequest(msg) => (400, msg.clone()),
+            ApiError::ValidationFailed(msg) => (422, msg.clone()),
+            ApiError::Internal => (500, "Internal server error".to_string()),
+        };
+
+        let json = serde_json::to_string(&ErrorBody { error: message })?;
+        let response = Response::builder()
+            .status(status)
+            .header("content-type", "application/json")
+            .body(Body::Text(json))?;
+        Ok(response)
+    }
+} 
+
+
 impl ApiError {
     pub fn to_response(&self) -> Result<Response<Body>, Error> {
         let (status, message) = match self {

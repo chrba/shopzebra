@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { listsReducer } from '../features/lists/model/listsSlice'
 import { authReducer } from '../features/auth/state/authSlice'
 import { appReducer } from './appSlice'
+import { eventIdMiddleware } from './eventIdMiddleware'
 import { themeMiddleware } from './themeMiddleware'
 import { clientStorageMiddleware } from './clientStorageMiddleware'
 import { syncMiddleware } from './syncMiddleware'
@@ -20,6 +21,7 @@ export const store = configureStore({
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
+      eventIdMiddleware,
       themeMiddleware,
       clientStorageMiddleware,
       syncMiddleware,

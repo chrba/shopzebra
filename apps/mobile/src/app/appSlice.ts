@@ -9,12 +9,14 @@ import type { Theme } from './theme'
 
 type AppState = {
   readonly theme: Theme
+  readonly deviceId: string
 }
 
 // --- Slice ---
 
 const initialState: AppState = {
   theme: 'dark',
+  deviceId: '',
 }
 
 const appSlice = createSlice({
@@ -23,9 +25,10 @@ const appSlice = createSlice({
   reducers: {
     appLoaded: (
       _state: AppState,
-      action: PayloadAction<{ readonly theme: Theme }>,
+      action: PayloadAction<{ readonly theme: Theme; readonly deviceId: string }>,
     ): AppState => ({
       theme: action.payload.theme,
+      deviceId: action.payload.deviceId,
     }),
   },
 })
@@ -34,3 +37,8 @@ const appSlice = createSlice({
 
 export const { appLoaded } = appSlice.actions
 export const appReducer = appSlice.reducer
+
+// --- Selectors ---
+
+export const selectDeviceId = (state: { readonly app: AppState }) =>
+  state.app.deviceId

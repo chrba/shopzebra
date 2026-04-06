@@ -36,7 +36,7 @@ impl From<hello::HelloError> for ApiError {
 async fn handler(event: Request) -> Result<Response<Body>, Error> {
     match handle(event).await {
         Ok(response) => Ok(response),
-        Err(err) => err.to_response(),
+        Err(err) => err.into(),
     }
 }
 

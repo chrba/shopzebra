@@ -36,15 +36,9 @@ import { SignUpPage } from '../features/auth/SignUpPage'
 import { ForgotPasswordPage } from '../features/auth/ForgotPasswordPage'
 import { ProfilePage } from '../features/profile/ProfilePage'
 
+const DEVICE_ID_KEY = 'shopzebra_device_id'
 const LISTS_KEY = 'shopzebra_lists'
 const PREFS_KEY = 'shopzebra_list_preferences'
-
-const LETTER_TO_MEMBER_ID: Readonly<Record<string, string>> = {
-  M: 'mama',
-  P: 'papa',
-  L: 'lena',
-  O: 'opa',
-}
 
 const DEFAULT_LISTS: readonly ShoppingList[] = [
   { id: 'rewe', name: 'REWE Wocheneinkauf', memberIds: ['mama', 'papa', 'lena'] },
@@ -64,32 +58,6 @@ const DEFAULT_LIST_PREFERENCES: { readonly [listId: string]: ListPreferences } =
   wochenmarkt: { color: 'red', emoji: '\u{1F9C0}' },
 }
 
-type OldFormatList = {
-  readonly id: string
-  readonly name: string
-  readonly emoji: string
-  readonly color: string
-  readonly members: readonly { readonly letter: string; readonly color: string }[]
-  readonly [key: string]: unknown
-}
-
-function migrateOldFormat(oldLists: readonly OldFormatList[]): {
-  readonly lists: readonly ShoppingList[]
-  readonly preferences: { readonly [listId: string]: ListPreferences }
-} {
-  const lists: readonly ShoppingList[] = oldLists.map((old) => ({
-    id: old.id,
-    name: old.name,
-    memberIds: old.members.map((m) => LETTER_TO_MEMBER_ID[m.letter] ?? m.letter.toLowerCase()),
-  }))
-  const preferences: { readonly [listId: string]: ListPreferences } = Object.fromEntries(
-    oldLists.map((old) => [
-      old.id,
-      { color: old.color as ListPreferences['color'], emoji: old.emoji },
-    ]),
-  )
-  return { lists, preferences }
-}
 
 const rootRoute = createRootRoute({
   component: RootLayout,
@@ -128,17 +96,7 @@ const rootRoute = createRootRoute({
       try {
         const parsed: unknown = JSON.parse(rawLists)
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Detect old format: first item has 'emoji' property
-          if ('emoji' in (parsed[0] as Record<string, unknown>)) {
-            const migrated = migrateOldFormat(parsed as readonly OldFormatList[])
-            lists = migrated.lists
-            preferences = migrated.preferences
-            // Persist migrated data
-            void setItem(LISTS_KEY, JSON.stringify(lists))
-            void setItem(PREFS_KEY, JSON.stringify(preferences))
-          } else {
-            lists = parsed as readonly ShoppingList[]
-          }
+          lists = parsed as readonly ShoppingList[]
         }
       } catch {
         // ignore malformed data
@@ -159,9 +117,16 @@ const rootRoute = createRootRoute({
     const allLists = lists.length > 0 ? lists : DEFAULT_LISTS
     const allPreferences = Object.keys(preferences).length > 0 ? preferences : DEFAULT_LIST_PREFERENCES
 
+    // 3. Load or create device ID
+    let deviceId = await getItem(DEVICE_ID_KEY)
+    if (!deviceId) {
+      deviceId = crypto.randomUUID()
+      await setItem(DEVICE_ID_KEY, deviceId)
+    }
+
     store.dispatch(listsLoaded({ lists: allLists }))
     store.dispatch(listPreferencesLoaded(allPreferences))
-    store.dispatch(appLoaded({ theme: 'dark' }))
+    store.dispatch(appLoaded({ theme: 'dark', deviceId }))
   },
 })
 
