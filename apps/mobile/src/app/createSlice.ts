@@ -2,7 +2,11 @@
 // Reducer functions MUST return new state (spread instead of mutation).
 
 export type ActionMeta = {
+  /** Unique per dispatch. Used as part of the DynamoDB sort key for server-side idempotency. */
   readonly eventId: string
+  /** Originating device. Used to filter out own events when syncing from the server. */
+  readonly deviceId: string
+  /** Set by fromServer() for events received from the backend. SyncMiddleware skips these. */
   readonly remote?: boolean
 }
 

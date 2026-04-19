@@ -1,3 +1,4 @@
+import { authFetch } from '@/app/authFetch'
 import { listCreated, listDeleted } from './listsSlice'
 // import { authFetch } from '../../../app/authFetch'
 
@@ -10,7 +11,7 @@ async function postList(_payload: {
 }
 
 async function postListDeletedEvent(_listId: string): Promise<void> {
-  // TODO: authFetch(`/lists/${listId}/events`, { method: 'POST', body: JSON.stringify({ type: 'LIST_DELETED' }) })
+   // authFetch(`/lists/${listId}/events`, { method: 'POST', body: JSON.stringify({ type: 'LIST_DELETED' }) })
 }
 
 /**

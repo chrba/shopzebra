@@ -1,10 +1,27 @@
-// Attaches a unique eventId to every dispatched action.
-// Used for idempotency when syncing events to the backend.
+// Attaches event metadata to every dispatched action:
+// - eventId: unique per event, used for idempotency when syncing to the backend
+// - deviceId: identifies the originating device, used for filtering own events on sync
 
 import type { Middleware } from '@reduxjs/toolkit'
-import { isPayloadAction } from './createSlice'
+import type { AppState } from './appSlice'
+import { ActionMeta, isPayloadAction } from './createSlice'
 
-export const eventIdMiddleware: Middleware = () => (next) => (action) => {
-  if (!isPayloadAction(action)) return next(action)
-  return next({ ...action, meta: { ...action.meta, eventId: crypto.randomUUID() } })
+
+// Middleware<DispatchExt, State>: the second type param types getState().
+// We can't use RootState here because store.ts imports this middleware (circular dep).
+// Instead we declare the slice shape inline — must match the "app" key in store.ts.
+export const eventIdMiddleware: Middleware<{}, { readonly app: AppState }> = (storeAPI) => (next) => (action) => {
+  if (!isPayloadAction(action)) return next(action);
+
+  const meta: ActionMeta = {
+      ...action.meta,
+      eventId: crypto.randomUUID(),
+      deviceId: storeAPI.getState().app.deviceId,
+  }
+  return next({
+    ...action,
+    meta: {
+      ...meta
+    },
+  })
 }

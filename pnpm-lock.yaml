@@ -23,6 +23,9 @@ importers:
       aws-cdk:
         specifier: ^2.180.0
         version: 2.1106.1
+      cargo-lambda-cdk:
+        specifier: ^0.0.36
+        version: 0.0.36(aws-cdk-lib@2.239.0(constructs@10.5.1))(constructs@10.5.1)
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@22.19.11)(typescript@5.7.3)
@@ -2137,6 +2140,14 @@ packages:
 
   caniuse-lite@1.0.30001770:
     resolution: {integrity: sha512-x/2CLQ1jHENRbHg5PSId2sXq1CIO1CISvwWAj027ltMVG2UNgW+w9oH2+HzgEIRFembL8bUlXtfbBHR1fCg2xw==}
+
+  cargo-lambda-cdk@0.0.36:
+    resolution: {integrity: sha512-H25m7WjzHeifdfEEpsSNkQS6WZETMT6agHaUIfA0rmYlQohOX3lC1qE0OXBEsk1bgCHEatfcsEBkyYgxnzZdLA==}
+    peerDependencies:
+      aws-cdk-lib: ^2.231.0
+      constructs: ^10.0.5
+    bundledDependencies:
+      - js-toml
 
   chalk@5.6.2:
     resolution: {integrity: sha512-7NzBL0rN6fMUW+f7A6Io4h40qQlG+xGmtMxfbnH/K7TAtt8JQWVQK+6g0UXKMeVJoyV5EkkNsErQ8pVD3bLHbA==}
@@ -6142,6 +6153,11 @@ snapshots:
   callsites@3.1.0: {}
 
   caniuse-lite@1.0.30001770: {}
+
+  cargo-lambda-cdk@0.0.36(aws-cdk-lib@2.239.0(constructs@10.5.1))(constructs@10.5.1):
+    dependencies:
+      aws-cdk-lib: 2.239.0(constructs@10.5.1)
+      constructs: 10.5.1
 
   chalk@5.6.2: {}
 

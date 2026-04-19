@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib'
-import { ShopZebraApiStack } from '../lib/shopzebra-api-stack'
+import { ShopZebraApiStack } from '../lib/ShopZebraApiStack'
 
 const app = new cdk.App()
 

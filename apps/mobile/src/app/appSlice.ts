@@ -7,7 +7,7 @@ import type { Theme } from './theme'
 
 // --- Types ---
 
-type AppState = {
+export type AppState = {
   readonly theme: Theme
   readonly deviceId: string
 }
