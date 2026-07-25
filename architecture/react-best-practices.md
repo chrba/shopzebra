@@ -8,6 +8,8 @@ Dieses Dokument beschreibt konkrete Best Practices für die Umsetzung. Für die 
 
 Wir verwenden **Feature-basierte Organisation**. Jedes Feature ist ein eigenständiges Modul mit klaren Grenzen.
 
+> **Verbindliche Ordnerstruktur: Bounded Context** (entschieden 2026-07-25, [refactoring.md](./refactoring.md)) — pro Feature ein `domain/`-Subfolder plus UI-Aspekte mit Business-Namen. Der Beispielbaum unten zeigt das ältere flache Layout und ist nur für die dargestellten Patterns maßgeblich, nicht für Pfade; verbindliche Struktur in [domain-model.md](./domain-model.md) §4.
+
 ```
 src/
 ├── app/
@@ -43,7 +45,7 @@ src/
 └── sync/
     ├── syncMiddleware.ts     # Redux Middleware für Event Sourcing
     ├── appSyncEvents.ts      # AppSync Events Pub/Sub-Verbindung
-    └── offlineQueue.ts       # SQLite Offline-Queue
+    └── offlineQueue.ts       # Offline-Queue (JSON-Blob via Capacitor Filesystem)
 ```
 
 ### Regeln
@@ -150,6 +152,38 @@ function handleCheck(itemId: string) {
 ```
 
 Der Reducer handhabt alle Konsequenzen: State-Update, abgeleitete Werte, Folgezustände. Die Komponente weiß nicht *was* passiert — nur *dass* etwas passiert ist.
+
+### Reducer müssen replay-pur sein
+
+Pur heißt bei uns mehr als „mutiert nichts". Die Sync Engine faltet Events beim Rebase **mehrfach** über denselben Ausgangszustand ([sync-engine.md](./sync-engine.md) §5). Jedes Replay muss dasselbe Ergebnis liefern — sonst springt die UI bei jeder eintreffenden Server-Bestätigung.
+
+**Verboten im Reducer:** `Date.now()`, `new Date()`, `crypto.randomUUID()`, `Math.random()`, `localStorage`, jeder Zugriff auf Umgebungszustand.
+
+```tsx
+// FALSCH: nicht deterministisch — jeder Replay erzeugt eine andere ID
+itemAdded(state, action: PayloadAction<{ name: string }>): ShoppingState {
+  return {
+    ...state,
+    items: [...state.items, { id: crypto.randomUUID(), name: action.payload.name, addedAt: Date.now() }],
+  };
+}
+
+// RICHTIG: ID und Zeitpunkt entstehen in der Middleware und reisen im Event mit
+itemAdded(state, action: PayloadAction<{ itemId: string; name: string; addedAt: number }>): ShoppingState {
+  return {
+    ...state,
+    items: [...state.items, { id: action.payload.itemId, name: action.payload.name, addedAt: action.payload.addedAt }],
+  };
+}
+```
+
+`eventIdMiddleware` etabliert das Muster bereits (`eventId`, `deviceId`). Alles Nichtdeterministische gehört dorthin, nicht in den Reducer.
+
+### Reducer müssen total sein
+
+Ein Event, das im aktuellen State nicht anwendbar ist, wird **ignoriert — nie geworfen**. Beim Rebase ist das der Normalfall: Ein pending `itemAdded` kann auf eine inzwischen bestätigte `listDeleted` treffen. Zugleich ist Totalität die letzte Verteidigung gegen kaputte Payloads im unveränderlichen Log — ein Event, das den Fold crasht, macht das Aggregate für alle Geräte dauerhaft unbrauchbar ([sync-engine.md](./sync-engine.md) §5–6).
+
+Das explizite Immutable-Update-Pattern ist meist von selbst total (`items.map(...)` auf ein unbekanntes Item ist ein No-op). Gefährlich sind `find(...)` mit anschließendem Throw, Non-Null-Assertions (`!`) und blinder Zugriff auf `payload`-Felder, die ein kaputtes Event nicht mitbringt — im Zweifel den State unverändert zurückgeben.
 
 ---
 
@@ -562,7 +596,7 @@ Der Loader garantiert: Wenn die Komponente rendert, sind die Daten im Store.
 
 | Kanal | Mechanismus | Beispiel |
 |---|---|---|
-| Route-Navigation | Loader → Thunk → SQLite → Redux | Liste öffnen |
+| Route-Navigation | Loader → Thunk → clientStorage → Redux | Liste öffnen |
 | Echtzeit-Event | WebSocket → Sync-Middleware → Redux | Anderes Familienmitglied fügt Item hinzu |
 | User-Aktion | dispatch → Reducer | Item abhaken |
 | App-Lifecycle | `useEffect` + Capacitor Listener → Thunk | App kommt aus Background, Events nachholen |
@@ -572,9 +606,9 @@ Die eigentliche Schwerarbeit passiert in **Middleware und Thunks**, nicht in Loa
 
 ### Loader-Besonderheiten bei Local-first
 
-- **SQLite-Reads sind quasi-synchron** (<5ms). Kein Spinner nötig, keine Race Conditions, kein Retry. Loader sind trivial.
+- **Lokale Reads sind quasi-synchron** (kleine JSON-Blobs via Capacitor Filesystem, <5ms). Kein Spinner nötig, keine Race Conditions, kein Retry. Loader sind trivial.
 - **Globale Daten** (Family-Members, User-Profil, Settings) gehören in den **Root-Route-Loader**, nicht in jeden Feature-Loader.
-- **Tab-Wechsel re-triggered Loader.** Bei SQLite kein Performance-Problem, aber `staleTime` von TanStack Router nutzen wenn unnötige Reloads stören.
+- **Tab-Wechsel re-triggered Loader.** Bei lokalen Reads kein Performance-Problem, aber `staleTime` von TanStack Router nutzen wenn unnötige Reloads stören.
 - **Real-time Updates laufen am Loader vorbei.** Wenn Papa im Supermarkt steht und Mama ein Item hinzufügt, geht das über WebSocket → Middleware → Redux. Kein Route-Wechsel, kein Loader.
 
 ---

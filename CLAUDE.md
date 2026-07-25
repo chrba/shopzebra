@@ -4,10 +4,13 @@
 
 All code must follow the principles, decisions, and practices defined in the `architecture/` directory. **Read the relevant doc before you act:**
 
+- **ZUERST, bei jeder nicht-trivialen Aufgabe** → lies `architecture/status.md`. Alle anderen Docs beschreiben den *Zielzustand*; `status.md` beschreibt, was davon heute existiert. Ohne das bewertest oder erweiterst du eine App, die es so noch nicht gibt
+- **Was soll die App können, aus Nutzersicht** → `apps/requirements.md` (User Stories mit Akzeptanzkriterien) und `job-stories.md` (Sync- und Backend-Anforderungen)
 - **Technologie- oder Architektur-Entscheidung** (neue Library, neues Pattern, Ansatz wählen) → lies `architecture/design-principals.md` (Simple vs Easy) + `architecture/design-decisions.md`
 - **Komponente, Hook, Slice oder Route implementieren** → lies `architecture/react-best-practices.md`
 - **Neues Feature oder View bauen** → lies `architecture/product-spec.md` für Wireframes und Feature-Details
 - **Ordner oder Package anlegen, Build-Fragen** → lies `architecture/project-structure.md` für Monorepo-Struktur
+- **Sync, Offline, Events, Backend-Endpunkte** → lies `architecture/sync-engine.md` + `architecture/conflict-resolution.md` und `services/events.md` für den Event-Katalog
 
 Die Kernregeln unten sind eine Kurzfassung — bei Zweifelsfällen immer das vollständige Dokument lesen.
 
@@ -21,6 +24,13 @@ Die Kernregeln unten sind eine Kurzfassung — bei Zweifelsfällen immer das vol
 - Kein Immer — Reducers schreiben explizite immutable Updates (`{ ...state, items: [...state.items, newItem] }`). Eigenes `createSlice`/`createReducer` ohne Immer
 - Kein redundanter State. Alles was berechenbar ist, wird berechnet — via Selektoren, nicht gespeichert
 - Selektoren gehören in den Slice, nicht in die Komponente
+- Reducer müssen **replay-pur** sein: kein `Date.now()`, kein `crypto.randomUUID()`, kein `Math.random()`. Die Sync Engine faltet beim Rebase mehrfach — IDs und Timestamps entstehen in der Middleware und reisen im Event mit
+
+**Sync & Events:**
+- Konflikte werden über die **Log-Reihenfolge** aufgelöst (Server vergibt ULID, alle Clients falten in dieser Reihenfolge). Keine Feld-Versionen, keine HLC, kein LWW
+- **Intention-Events, keine Full-State-Events.** `listRenamed` statt `listUpdated { name, memberIds }` — Full-State klobbert beim Rebase
+- Neue Events kosten **keinen** Sync-Code: `synced: true` am Slice genügt. Kein `if` pro Action, keine Per-Feature-Sync-Handler
+- Alles mit nutzerübergreifender Invariante oder Außenwirkung (Membership, Invites, externe Fetches) ist ein **Command** mit eigenem Endpunkt — der Server schreibt das Event, nie der Client
 
 **React-Patterns:**
 - Kein `useEffect` für Datenladen → TanStack Route Loaders
@@ -76,7 +86,7 @@ Die Kernregeln unten sind eine Kurzfassung — bei Zweifelsfällen immer das vol
 - Keine Web-only APIs — nur Capacitor Plugins oder mit Fallbacks
 
 **Regeln:**
-- **Kein `localStorage` direkt** — nutze `@capacitor/preferences` oder Wrapper mit Fallback
+- **Kein `localStorage` direkt** — alles über den `clientStorage`-Wrapper: JSON-Blobs (State, Outbox) via Capacitor **Filesystem**, `@capacitor/preferences` nur für Kleinkram (Theme, Cursor). Kein SQLite (siehe `architecture/design-decisions.md`)
 - **Touch-first UX** — keine Hover-States als primäre Interaktion, min. 44px Touch-Targets
 - **Mobile Performance** — Bundle-Size, Tree-Shaking, Code-Splitting beachten
 - **Native Features** — Spracheingabe, Haptics, Share, Push Notifications via Capacitor Plugins

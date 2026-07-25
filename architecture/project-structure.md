@@ -41,19 +41,23 @@ shopzebra/
 
 Die eigentliche ShopZebra-App. Technisch eine React-Web-App, deployed als Android/iOS-App via Capacitor. Im Browser lauffähig für Entwicklung und Tests.
 
-Interne Struktur folgt der Feature-basierten Organisation aus `react-best-practices.md`:
-- `src/app/` — Store, Router, Root-Komponente, typed Hooks
-- `src/features/` — Domänen-Ordner (shopping-list, meal-plan, recipes, activity)
+Interne Struktur folgt der Bounded-Context-Struktur aus [refactoring.md](./refactoring.md) — pro Feature ein `domain/`-Subfolder plus UI-Aspekte (verbindlicher Baum: [domain-model.md](./domain-model.md) §4):
+- `src/app/` — Store, Router, Root-Komponente, typed Hooks, Middlewares
+- `src/app/sync/` — Sync Engine: Higher-Order Reducer, Outbox, Transport, AppSync ([sync-engine.md](./sync-engine.md) §4)
+- `src/features/` — Domänen-Ordner (shopping, meal-plan, recipes, activity)
 - `src/ui/` — Design-System Primitives (Button, Modal, ProgressBar)
-- `src/sync/` — Event Sourcing Middleware, AppSync Events, Offline-Queue
 
-### `apps/infrastructure/` — CDK (TypeScript) — kommt später
+### `apps/infrastructure/` — CDK (TypeScript)
 
-AWS-Infrastruktur als Code. Deployed CloudFormation Stacks via CDK. Referenziert Build-Artefakte aus `services/` für Lambda-Deployments. Wird angelegt, sobald das Backend entwickelt wird.
+AWS-Infrastruktur als Code. Deployed CloudFormation Stacks via CDK. Referenziert Build-Artefakte aus `services/` für Lambda-Deployments via `cargo-lambda-cdk`.
 
-### `services/` — Rust Backend — kommt später
+Angelegt. `ShopZebraApiStack` instanziiert bislang nur den `EventHandler`-Construct; HTTP-API, Cognito-Authorizer und DynamoDB-Tabellen fehlen noch — siehe [status.md](./status.md) §4.
 
-Cargo Workspace mit Lambda-Funktionen. Jede Lambda ist ein eigenes Binary, gebaut mit cargo-lambda. Wird angelegt, sobald die API-Schicht implementiert wird.
+### `services/` — Rust Backend
+
+Cargo Workspace mit Lambda-Funktionen. Jede Lambda ist ein eigenes Binary, gebaut mit cargo-lambda. Gemeinsam genutzter, fachlich gekoppelter Code lebt in der Crate `lib/` (`auth.rs`, `error.rs`, `response.rs`, `runtime.rs`).
+
+Angelegt. `event-handler` ist noch ein Gerüst — siehe [status.md](./status.md) §3.
 
 ### `apps/mobile/design/` — Prototypen
 
@@ -68,9 +72,9 @@ HTML/CSS-Prototypen als visuelle Referenz für die React-Implementierung. Werden
 | **pnpm** | `apps/*` | Package Manager mit Workspace-Support |
 | **Turborepo** | `apps/*` | Build-Orchestrierung und Caching für TypeScript-Packages |
 | **Vite** | `apps/mobile` | Dev-Server und Production-Build für React |
-| **Cargo** | `services/` | Rust Workspace, Build und Dependency Management — kommt später |
-| **cargo-lambda** | `services/` | Kompiliert Rust-Binaries für AWS Lambda (ARM64) — kommt später |
-| **CDK** | `apps/infrastructure` | Infrastructure as Code — kommt später |
+| **Cargo** | `services/` | Rust Workspace, Build und Dependency Management |
+| **cargo-lambda** | `services/` | Kompiliert Rust-Binaries für AWS Lambda (ARM64) |
+| **CDK** | `apps/infrastructure` | Infrastructure as Code |
 
 ---
 

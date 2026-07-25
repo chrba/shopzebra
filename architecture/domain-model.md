@@ -10,10 +10,10 @@ State in ShopZebra zerfällt in zwei unabhängige Konzepte. Sie zu trennen ist D
 
 | | Domain State | Local Preferences |
 |---|---|---|
-| **Was** | Die geteilte Wahrheit der Familie | Wie Dinge für DIESEN User aussehen |
+| **Was** | Die geteilte Wahrheit der Listen-Mitglieder | Wie Dinge für DIESEN User aussehen |
 | **Beispiele** | Listenname, Items, Members, Rezepte | Farben, Emoji, Theme |
 | **Quelle** | Events (Backend → alle Clients) | Capacitor Preferences (lokal) |
-| **Sync** | Ja — alle Familienmitglieder sehen dasselbe | Nein — pro User, pro Gerät |
+| **Sync** | Ja — alle Listen-Mitglieder sehen dasselbe | Nein — pro User, pro Gerät |
 | **Gespeichert** | DynamoDB Events Table | Lokaler Speicher |
 
 **Der Test:** Wenn Mama einen Wert ändert und Papa sieht die Änderung → Domain. Wenn Mama einen Wert ändert und nur sie sieht ihn → Local Preference.
@@ -26,37 +26,27 @@ State in ShopZebra zerfällt in zwei unabhängige Konzepte. Sie zu trennen ist D
 
 Jedes Aggregate ist eine Konsistenzgrenze. Events gehören zu genau einem Aggregate. Aggregates referenzieren sich gegenseitig **nur per ID** — nie durch eingebettete Objekte.
 
-### Family
+### Kein Family-Aggregate (entschieden 2026-07-25)
 
-Die Familie als Einheit. Wer gehört dazu, wer darf was.
-
-```
-Entity: FamilyMember { id, name, email, role }
-
-Events:
-  familyCreated        { familyId, name, createdBy }
-  memberInvited        { email, role, invitedBy }
-  memberJoined         { memberId, name, email }
-  memberRemoved        { memberId }
-  preferencesUpdated   { memberId, dietary: [...] }
-  messageSent          { messageId, text, sentBy }
-  reactionAdded        { targetEventId, emoji, reactedBy }
-```
+**Es gibt kein Familien-Konzept.** Die Einheit von Zugriff und Kollaboration ist die **Liste**: Sie hat einen **Owner** (ihren Ersteller); nur er erzeugt Invites und entfernt Mitglieder, jedes Mitglied kann sich selbst entfernen. Mitglieder-Anzeigedaten (Name) kommen aus dem server-geschriebenen `listMemberAdded`-Event. Nachrichten und Reaktionen leben auf dem ShoppingList-Aggregate. Offen: Ernährungspräferenzen und geteilte Wochenpläne ([status.md](./status.md) §7).
 
 ### ShoppingList
 
 Eine Einkaufsliste mit Items. Items existieren nicht ohne Liste — sie sind Teil des Aggregates.
 
 ```
-Entity: ShoppingList { id, name, memberIds }
+Entity: ShoppingList { id, name, ownerId, memberIds }
 Entity: ListItem     { id, name, quantity, unit, category, checked, addedBy, parentId?, note? }
+Entity: ListMember   { id, name }
 
 Events:
-  listCreated          { listId, name, createdBy }
+  listCreated          { listId, name, createdBy }        ← createdBy = Owner
   listRenamed          { listId, name }
   listDeleted          { listId }
-  listMemberAdded      { listId, memberId }
+  listMemberAdded      { listId, memberId, name }
   listMemberRemoved    { listId, memberId }
+  messageSent          { listId, messageId, text, sentBy }
+  reactionAdded        { listId, targetEventId, emoji, reactedBy }
   itemAdded            { listId, itemId, name, quantity, unit, category, addedBy, parentId? }
   itemChecked          { listId, itemId, checkedBy }
   itemUnchecked        { listId, itemId }
@@ -118,20 +108,20 @@ Events:
 
 ### WeekPlan
 
-Wochenplan einer Familie. Ordnet Rezepte Wochentagen zu.
+Wochenplan eines Users (nach Wegfall des Familien-Konzepts user-scoped; Teilen offen, siehe [status.md](./status.md) §7). Ordnet Rezepte Wochentagen zu.
 
 ```
-Entity: WeekPlan { familyId, week, year, slots[] }
+Entity: WeekPlan { userId, week, year, slots[] }
 Entity: DaySlot  { dayOfWeek, recipeId }
 
 Events:
-  recipeAssigned       { familyId, week, year, dayOfWeek, recipeId }
-  recipeUnassigned     { familyId, week, year, dayOfWeek }
+  recipeAssigned       { week, year, dayOfWeek, recipeId }
+  recipeUnassigned     { week, year, dayOfWeek }
 ```
 
 ### Activity (Read Model)
 
-Activity ist **kein Aggregate**. Es ist eine Projektion über Events aller Aggregates — der Activity Feed ist gratis weil wir Event Sourcing machen. Eigene Events (Nachrichten, Reaktionen) leben auf dem Family-Aggregate.
+Activity ist **kein Aggregate**. Es ist eine Projektion über Events — **pro Liste**, über deren Log. Eigene Events (Nachrichten, Reaktionen) leben auf dem ShoppingList-Aggregate.
 
 ---
 
@@ -160,77 +150,84 @@ Jedes Feature hat eine `*Domain.ts`-Datei die **nur die Domain-Types** enthält 
 
 ### Verzeichnisstruktur
 
+Verbindlich ist die **Bounded-Context-Struktur** aus [refactoring.md](./refactoring.md) (entschieden 2026-07-25): pro Feature ein `domain/`-Subfolder (Types, Slice, Handler — kein UI-Code) plus UI-Aspekte mit Business-Namen.
+
 ```
 features/
-  family/
-    state/
-      familyDomain.ts          ← type FamilyMember (nur Types)
-      familySlice.ts           ← Reducer, Actions, Selektoren (importiert aus familyDomain)
-      familySync.ts            ← Sync-Handler
-    FamilySettingsPage.tsx
-    InviteMemberSheet.tsx
-
   lists/
-    state/
+    domain/
       listsDomain.ts           ← type ShoppingList (nur Types)
       listsSlice.ts            ← Reducer, Actions, Selektoren
       listsSync.ts             ← Sync-Handler
+    overview/
+      ListsPage.tsx
+      ListTile.tsx
+      ListsHeader.tsx
+      SummaryChips.tsx
       listsPageSelector.ts     ← Composed Selector für ListsPage (siehe Abschnitt 5)
-    ListsPage.tsx
-    ListTile.tsx
-    ListsHeader.tsx
-    SummaryChips.tsx
-
-  manage-list/
-    CreateListPage.tsx
-    EditListPage.tsx
-    ListEditor.tsx
+    manage/
+      CreateListPage.tsx
+      EditListPage.tsx
+      ListEditor.tsx
 
   shopping/
-    state/
+    domain/
       shoppingDomain.ts        ← type ListItem (nur Types)
       shoppingSlice.ts
       shoppingSync.ts
-    ShoppingListPage.tsx
-    CategorySection.tsx
-    ItemTile.tsx
+    list-view/
+      ShoppingListPage.tsx
+      CategorySection.tsx
+      ItemTile.tsx
 
   recipes/
-    state/
+    domain/
       recipesDomain.ts         ← type Recipe, Ingredient (nur Types)
       recipesSlice.ts
       recipesSync.ts
-    RecipesPage.tsx
-    RecipeDetailPage.tsx
+    catalog/
+      RecipesPage.tsx
+    detail/
+      RecipeDetailPage.tsx
 
   meal-plan/
-    state/
+    domain/
       mealPlanDomain.ts        ← type WeekPlan, DaySlot (nur Types)
       mealPlanSlice.ts
       mealPlanSync.ts
-    WeekPlanPage.tsx
+    weekly/
+      WeekPlanPage.tsx
 
   activity/
-    state/
+    domain/
       activitySlice.ts         ← Read Model, rohe Events
-    ActivityPage.tsx
+    feed/
+      ActivityPage.tsx
+
+  auth/
+    domain/                    ← authSlice, authThunks
+    profile/
+      ProfilePage.tsx          ← Profil gehört zur User-Identität
 
   preferences/
-    state/
+    domain/
       preferencesDomain.ts     ← type ListPreferences, MemberPreferences (nur Types)
       preferencesSlice.ts
     Gespeichert in Capacitor Preferences, nie gesynct
 ```
+
+Composed Selectors leben beim UI-Aspekt, der sie braucht — nicht in `domain/`. Import-Regeln: UI darf aus jeder `domain/` importieren; `domain/` importiert nie UI; UI importiert nie fremde UI ([refactoring.md](./refactoring.md)).
 
 ### Domain-Dateien: Was rein kommt und was nicht
 
 Eine `*Domain.ts`-Datei enthält **ausschließlich Type-Definitionen**:
 
 ```ts
-// lists/state/listsDomain.ts
+// lists/domain/listsDomain.ts
 export type ShoppingList = {
   readonly id: string
   readonly name: string
+  readonly ownerId: string
   readonly memberIds: readonly string[]
 }
 ```
@@ -240,7 +237,7 @@ export type ShoppingList = {
 Der Slice importiert den Type:
 
 ```ts
-// lists/state/listsSlice.ts
+// lists/domain/listsSlice.ts
 import type { ShoppingList } from './listsDomain'
 
 type ListsState = {
@@ -254,22 +251,19 @@ type ListsState = {
 **Domain (gesynct):**
 
 ```ts
-// family/state/familyDomain.ts
-type FamilyMember = {
-  readonly id: string
-  readonly name: string
-  readonly email: string
-  readonly role: 'admin' | 'member'
-}
-
-// lists/state/listsDomain.ts
+// lists/domain/listsDomain.ts
 type ShoppingList = {
   readonly id: string
   readonly name: string
+  readonly ownerId: string
   readonly memberIds: readonly string[]
 }
+type ListMember = {
+  readonly id: string
+  readonly name: string   // aus listMemberAdded, server-angereichert
+}
 
-// shopping/state/shoppingDomain.ts
+// shopping/domain/shoppingDomain.ts
 type ListItem = {
   readonly id: string           // productId oder productId--variantName
   readonly name: string
@@ -282,7 +276,7 @@ type ListItem = {
   readonly note?: string
 }
 
-// recipes/state/recipesDomain.ts
+// recipes/domain/recipesDomain.ts
 type Recipe = {
   readonly id: string
   readonly name: string
@@ -296,9 +290,9 @@ type Ingredient = {
   readonly unit: string
 }
 
-// meal-plan/state/mealPlanDomain.ts
+// meal-plan/domain/mealPlanDomain.ts
 type WeekPlan = {
-  readonly familyId: string
+  readonly userId: string
   readonly week: number
   readonly year: number
   readonly slots: readonly DaySlot[]
@@ -314,7 +308,7 @@ Kein `color`. Kein `emoji` auf Items oder Listen. Kein `itemCount`. Kein `badge`
 **Local Preferences (nicht gesynct):**
 
 ```ts
-// preferences/state/preferencesDomain.ts
+// preferences/domain/preferencesDomain.ts
 type ListPreferences = {
   readonly color: ListColor
   readonly emoji: string
@@ -353,23 +347,22 @@ Inspiriert von Re-frame's Signal Graph. `createSelector` IST der Signal Graph �
 
 **Schicht 1 — Feature-Selektoren** (Public API jedes Features, leben im Slice):
 ```ts
-// lists/state/listsSlice.ts — liest nur aus eigenem Slice
+// lists/domain/listsSlice.ts — liest nur aus eigenem Slice
 export const selectAllLists = (state: RootState) => state.lists.lists
 
-// family/state/familySlice.ts
-export const selectAllMembersById = (state: RootState) => state.family.membersById
+// lists/domain/listsSlice.ts — Members leben in der lists-Domain
+export const selectAllMembersById = (state: RootState) => state.lists.membersById
 
-// preferences/state/preferencesSlice.ts
+// preferences/domain/preferencesSlice.ts
 export const selectAllListPreferences = (state: RootState) => state.preferences.listPrefs
 ```
 
 **Schicht 2 — Composed Selectors** (Signal Graph, pure Funktionen, leben neben der Page die sie braucht):
 ```ts
-// lists/state/listsPageSelector.ts — pure Funktion, kein React
+// lists/overview/listsPageSelector.ts — pure Funktion, kein React
 import { createSelector } from '@reduxjs/toolkit'
-import { selectAllLists } from './listsSlice'
-import { selectAllMembersById } from '../../family/state/familySlice'
-import { selectAllListPreferences, selectAllMemberPreferences } from '../../preferences/state/preferencesSlice'
+import { selectAllLists, selectAllMembersById } from '../domain/listsSlice'
+import { selectAllListPreferences, selectAllMemberPreferences } from '../../preferences/domain/preferencesSlice'
 
 export const selectListsPageData = createSelector(
   [selectAllLists, selectAllMembersById, selectAllListPreferences, selectAllMemberPreferences],
@@ -442,7 +435,7 @@ Diese Regeln verhindern unkontrollierte Coupling zwischen Features:
 3. **`*Sync.ts`** importiert aus dem **eigenen Slice** (Action Creators, Types) und aus der **eigenen API-Datei**.
 4. **Composed Selectors** (`*PageSelector.ts`) importieren **Feature-Selektoren aus beliebigen Slices**. Das ist die einzige Stelle für Cross-Feature-Imports.
 5. **Pages** importieren aus dem **eigenen Feature** (Komponenten, Composed Selector) und aus `app/` (useAppSelector, useAppDispatch).
-6. **Komponenten** importieren **nichts aus `state/`**. Keine Selektoren, keine Actions, keine Domain-Types anderer Features. Nur Props und `ui/`-Primitives.
+6. **Komponenten** importieren **nichts aus `domain/`**. Keine Selektoren, keine Actions, keine Domain-Types anderer Features. Nur Props und `ui/`-Primitives.
 
 ```
 Erlaubte Imports:
@@ -472,16 +465,21 @@ meal-plan/ importiert nichts aus shopping/.
 Der Payload ist plain data, keine fremden Types.
 ```
 
+Das Event landet im Log des **ShoppingList-Aggregates** (`LIST#{listId}`) und ist damit ganz normal gesynct — für die Sync-Engine ist das Ziel-Aggregate maßgeblich, nicht das dispatchende Feature. Siehe [../services/events.md](../services/events.md).
+
 **Offline → Online:**
 ```
 1. App kommt online
-2. GET /sync?since=lastSyncTimestamp
-3. Für jedes Event: dispatch(fromServer(action))
-4. Jeder Reducer verarbeitet "seine" Events, ignoriert den Rest
-5. preferencesSlice ist nicht betroffen — hat keine Events
+2. GET /sync?since=<letzte bestätigte ULID>
+3. Eingehende Events nach ULID sortieren, in den bestätigten State falten
+4. Eigene Pending-Events obendrauf replayen (Rebase)
+5. Pending-Events an den Server senden
+6. Jeder Reducer verarbeitet "seine" Events, ignoriert den Rest
+7. preferencesSlice ist nicht betroffen — hat keine Events
 ```
+Ablauf und Bausteine: [sync-engine.md](./sync-engine.md).
 
-**Voraussetzung:** Referenzierte Daten müssen im Store sein. `family/`-Slice lädt Members beim App-Start (Route-Loader oder App-Init). Danach sind sie da und jeder Selektor kann darauf zugreifen.
+**Voraussetzung:** Referenzierte Daten müssen im Store sein. Die Members einer Liste entstehen im lists-Reducer aus server-geschriebenen `listMemberAdded`-Events — nach dem Sync sind sie da und jeder Selektor kann darauf zugreifen.
 
 ---
 
@@ -492,37 +490,45 @@ Das Backend ist ein dummer Event Store + Broadcaster. Keine Business-Logik.
 ### Events Table (die Wahrheit)
 
 ```
-PK: aggregateId    (z.B. LIST#abc, FAMILY#xyz, RECIPE#123, PLAN#fam1#2026-W09)
-SK: timestamp#eventId
+PK: aggregateId    (z.B. LIST#abc, RECIPE#123, PLAN#user1#2026-W09)
+SK: ULID           (vom Server beim Append vergeben)
 
-Attributes: type, payload, userId, familyId
-
-GSI: familyId + timestamp
-  → "alle Events dieser Familie seit T"
-  → Offline-Sync, Activity Feed
+Attributes: type, payload (opak), userId, eventId, deviceId
 ```
 
-### State Table (Optimierung)
+Kein `familyId`, kein GSI: `GET /sync?since` läuft über die Membership-Projektion — der Server queried die Partitionen der Aggregates des Aufrufers. Der Activity Feed ist eine Projektion pro Liste.
+
+Die ULID ist gleichzeitig Sortierschlüssel und **kanonische Reihenfolge** für die Konfliktauflösung. Kein Client-Timestamp geht in den Sortierschlüssel ein.
+
+### Snapshot Table (Optimierung)
 
 ```
 PK: aggregateId
-Attributes: state (materialisierter JSON), version
-
-Aktualisiert durch DynamoDB Stream → Lambda Stream Processor.
-Existiert damit neue Geräte nicht alle Events replayed müssen.
+Attributes: snapshot (opakes JSON), upToUlid
 ```
+
+Erzeugt vom **Client**, nicht von einem Stream Processor — der Client faltet ohnehin. Damit existiert die Fachlogik genau einmal, in TypeScript. Der Snapshot ist reiner Bootstrap-Cache und nie autoritativ; jeder Client kann ihn gegen den Log nachrechnen.
+
+### Membership: eine Projektion, die der Server besitzt
+
+Wer auf ein Aggregate schreiben darf, wird **nicht** aus dem client-geschriebenen Log abgeleitet — sonst stammte die Autorisierungsgrundlage aus genau dem Stream, den die Autorisierung schützen soll. Alle Zugriffsänderungen laufen über Command-Endpunkte, die der Server validiert und deren Event er selbst schreibt.
 
 ### API
 
 ```
-POST  /lists/{id}/events       → Event validieren, speichern, auf AppSync publishen
-GET   /lists/{id}/events       → Events seit ?since=t
-GET   /lists/{id}              → Materialisierten State
-GET   /sync?since=t            → Alle Family-Events seit t (GSI-Query)
-POST  /family/invite           → Einladung senden
+Events (generisch, ein Lambda für alle Typen):
+POST  /lists/{id}/events       → Envelope validieren, ULID vergeben, appenden, publishen
+GET   /lists/{id}/events       → Events seit ?since=<ulid>
+GET   /lists/{id}/snapshot     → Snapshot + upToUlid für den Bootstrap
+GET   /sync?since=<ulid>       → Alle Events der eigenen Aggregates seit ULID
+
+Commands (je ein eigenes Lambda, Server schreibt das Event):
+POST    /lists/{id}/invites    → Owner-only: Invite-Token (Link/QR)
+POST    /lists/join            → Token prüfen, listMemberAdded
+DELETE  /lists/{id}/members/…  → listMemberRemoved
 ```
 
-Analog für `/recipes/{id}/events` und `/plans/{id}/events`.
+Analog für `/recipes/{id}/events` und `/plans/{id}/events`. Vollständige Liste in [../services/events.md](../services/events.md).
 
 ### Wire Format
 
@@ -541,6 +547,12 @@ Analog für `/recipes/{id}/events` und `/plans/{id}/events`.
 ```
 
 Dasselbe Objekt ist Redux Action, Domain Event und Wire Format. Kein Mapping, kein Serialisierungslayer. Ein Konzept durchgehend.
+
+**Event-Metadaten:** Jedes Event trägt in `meta` eine `eventId` (Idempotenz beim Senden, Match gegen die Pending-Queue) und eine `deviceId` (Herkunft), beide erzeugt in der Middleware. Bestätigte Events tragen zusätzlich die vom Server vergebene `ulid`.
+
+**Keine Feld-Versionen.** Die Domain-Types oben (`ListItem` etc.) sind vollständig — es gibt keinen zusätzlichen `{ value, version }`-Wrapper pro konfliktbehaftetem Feld. Konflikte werden nicht durch Versionsvergleich im Reducer aufgelöst, sondern dadurch, dass alle Clients das server-geordnete Log in ULID-Reihenfolge falten. Siehe [conflict-resolution.md](./conflict-resolution.md) §3 und [sync-engine.md](./sync-engine.md).
+
+**Reducer-Constraint:** Weil beim Rebase mehrfach gefaltet wird, müssen alle Reducer replay-pur sein — kein `Date.now()`, kein `crypto.randomUUID()`, kein `Math.random()`. IDs und Timestamps entstehen in der Middleware und reisen im Event mit.
 
 ---
 
@@ -565,5 +577,5 @@ Beispiel:
 ## 10. Offene Entscheidungen
 
 - **itemCount**: Woher kennt die Listen-Übersicht die Anzahl Items? Optionen: (a) Backend liefert es im materialisierten State, (b) lists/-Reducer zählt mit wenn itemAdded/itemRemoved Events kommen, (c) Selektor der aus shopping/ liest (nur für offene Liste). Vermutlich (b).
-- **Dietary Preferences**: Leben auf dem Family-Aggregate (preferencesUpdated Event). Könnten auch Local Preference sein wenn sie nicht geteilt werden sollen — z.B. "Papa ist laktoseintolerant" sollte die ganze Familie wissen → Domain.
-- **Custom Variants Scope**: Aktuell auf ShoppingList-Aggregate (pro Liste). Alternativ: auf Family-Aggregate (familyweit, alle Listen sehen dieselben Custom Variants). Pro Liste ist einfacher, familyweit ist nützlicher. Kann später migriert werden.
+- **Dietary Preferences**: Lebten auf dem gestrichenen Family-Aggregate — wohin damit (User-Aggregate, Local Preference, streichen)? Siehe [status.md](./status.md) §7.
+- **Custom Variants Scope**: Auf dem ShoppingList-Aggregate (pro Liste). Ein übergreifender Scope bräuchte nach Wegfall des Familien-Konzepts ein User-Aggregate — offen, kann später migriert werden.

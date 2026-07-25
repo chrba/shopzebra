@@ -1,6 +1,6 @@
-import { authFetch } from '@/app/authFetch'
 import { listCreated, listDeleted } from './listsSlice'
-// import { authFetch } from '../../../app/authFetch'
+// Re-enable when the fetch calls below are activated:
+// import { authFetch } from '@/app/authFetch'
 
 async function postList(_payload: {
   readonly id: string
