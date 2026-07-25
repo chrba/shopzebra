@@ -14,7 +14,7 @@
 
 import type { Middleware } from '@reduxjs/toolkit'
 import { isPayloadAction, type PayloadAction } from './createSlice'
-import { listsSyncHandler } from '../features/lists/model/listsSyncHandler'
+import { listsSyncHandler } from '../features/lists/domain/listsSyncHandler'
 
 type SyncHandler = (action: PayloadAction<unknown>) => Promise<void> | null
 

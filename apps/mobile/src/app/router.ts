@@ -17,24 +17,24 @@ import {
 } from '@tanstack/react-router'
 import { getCurrentUser, fetchAuthSession } from 'aws-amplify/auth'
 import { store } from './store'
-import { listsLoaded, listPreferencesLoaded } from '../features/lists/model/listsSlice'
+import { listsLoaded, listPreferencesLoaded } from '../features/lists/domain/listsSlice'
 import {
   sessionRestored,
   sessionNotFound,
   selectIsAuthenticated,
   type AuthProvider,
-} from '../features/auth/state/authSlice'
+} from '../features/auth/domain/authSlice'
 import { appLoaded } from './appSlice'
 import { getItem, setItem } from './clientStorage'
-import type { ShoppingList, ListPreferences } from '../features/lists/model/listsSlice'
+import type { ShoppingList, ListPreferences } from '../features/lists/domain/listsSlice'
 import { RootLayout } from './RootLayout'
-import { ListsPage } from '../features/lists/ListsPage'
-import { CreateListPage } from '../features/manage-list/CreateListPage'
-import { EditListPage } from '../features/manage-list/EditListPage'
-import { SignInPage } from '../features/auth/SignInPage'
-import { SignUpPage } from '../features/auth/SignUpPage'
-import { ForgotPasswordPage } from '../features/auth/ForgotPasswordPage'
-import { ProfilePage } from '../features/profile/ProfilePage'
+import { ListsPage } from '../features/lists/overview/ListsPage'
+import { CreateListPage } from '../features/lists/manage/CreateListPage'
+import { EditListPage } from '../features/lists/manage/EditListPage'
+import { SignInPage } from '../features/auth/sign-in/SignInPage'
+import { SignUpPage } from '../features/auth/sign-up/SignUpPage'
+import { ForgotPasswordPage } from '../features/auth/forgot-password/ForgotPasswordPage'
+import { ProfilePage } from '../features/auth/profile/ProfilePage'
 
 const DEVICE_ID_KEY = 'shopzebra_device_id'
 const LISTS_KEY = 'shopzebra_lists'

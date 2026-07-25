@@ -1,15 +1,15 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { signInWithRedirect } from 'aws-amplify/auth'
-import { useAppDispatch, useAppSelector } from '../../app/store'
+import { useAppDispatch, useAppSelector } from '../../../app/store'
 import {
   authLoading,
   authErrorCleared,
   selectAuthStatus,
   selectAuthError,
   selectIsAuthenticated,
-} from './state/authSlice'
-import { performSignIn } from './state/authThunks'
+} from '../domain/authSlice'
+import { performSignIn } from '../domain/authThunks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 

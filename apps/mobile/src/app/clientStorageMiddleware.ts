@@ -7,7 +7,7 @@
 // New features just add their handler to the array below.
 
 import type { Middleware } from '@reduxjs/toolkit'
-import { listsClientStorageHandler } from '../features/lists/model/listsClientStorageHandler'
+import { listsClientStorageHandler } from '../features/lists/domain/listsClientStorageHandler'
 
 type ClientStorageHandler = (
   action: { readonly type: string; readonly payload?: unknown },

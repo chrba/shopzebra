@@ -5,7 +5,7 @@ import {
   CardDescription,
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import type { ListColor } from './model/listsSlice'
+import type { ListColor } from '../domain/listsSlice'
 
 /** Pencil icon shown in the bottom-right corner of each list card. */
 function EditIcon() {

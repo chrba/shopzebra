@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { useAppDispatch, useAppSelector } from '../../app/store'
-import { selectAuthUser } from '../auth/state/authSlice'
-import { performSignOut } from '../auth/state/authThunks'
+import { useAppDispatch, useAppSelector } from '../../../app/store'
+import { selectAuthUser } from '../domain/authSlice'
+import { performSignOut } from '../domain/authThunks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {

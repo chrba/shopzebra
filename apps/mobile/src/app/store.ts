@@ -5,8 +5,8 @@
 
 import { configureStore } from '@reduxjs/toolkit'
 import { useDispatch, useSelector } from 'react-redux'
-import { listsReducer } from '../features/lists/model/listsSlice'
-import { authReducer } from '../features/auth/state/authSlice'
+import { listsReducer } from '../features/lists/domain/listsSlice'
+import { authReducer } from '../features/auth/domain/authSlice'
 import { appReducer } from './appSlice'
 import { eventIdMiddleware } from './eventIdMiddleware'
 import { themeMiddleware } from './themeMiddleware'

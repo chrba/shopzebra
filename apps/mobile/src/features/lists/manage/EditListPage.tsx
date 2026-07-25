@@ -1,7 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
-import { useAppDispatch, useAppSelector } from '../../app/store'
-import { listUpdated, listPreferencesSet, selectListById, selectListPreferences } from '../lists/model/listsSlice'
-import { FAMILY_MEMBERS } from '../lists/model/listsSlice'
+import { useAppDispatch, useAppSelector } from '../../../app/store'
+import { listUpdated, listPreferencesSet, selectListById, selectListPreferences } from '../domain/listsSlice'
+import { FAMILY_MEMBERS } from '../domain/listsSlice'
 import { ListEditor, type FamilyMember } from './ListEditor'
 
 const familyMembersList: readonly FamilyMember[] = Object.entries(FAMILY_MEMBERS).map(

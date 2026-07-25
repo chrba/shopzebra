@@ -1,51 +1,17 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { signInWithRedirect } from 'aws-amplify/auth'
-import { useAppDispatch, useAppSelector } from '../../app/store'
+import { useAppDispatch, useAppSelector } from '../../../app/store'
 import {
   authLoading,
   authErrorCleared,
   selectAuthStatus,
   selectAuthError,
-  selectConfirmationPending,
+  selectResetPending,
   selectPendingEmail,
-} from './state/authSlice'
-import { performSignUp, performConfirmSignUp } from './state/authThunks'
+} from '../domain/authSlice'
+import { performForgotPassword, performResetPassword } from '../domain/authThunks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-
-/** Multi-color Google "G" logo for the social login button. */
-function GoogleIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0">
-      <path
-        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
-        fill="#4285F4"
-      />
-      <path
-        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-        fill="#34A853"
-      />
-      <path
-        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A10.96 10.96 0 001 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z"
-        fill="#FBBC05"
-      />
-      <path
-        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-        fill="#EA4335"
-      />
-    </svg>
-  )
-}
-
-/** White Apple logo for the social login button. */
-function AppleIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="white" className="h-5 w-5 shrink-0">
-      <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-    </svg>
-  )
-}
 
 /** Circled exclamation mark shown next to validation errors. */
 function ErrorIcon() {
@@ -64,8 +30,8 @@ function validateEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
-/** Email/password registration form with social login alternatives. */
-function SignUpForm() {
+/** First step: enter email to receive a reset code. */
+function RequestCodeForm() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const status = useAppSelector(selectAuthStatus)
@@ -73,67 +39,29 @@ function SignUpForm() {
   const loading = status === 'loading'
 
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [emailError, setEmailError] = useState(false)
-  const [passwordError, setPasswordError] = useState(false)
-  const [confirmError, setConfirmError] = useState(false)
 
   const handleSubmit = () => {
     dispatch(authErrorCleared())
-    let hasError = false
 
     if (!email || !validateEmail(email)) {
       setEmailError(true)
-      hasError = true
+      return
     }
-    if (!password || password.length < 8) {
-      setPasswordError(true)
-      hasError = true
-    }
-    if (password !== confirmPassword) {
-      setConfirmError(true)
-      hasError = true
-    }
-
-    if (hasError) return
 
     dispatch(authLoading())
-    dispatch(performSignUp({ email, password }))
-  }
-
-  const handleGoogleSignUp = () => {
-    void signInWithRedirect({ provider: 'Google' })
+    dispatch(performForgotPassword({ email }))
   }
 
   return (
     <>
-      {/* Social Login */}
-      <div className="mb-1 flex flex-col gap-2.5">
-        <Button
-          variant="outline"
-          className="h-auto w-full gap-2.5 rounded-2xl py-[15px] text-[15px] font-semibold"
-          onClick={handleGoogleSignUp}
-        >
-          <GoogleIcon />
-          Mit Google registrieren
-        </Button>
-        <Button
-          variant="outline"
-          className="h-auto w-full gap-2.5 rounded-2xl py-[15px] text-[15px] font-semibold"
-        >
-          <AppleIcon />
-          Mit Apple registrieren
-        </Button>
-      </div>
-
-      {/* Divider */}
-      <div className="my-[18px] flex items-center gap-4">
-        <div className="h-px flex-1 bg-border" />
-        <span className="text-[13px] font-semibold text-muted-foreground">
-          oder mit E-Mail
-        </span>
-        <div className="h-px flex-1 bg-border" />
+      <div className="mb-6 text-center">
+        <div className="mb-2 text-lg font-bold text-foreground">
+          Passwort zurücksetzen
+        </div>
+        <div className="text-sm text-muted-foreground">
+          Wir senden dir einen Code per E-Mail
+        </div>
       </div>
 
       {/* Server error */}
@@ -145,7 +73,7 @@ function SignUpForm() {
       )}
 
       {/* Email */}
-      <div className="mb-3.5">
+      <div className="mb-5">
         <Input
           type="email"
           placeholder="E-Mail-Adresse"
@@ -171,15 +99,146 @@ function SignUpForm() {
         )}
       </div>
 
-      {/* Password */}
+      {/* Submit */}
+      <Button
+        disabled={loading}
+        onClick={handleSubmit}
+        className="h-auto w-full rounded-2xl py-[17px] text-base font-bold text-white shadow-[0_4px_20px_rgba(78,157,166,0.3)]"
+        style={{
+          background: 'linear-gradient(135deg, var(--teal), #3A8A92)',
+        }}
+      >
+        {loading ? (
+          <div className="mx-auto h-5 w-5 animate-spin rounded-full border-[2.5px] border-white/30 border-t-white" />
+        ) : (
+          'Code senden'
+        )}
+      </Button>
+
+      {/* Sign in footer */}
+      <div className="mt-5 text-center text-sm font-medium text-muted-foreground">
+        Zurück zur{' '}
+        <Button
+          variant="link"
+          className="h-auto p-0 text-sm font-bold text-teal"
+          onClick={() => void navigate({ to: '/signin' })}
+        >
+          Anmeldung
+        </Button>
+      </div>
+    </>
+  )
+}
+
+/** Second step: enter the 6-digit code and a new password. */
+function ResetPasswordForm() {
+  const dispatch = useAppDispatch()
+  const navigate = useNavigate()
+  const status = useAppSelector(selectAuthStatus)
+  const serverError = useAppSelector(selectAuthError)
+  const pendingEmail = useAppSelector(selectPendingEmail)
+  const resetPending = useAppSelector(selectResetPending)
+  const loading = status === 'loading'
+
+  const [code, setCode] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [codeError, setCodeError] = useState(false)
+  const [passwordError, setPasswordError] = useState(false)
+  const [confirmError, setConfirmError] = useState(false)
+
+  // Navigate to sign-in after successful reset
+  if (!resetPending && status === 'idle' && !serverError) {
+    void navigate({ to: '/signin' })
+  }
+
+  const handleSubmit = () => {
+    dispatch(authErrorCleared())
+    let hasError = false
+
+    if (!code || code.length !== 6) {
+      setCodeError(true)
+      hasError = true
+    }
+    if (!newPassword || newPassword.length < 8) {
+      setPasswordError(true)
+      hasError = true
+    }
+    if (newPassword !== confirmPassword) {
+      setConfirmError(true)
+      hasError = true
+    }
+
+    if (hasError) return
+
+    dispatch(authLoading())
+    dispatch(
+      performResetPassword({
+        email: pendingEmail ?? '',
+        code,
+        newPassword,
+      }),
+    )
+  }
+
+  return (
+    <>
+      <div className="mb-6 text-center">
+        <div className="mb-2 text-lg font-bold text-foreground">
+          Neues Passwort setzen
+        </div>
+        <div className="text-sm text-muted-foreground">
+          Wir haben einen Code an{' '}
+          <span className="font-semibold text-foreground">{pendingEmail}</span>{' '}
+          geschickt
+        </div>
+      </div>
+
+      {/* Server error */}
+      {serverError && (
+        <div className="mb-3.5 flex items-center gap-1.5 rounded-xl bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+          <ErrorIcon />
+          <span>{serverError}</span>
+        </div>
+      )}
+
+      {/* Code */}
+      <div className="mb-3.5">
+        <Input
+          type="text"
+          placeholder="6-stelliger Code"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={6}
+          value={code}
+          onChange={(e) => {
+            const digits = e.target.value.replace(/\D/g, '')
+            setCode(digits)
+            setCodeError(false)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleSubmit()
+          }}
+          aria-invalid={codeError}
+          className="h-auto rounded-2xl px-[18px] py-4 text-center text-xl font-bold tracking-[0.3em] placeholder:text-base placeholder:font-medium placeholder:tracking-normal"
+        />
+        {codeError && (
+          <div className="mt-1.5 flex items-center gap-[5px] pl-1 text-[13px] font-medium text-destructive">
+            <ErrorIcon />
+            <span>Bitte gib den 6-stelligen Code ein</span>
+          </div>
+        )}
+      </div>
+
+      {/* New password */}
       <div className="mb-3.5">
         <Input
           type="password"
-          placeholder="Passwort"
+          placeholder="Neues Passwort"
           autoComplete="new-password"
-          value={password}
+          value={newPassword}
           onChange={(e) => {
-            setPassword(e.target.value)
+            setNewPassword(e.target.value)
             setPasswordError(false)
           }}
           onKeyDown={(e) => {
@@ -233,128 +292,17 @@ function SignUpForm() {
         {loading ? (
           <div className="mx-auto h-5 w-5 animate-spin rounded-full border-[2.5px] border-white/30 border-t-white" />
         ) : (
-          'Konto erstellen'
+          'Passwort zurücksetzen'
         )}
       </Button>
-
-      {/* Sign in footer */}
-      <div className="mt-5 text-center text-sm font-medium text-muted-foreground">
-        Schon ein Konto?{' '}
-        <Button
-          variant="link"
-          className="h-auto p-0 text-sm font-bold text-teal"
-          onClick={() => void navigate({ to: '/signin' })}
-        >
-          Anmelden
-        </Button>
-      </div>
     </>
   )
 }
 
-/** 6-digit code input shown after sign-up to verify the email address. */
-function ConfirmationForm() {
-  const dispatch = useAppDispatch()
+/** Password reset flow — request code by email, then set a new password. */
+export function ForgotPasswordPage() {
   const navigate = useNavigate()
-  const status = useAppSelector(selectAuthStatus)
-  const serverError = useAppSelector(selectAuthError)
-  const pendingEmail = useAppSelector(selectPendingEmail)
-  const loading = status === 'loading'
-
-  const [code, setCode] = useState('')
-  const [codeError, setCodeError] = useState(false)
-
-  const handleConfirm = () => {
-    dispatch(authErrorCleared())
-
-    if (!code || code.length !== 6) {
-      setCodeError(true)
-      return
-    }
-
-    dispatch(authLoading())
-    dispatch(performConfirmSignUp({ email: pendingEmail ?? '', code }))
-  }
-
-  // Navigate to sign-in after successful confirmation
-  const confirmationPending = useAppSelector(selectConfirmationPending)
-  if (!confirmationPending && status === 'idle' && !serverError) {
-    void navigate({ to: '/signin' })
-  }
-
-  return (
-    <>
-      <div className="mb-6 text-center">
-        <div className="mb-2 text-lg font-bold text-foreground">
-          Bestätigungscode eingeben
-        </div>
-        <div className="text-sm text-muted-foreground">
-          Wir haben einen Code an{' '}
-          <span className="font-semibold text-foreground">{pendingEmail}</span>{' '}
-          geschickt
-        </div>
-      </div>
-
-      {/* Server error */}
-      {serverError && (
-        <div className="mb-3.5 flex items-center gap-1.5 rounded-xl bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
-          <ErrorIcon />
-          <span>{serverError}</span>
-        </div>
-      )}
-
-      {/* Code input */}
-      <div className="mb-5">
-        <Input
-          type="text"
-          placeholder="6-stelliger Code"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          maxLength={6}
-          value={code}
-          onChange={(e) => {
-            const digits = e.target.value.replace(/\D/g, '')
-            setCode(digits)
-            setCodeError(false)
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') handleConfirm()
-          }}
-          aria-invalid={codeError}
-          className="h-auto rounded-2xl px-[18px] py-4 text-center text-xl font-bold tracking-[0.3em] placeholder:text-base placeholder:font-medium placeholder:tracking-normal"
-        />
-        {codeError && (
-          <div className="mt-1.5 flex items-center gap-[5px] pl-1 text-[13px] font-medium text-destructive">
-            <ErrorIcon />
-            <span>Bitte gib den 6-stelligen Code ein</span>
-          </div>
-        )}
-      </div>
-
-      {/* Submit */}
-      <Button
-        disabled={loading}
-        onClick={handleConfirm}
-        className="h-auto w-full rounded-2xl py-[17px] text-base font-bold text-white shadow-[0_4px_20px_rgba(78,157,166,0.3)]"
-        style={{
-          background: 'linear-gradient(135deg, var(--teal), #3A8A92)',
-        }}
-      >
-        {loading ? (
-          <div className="mx-auto h-5 w-5 animate-spin rounded-full border-[2.5px] border-white/30 border-t-white" />
-        ) : (
-          'Bestätigen'
-        )}
-      </Button>
-
-    </>
-  )
-}
-
-/** Registration screen with email/password, social sign-up, and confirmation code entry. */
-export function SignUpPage() {
-  const navigate = useNavigate()
-  const confirmationPending = useAppSelector(selectConfirmationPending)
+  const resetPending = useAppSelector(selectResetPending)
 
   return (
     <div className="flex min-h-full flex-col bg-background">
@@ -372,8 +320,8 @@ export function SignUpPage() {
         </Button>
       </header>
 
-      {/* Branding */}
-      <div className="flex flex-1 flex-col items-center justify-center px-6 py-8">
+      {/* Branding (compact) */}
+      <div className="flex flex-1 flex-col items-center justify-center px-6">
         <div className="mb-2">
           <div
             className="flex h-[72px] w-[72px] items-center justify-center rounded-full text-4xl"
@@ -388,16 +336,11 @@ export function SignUpPage() {
         <div className="mt-4 font-display text-[28px] font-extrabold tracking-tight">
           ShopZebra
         </div>
-        {!confirmationPending && (
-          <div className="mt-1.5 text-[15px] font-medium text-muted-foreground">
-            Konto erstellen
-          </div>
-        )}
       </div>
 
       {/* Form Area */}
       <div className="shrink-0 px-6 pb-10">
-        {confirmationPending ? <ConfirmationForm /> : <SignUpForm />}
+        {resetPending ? <ResetPasswordForm /> : <RequestCodeForm />}
       </div>
     </div>
   )

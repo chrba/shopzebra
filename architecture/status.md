@@ -130,19 +130,9 @@ Diese stehen als Kern-Features in der Produkt-Spec, haben aber **kein Event, kei
 
 **Entschieden (2026-07-25):** Bounded-Context-Struktur aus [refactoring.md](./refactoring.md) — jedes Feature mit `domain/`-Subfolder und UI-Aspekten mit Business-Namen. `domain-model.md` §4 ist angeglichen.
 
-Der Code entspricht dem noch nicht. Ausstehende Migration:
+**Migration durchgeführt (2026-07-25):** `lists/domain|overview|manage`, `auth/domain|sign-in|sign-up|forgot-password|profile`. `tsc`, Tests und Build grün. Neue Features folgen direkt dieser Struktur.
 
-| Ist | Soll |
-|---|---|
-| `features/lists/model/` | `features/lists/domain/` |
-| `features/lists/*.tsx` (flach) | `features/lists/overview/` |
-| `features/manage-list/` | `features/lists/manage/` |
-| `features/auth/state/` | `features/auth/domain/` |
-| `features/profile/` | `features/auth/profile/` |
-
-Dazu Namens-Abweichungen: Spec sagt `listsSync.ts`, Code hat `listsSyncHandler.ts`.
-
-Die Migration sollte laufen, **bevor** `shopping/`, `recipes/`, `meal-plan/`, `family/` und `activity/` dazukommen — danach ist sie fünfmal so teuer.
+Verbleibende Namens-Abweichung: Spec sagt `listsSync.ts`, Code hat `listsSyncHandler.ts`.
 
 ---
 

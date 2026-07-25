@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { useAppDispatch, useAppSelector } from '../../app/store'
+import { useAppDispatch, useAppSelector } from '../../../app/store'
 import {
   listDeleted,
   selectAllLists,
   selectAllListPreferences,
   FAMILY_MEMBERS,
   type ListColor,
-} from './model/listsSlice'
+} from '../domain/listsSlice'
 import { ListsHeader } from './ListsHeader'
 import { SummaryChips } from './SummaryChips'
 import { ListSummaryCard } from './ListSummaryCard'
