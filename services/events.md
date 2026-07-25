@@ -24,7 +24,7 @@ Nicht alles darf denselben Weg nehmen. Die Klassifikation steht bei jedem Event 
 
 **Die Linie:** Hat es eine nutzerübergreifende Invariante oder eine Außenwirkung (Mail, externer Fetch, Push)? → Klasse 2. Sonst Klasse 1.
 
-Klasse 1 läuft über **ein einziges generisches Lambda** — kein Deploy pro Event-Typ. Validiert wird nur der Envelope (`type` in Allowlist, `aggregateId` stimmt mit dem Pfad überein, Payload-Größe begrenzt, gültiges JSON). Das Backend kennt die *Form* der Events, nicht ihre *Bedeutung*.
+Klasse 1 läuft über **ein einziges generisches Lambda**. Validiert werden der Envelope (`type` in Allowlist, `aggregateId` stimmt mit dem Pfad überein, Payload-Größe begrenzt, gültiges JSON) **und die Payload-Form per JSON-Schema pro Event-Typ** — Schemas als Daten, zunächst ins Binary eingebettet, später in eine Registry verschiebbar ([sync-engine.md](../architecture/sync-engine.md) §6). Das Backend kennt die *Form* der Events, nicht ihre *Bedeutung*.
 
 > ⚠️ **Klasse-2-Events dürfen von Clients nie direkt appended werden.** Membership wird aus dem Log abgeleitet; könnte ein Client `listMemberAdded` selbst schreiben, verschafft er sich per `{ listId: <fremde Liste>, memberId: <ich> }` Zugriff auf beliebige Listen. Der Server besitzt die Membership-Projektion.
 

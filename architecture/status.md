@@ -17,7 +17,7 @@ Alle anderen Dokumente in `architecture/` und `services/events.md` beschreiben d
 | Lokale Persistenz | ✅ funktionsfähig |
 | **Einkaufsliste (Hauptscreen)** | ✅ funktionsfähig, lokal (Katalog + Suche + Varianten-Sheet) |
 | Wochenplan, Rezepte, Aktivität, Family | ❌ existiert nicht |
-| Backend-API | 🟡 Gerüst, keine funktionierende Route |
+| Backend-API | 🟡 Domain-Hexagon mit Validierung + Tests; noch keine erreichbare Route |
 | Sync zum Server | ❌ verkabelt, aber ohne Wirkung |
 | Offline-Queue | ❌ existiert nicht |
 | Echtzeit (AppSync) | ❌ existiert nicht |
@@ -62,6 +62,8 @@ Bewusst noch offen gegenüber den Prototypen: Emoji-Picker im Sheet (braucht `pr
 ### Gebaut
 
 **`services/lib/`** — gemeinsame Crate mit `auth.rs` (User-ID aus dem JWT-Claim `sub` des API-Gateway-Authorizers), `error.rs`, `response.rs`, `runtime.rs`.
+
+**`services/domain/`** — das Hexagon nach [backend-structure.md](./backend-structure.md), ohne AWS-Dependencies: Envelope- **und JSON-Schema-Validierung** (13 Schemas als eingebettete Daten, Klasse-2-Typen werden am generischen Pfad abgelehnt), Owner/Membership-Regeln, Ports (`EventStore` mit ULID-Monotonie- und Dedup-Kontrakt, `MembershipStore`, `EventPublisher`), In-Memory-Adapter, Use Case `append_event`. **16 Tests grün.**
 
 **`services/hello/`** — Beispiel-Lambda.
 
@@ -147,7 +149,7 @@ Die Sync- und Backend-Arbeit ist in Tasks aufgeteilt; Reihenfolge und Abhängigk
 1. Membership-Loch schließen (Sicherheitsdefekt, unabhängig von allem anderen)
 2. ~~`listUpdated` in Intention-Events zerlegen~~ ✅ 2026-07-25 (`listRenamed`; Member-Änderungen nur noch über Commands)
 3. ~~`eventIdMiddleware`: `fromServer`-Actions überspringen~~ ✅ 2026-07-25
-4. Event Store entkoppeln (PK, ULID, Envelope-Validierung)
+4. Event Store entkoppeln (PK, ULID monoton, Envelope- + Schema-Validierung, Rate Limit)
 5. Sync Engine Stufe 1 — Outbox, Cursor, Retry
 6. Property-Tests — Konvergenz, Rebase, Ack/Dedup, Totalität
 7. Sync Engine Stufe 2 — `withSync`

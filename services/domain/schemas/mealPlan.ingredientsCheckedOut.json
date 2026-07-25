@@ -1,0 +1,20 @@
+{
+  "type": "object",
+  "required": ["listId", "ingredients"],
+  "properties": {
+    "listId": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "ingredients": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {
+        "type": "object",
+        "required": ["name", "quantity", "unit"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "quantity": { "type": "string", "minLength": 1, "maxLength": 20 },
+          "unit": { "type": "string", "maxLength": 20 }
+        }
+      }
+    }
+  }
+}

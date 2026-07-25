@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "required": ["listId", "productId", "variantName"],
+  "properties": {
+    "listId": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "productId": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "variantName": { "type": "string", "minLength": 1, "maxLength": 50 }
+  }
+}

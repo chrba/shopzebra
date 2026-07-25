@@ -167,8 +167,8 @@ Die Klassifikation pro Event steht in [../services/events.md](../services/events
 
 Für Klasse 1 braucht der Server einen Begriff von „wohlgeformt", aber kein Domänenwissen:
 
-1. **Envelope-Validierung** — `type` in einer Allowlist, `aggregateId` stimmt mit dem Pfad überein, Payload unter n KB, gültiges JSON. Reicht als Start.
-2. **JSON-Schema-Registry** — Schemas liegen als Daten in DynamoDB/S3, ein generischer Validator lädt sie. Neuer Event-Typ = Schema hochladen, kein Rust-Deploy. Nicht bloß Defense in depth: Der Log ist unveränderlich, und der Server kann kaputte Events nachträglich nicht reparieren — ein Payload, der den Fold bricht, vergiftet das Aggregate für alle Geräte dauerhaft. Spätestens nötig, bevor fremde Geräte den Log falten; bis dahin ist die Totalitäts-Regel der Reducer (§5) die einzige Verteidigung. Ein Redaction-/Skip-Mechanismus für bereits vergiftete Einträge ist ein offener Punkt.
+1. **Envelope-Validierung** — `type` in einer Allowlist, `aggregateId` stimmt mit dem Pfad überein, Payload unter n KB, gültiges JSON.
+2. **JSON-Schema-Validierung ab Tag 1** (entschieden 2026-07-25; ersetzt „Envelope reicht als Start"). Der Log ist unveränderlich und der Server kann kaputte Events nicht reparieren — ein Payload, der den Fold bricht, vergiftet das Aggregate dauerhaft. Deshalb prüft ein **generischer Validator** jedes Klasse-1-Payload gegen ein JSON-Schema pro Event-Typ. Die Schemas sind **Daten**: zunächst als Dateien ins Binary eingebettet (neuer Event-Typ = Schema-Datei + Deploy), später unverändert in eine Registry (DynamoDB/S3) verschiebbar — der Validator bleibt gleich und kennt weiterhin nur die *Form*, nicht die *Bedeutung*. Die Totalitäts-Regel der Reducer (§5) bleibt zweite Verteidigungslinie; ein Redaction-Mechanismus für Altlasten bleibt offener Punkt.
 3. *Verworfen:* `enum EventData { ListCreated(...) }` wie heute in `event-handler/src/handler.rs` — Deploy pro Event-Typ.
 
 Das Backend kennt damit die **Form** der Events, nicht ihre **Bedeutung**. Diese Linie ist der Unterschied zwischen „validiert" und „gekoppelt".
@@ -207,7 +207,7 @@ Neues Gerät: Snapshot laden → GET /sync?since=<snapshot.ulid> → falten → 
 
 Damit gibt es die Fachlogik **genau einmal, in TypeScript**.
 
-**Sicherheits-Constraint:** Der Snapshot ist reiner Performance-Cache, nie autoritativ. Ein kompromittierter Client könnte sonst den Bootstrap aller anderen vergiften. Jeder Client muss ihn gegen den Log nachrechnen können; im Zweifel verwerfen und neu falten.
+**Sicherheits-Constraint:** Der Snapshot ist reiner Performance-Cache, nie autoritativ. Der Upload wird gehärtet — Membership-Check, Größen-Cap, `upToUlid`-Pflicht — mehr nicht, der Blob bleibt per Design opak. Damit bleibt ein **akzeptiertes Restrisiko** (entschieden 2026-07-25): Ein böswilliges Listen-Mitglied kann den Bootstrap neuer Geräte *seiner* Liste mit einem Zustand vergiften, der per validierten Events nie erreichbar wäre. Begrenzt auf die eigene Liste; im Verdachtsfall Snapshot verwerfen und den Log neu falten.
 
 **Trade-off:** Serverseitige Queries oder Analytics über den materialisierten State sind damit ausgeschlossen. Brauchen wir heute nicht, aber es ist eine bewusste Einbahnstraße.
 
@@ -234,7 +234,7 @@ Ehrlich benannt, damit es später niemanden überrascht:
 | 1 | Membership-Loch schließen (Klasse-2-Endpunkt) | — |
 | 2 | `listUpdated` in Intention-Events zerlegen | 1 |
 | 3 | `eventIdMiddleware` überspringt `fromServer`-Actions | — |
-| 4 | Backend: PK auf `LIST#{listId}`, ULID als SK, Envelope-Validierung, Dedup, Publish | — |
+| 4 | Backend: PK auf `LIST#{listId}`, ULID als SK, Envelope- + Schema-Validierung, Dedup, Rate Limit, Publish | — |
 | 5 | **Outbox + Cursor + Retry** — erstmals echt offline-fähig, kein Designrisiko | 3, 4 |
 | 6 | **Property-Tests** — Konvergenz (fold in ULID-Ordnung), Rebase, Ack/Dedup, Totalität | 5 |
 | 7 | **`withSync`** — Konvergenz-Garantie | 5, 6 |

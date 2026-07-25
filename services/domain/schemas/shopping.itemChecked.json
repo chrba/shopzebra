@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "required": ["listId", "itemId", "checkedBy"],
+  "properties": {
+    "listId": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "itemId": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "checkedBy": { "type": "string", "minLength": 1, "maxLength": 100 }
+  }
+}

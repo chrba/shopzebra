@@ -1,0 +1,14 @@
+{
+  "type": "object",
+  "required": ["listId", "itemId", "name", "quantity", "unit", "category", "addedBy"],
+  "properties": {
+    "listId": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "itemId": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "quantity": { "type": "number", "exclusiveMinimum": 0, "maximum": 10000 },
+    "unit": { "type": "string", "minLength": 1, "maxLength": 20 },
+    "category": { "type": "string", "minLength": 1, "maxLength": 50 },
+    "addedBy": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "parentId": { "type": "string", "minLength": 1, "maxLength": 100 }
+  }
+}

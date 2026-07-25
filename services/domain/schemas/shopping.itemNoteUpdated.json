@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "required": ["listId", "itemId", "note"],
+  "properties": {
+    "listId": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "itemId": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "note": { "type": "string", "maxLength": 100 }
+  }
+}

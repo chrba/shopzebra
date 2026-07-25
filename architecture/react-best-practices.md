@@ -666,5 +666,6 @@ test('ShoppingListItem zeigt Name und reagiert auf Tap', () => {
 | Business-Logik in Komponenten | Nicht testbar, dupliziert sich | In den Reducer verlagern |
 | Prop Drilling über 3+ Ebenen | Fragile Kopplung | `useAppSelector` in der Zielkomponente |
 | `any` als TypeScript-Escape | Keine Typsicherheit | `unknown` + Type Guards |
+| `dangerouslySetInnerHTML` für Domain-Strings | Namen, Notizen, Nachrichten sind Input *anderer* Nutzer — XSS-Vektor | Immer als Text rendern (React escaped per Default) |
 | Barrel files (`index.ts`) | Verhindert Tree Shaking in Vite | Direkte Imports |
 | Großer monolithischer Selektor | Re-Render bei jeder Änderung | Mehrere kleine, fokussierte Selektoren |

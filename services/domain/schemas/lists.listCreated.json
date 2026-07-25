@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "required": ["listId", "name", "createdBy"],
+  "properties": {
+    "listId": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "createdBy": { "type": "string", "minLength": 1, "maxLength": 100 }
+  }
+}
