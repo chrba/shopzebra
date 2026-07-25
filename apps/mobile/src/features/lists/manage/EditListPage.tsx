@@ -1,27 +1,28 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useAppDispatch, useAppSelector } from '../../../app/store'
-import { listUpdated, listPreferencesSet, selectListById, selectListPreferences } from '../domain/listsSlice'
-import { FAMILY_MEMBERS } from '../domain/listsSlice'
-import { ListEditor, type FamilyMember } from './ListEditor'
-
-const familyMembersList: readonly FamilyMember[] = Object.entries(FAMILY_MEMBERS).map(
-  ([id, member]) => ({ id, name: member.name, color: member.color }),
-)
+import { listRenamed, selectListById } from '../domain/listsSlice'
+import {
+  listPreferencesSet,
+  selectListPreferences,
+} from '../../preferences/domain/preferencesSlice'
+import { ListEditor } from './ListEditor'
 
 type EditListPageProps = {
   readonly listId: string
 }
 
 /**
- * Page for editing an existing shopping list.
- * Loads current values from domain + preferences.
+ * Page for editing an existing shopping list: name and local preferences.
+ * Members are managed via invites (owner model), not through this form.
  * @param props.listId ID of the shopping list to edit, from the route params.
  */
 export function EditListPage({ listId }: EditListPageProps) {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const list = useAppSelector((state) => selectListById(state, listId))
-  const preferences = useAppSelector((state) => selectListPreferences(state, listId))
+  const preferences = useAppSelector((state) =>
+    selectListPreferences(state, listId),
+  )
 
   if (!list) {
     return (
@@ -39,17 +40,9 @@ export function EditListPage({ listId }: EditListPageProps) {
         emoji: preferences?.emoji ?? '\u{1F6D2}',
         name: list.name,
         color: preferences?.color ?? 'green',
-        selectedMemberIds: list.memberIds,
       }}
-      familyMembers={familyMembersList}
       onSubmit={(result) => {
-        dispatch(
-          listUpdated({
-            listId,
-            name: result.name,
-            memberIds: result.memberIds,
-          }),
-        )
+        dispatch(listRenamed({ listId, name: result.name }))
         dispatch(
           listPreferencesSet({
             listId,

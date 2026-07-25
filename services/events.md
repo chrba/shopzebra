@@ -140,9 +140,7 @@ Nicht vom Client appendbar. Entsteht serverseitig aus `DELETE /lists/{id}/member
 ```
 Felder optional — nur geänderte Felder im Payload.
 
-> **Intention-Events, keine Full-State-Events.** Ein Event trägt nur, was sich geändert hat — nie den vollständigen neuen Zustand einer Entity. Beim Rebase wird der Pending-Stack mehrfach über den bestätigten State gespielt; ein Full-State-Event klobbert dabei zuverlässig, was zwischenzeitlich bestätigt wurde. Deshalb gibt es `listRenamed` und `listMemberAdded`/`listMemberRemoved` statt eines `listUpdated { name, memberIds }`.
->
-> ⚠️ `apps/mobile/src/features/lists/model/listsSlice.ts` implementiert derzeit ein `listUpdated { listId, name, memberIds }`, das das gesamte Member-Array ersetzt. Das weicht von dieser Spec ab und muss angeglichen werden.
+> **Intention-Events, keine Full-State-Events.** Ein Event trägt nur, was sich geändert hat — nie den vollständigen neuen Zustand einer Entity. Beim Rebase wird der Pending-Stack mehrfach über den bestätigten State gespielt; ein Full-State-Event klobbert dabei zuverlässig, was zwischenzeitlich bestätigt wurde. Deshalb gibt es `listRenamed` und `listMemberAdded`/`listMemberRemoved` statt eines `listUpdated { name, memberIds }`. (`listsSlice.ts` ist seit 2026-07-25 angeglichen: `listRenamed`, Member-Änderungen nur noch über Commands.)
 
 ### itemNoteUpdated
 ```json

@@ -2,23 +2,20 @@ import { describe, expect, it } from 'vitest'
 import {
   listCreated,
   listDeleted,
-  listPreferencesLoaded,
-  listPreferencesSet,
-  listUpdated,
+  listRenamed,
   listsLoaded,
   listsReducer,
-  selectAllListPreferences,
   selectAllLists,
   selectListById,
   selectListCount,
-  selectListPreferences,
-  type ListPreferences,
-  type ShoppingList,
 } from './listsSlice'
+import type { ShoppingList } from './listsDomain'
 
 // Behavior-level tests: actions go in through the public action creators,
 // results are observed only through the public selectors. No reaching into
 // the state shape, no mocks — the reducer/selector pair is the interface.
+//
+// Payloads follow the wire format in services/events.md.
 
 type ListsRootState = Parameters<typeof selectAllLists>[0]
 
@@ -37,17 +34,16 @@ function rootStateAfter(
 const groceries: ShoppingList = {
   id: 'groceries',
   name: 'Wocheneinkauf',
+  ownerId: 'mama',
   memberIds: ['mama', 'papa'],
 }
 
 const drugstore: ShoppingList = {
   id: 'drugstore',
   name: 'Drogerie',
+  ownerId: 'papa',
   memberIds: ['papa'],
 }
-
-const greenCart: ListPreferences = { color: 'green', emoji: '🛒' }
-const blueApple: ListPreferences = { color: 'blue', emoji: '🍏' }
 
 describe('listsSlice — Listen verwalten', () => {
   it('startet ohne Listen', () => {
@@ -58,44 +54,48 @@ describe('listsSlice — Listen verwalten', () => {
     expect(selectListById(state, 'groceries')).toBeNull()
   })
 
-  it('listCreated macht die neue Liste sichtbar', () => {
-    const state = rootStateAfter(listCreated(groceries))
+  it('listCreated legt die Liste an — der Owner ist erstes Mitglied', () => {
+    const state = rootStateAfter(
+      listCreated({ listId: 'groceries', name: 'Wocheneinkauf', ownerId: 'mama' }),
+    )
 
     expect(selectListCount(state)).toBe(1)
-    expect(selectListById(state, 'groceries')).toEqual(groceries)
+    expect(selectListById(state, 'groceries')).toEqual({
+      id: 'groceries',
+      name: 'Wocheneinkauf',
+      ownerId: 'mama',
+      memberIds: ['mama'],
+    })
   })
 
   it('listCreated lässt bestehende Listen unberührt', () => {
-    const state = rootStateAfter(listCreated(groceries), listCreated(drugstore))
+    const state = rootStateAfter(
+      listCreated({ listId: 'groceries', name: 'Wocheneinkauf', ownerId: 'mama' }),
+      listCreated({ listId: 'drugstore', name: 'Drogerie', ownerId: 'papa' }),
+    )
 
     expect(selectListCount(state)).toBe(2)
-    expect(selectListById(state, 'groceries')).toEqual(groceries)
-    expect(selectListById(state, 'drugstore')).toEqual(drugstore)
+    expect(selectListById(state, 'groceries')?.name).toBe('Wocheneinkauf')
+    expect(selectListById(state, 'drugstore')?.name).toBe('Drogerie')
   })
 
-  it('listUpdated ändert Name und Mitglieder der Ziel-Liste', () => {
+  it('listRenamed ändert nur den Namen der Ziel-Liste', () => {
     const state = rootStateAfter(
-      listCreated(groceries),
-      listCreated(drugstore),
-      listUpdated({
-        listId: 'groceries',
-        name: 'Großeinkauf',
-        memberIds: ['mama', 'papa', 'lena'],
-      }),
+      listsLoaded({ lists: [groceries, drugstore] }),
+      listRenamed({ listId: 'groceries', name: 'Großeinkauf' }),
     )
 
     expect(selectListById(state, 'groceries')).toEqual({
-      id: 'groceries',
+      ...groceries,
       name: 'Großeinkauf',
-      memberIds: ['mama', 'papa', 'lena'],
     })
     expect(selectListById(state, 'drugstore')).toEqual(drugstore)
   })
 
-  it('listUpdated auf eine unbekannte Liste ändert nichts', () => {
+  it('listRenamed auf eine unbekannte Liste ändert nichts', () => {
     const state = rootStateAfter(
-      listCreated(groceries),
-      listUpdated({ listId: 'unknown', name: 'Egal', memberIds: [] }),
+      listsLoaded({ lists: [groceries] }),
+      listRenamed({ listId: 'unknown', name: 'Egal' }),
     )
 
     expect(selectAllLists(state)).toEqual([groceries])
@@ -103,8 +103,7 @@ describe('listsSlice — Listen verwalten', () => {
 
   it('listDeleted entfernt genau die Ziel-Liste', () => {
     const state = rootStateAfter(
-      listCreated(groceries),
-      listCreated(drugstore),
+      listsLoaded({ lists: [groceries, drugstore] }),
       listDeleted({ listId: 'groceries' }),
     )
 
@@ -114,7 +113,7 @@ describe('listsSlice — Listen verwalten', () => {
 
   it('listDeleted auf eine unbekannte Liste ändert nichts', () => {
     const state = rootStateAfter(
-      listCreated(groceries),
+      listsLoaded({ lists: [groceries] }),
       listDeleted({ listId: 'unknown' }),
     )
 
@@ -123,7 +122,7 @@ describe('listsSlice — Listen verwalten', () => {
 
   it('listsLoaded ersetzt den Listenbestand', () => {
     const state = rootStateAfter(
-      listCreated(groceries),
+      listCreated({ listId: 'groceries', name: 'Wocheneinkauf', ownerId: 'mama' }),
       listsLoaded({ lists: [drugstore] }),
     )
 
@@ -131,61 +130,13 @@ describe('listsSlice — Listen verwalten', () => {
   })
 })
 
-describe('listsSlice — Listen-Präferenzen', () => {
-  it('liefert null für Listen ohne gesetzte Präferenz', () => {
-    const state = rootStateAfter(listCreated(groceries))
-
-    expect(selectListPreferences(state, 'groceries')).toBeNull()
-  })
-
-  it('listPreferencesSet macht die Präferenz der Ziel-Liste abrufbar', () => {
-    const state = rootStateAfter(
-      listPreferencesSet({ listId: 'groceries', preferences: greenCart }),
-    )
-
-    expect(selectListPreferences(state, 'groceries')).toEqual(greenCart)
-    expect(selectListPreferences(state, 'drugstore')).toBeNull()
-  })
-
-  it('listPreferencesSet überschreibt nur die Ziel-Liste', () => {
-    const state = rootStateAfter(
-      listPreferencesSet({ listId: 'groceries', preferences: greenCart }),
-      listPreferencesSet({ listId: 'drugstore', preferences: blueApple }),
-      listPreferencesSet({ listId: 'groceries', preferences: blueApple }),
-    )
-
-    expect(selectListPreferences(state, 'groceries')).toEqual(blueApple)
-    expect(selectListPreferences(state, 'drugstore')).toEqual(blueApple)
-  })
-
-  it('listPreferencesLoaded ersetzt alle Präferenzen', () => {
-    const state = rootStateAfter(
-      listPreferencesSet({ listId: 'groceries', preferences: greenCart }),
-      listPreferencesLoaded({ drugstore: blueApple }),
-    )
-
-    expect(selectListPreferences(state, 'groceries')).toBeNull()
-    expect(selectAllListPreferences(state)).toEqual({ drugstore: blueApple })
-  })
-
-  it('listDeleted entfernt auch die Präferenzen der Liste', () => {
-    const state = rootStateAfter(
-      listCreated(groceries),
-      listPreferencesSet({ listId: 'groceries', preferences: greenCart }),
-      listPreferencesSet({ listId: 'drugstore', preferences: blueApple }),
-      listDeleted({ listId: 'groceries' }),
-    )
-
-    expect(selectListPreferences(state, 'groceries')).toBeNull()
-    expect(selectListPreferences(state, 'drugstore')).toEqual(blueApple)
-  })
-})
-
 describe('listsSlice — Reducer-Kontrakt', () => {
   it('unbekannte Actions lassen den State referenzgleich', () => {
     // Referential stability is observable behavior in Redux:
     // it is what prevents unnecessary re-renders.
-    const before = rootStateAfter(listCreated(groceries)).lists
+    const before = rootStateAfter(
+      listCreated({ listId: 'groceries', name: 'Wocheneinkauf', ownerId: 'mama' }),
+    ).lists
     const after = listsReducer(before, { type: 'somewhere/else' })
 
     expect(after).toBe(before)
@@ -193,10 +144,9 @@ describe('listsSlice — Reducer-Kontrakt', () => {
 
   it('dieselbe Event-Folge ergibt denselben State (replay-pur)', () => {
     const eventSequence = [
-      listCreated(groceries),
-      listCreated(drugstore),
-      listUpdated({ listId: 'groceries', name: 'Großeinkauf', memberIds: ['mama'] }),
-      listPreferencesSet({ listId: 'drugstore', preferences: blueApple }),
+      listCreated({ listId: 'groceries', name: 'Wocheneinkauf', ownerId: 'mama' }),
+      listCreated({ listId: 'drugstore', name: 'Drogerie', ownerId: 'papa' }),
+      listRenamed({ listId: 'groceries', name: 'Großeinkauf' }),
       listDeleted({ listId: 'drugstore' }),
     ]
 

@@ -76,6 +76,20 @@ type ActionCreators<Name extends string, R extends Record<string, any>> = {
   >
 }
 
+// --- Cross-slice reactions ---
+//
+// A slice can react to another slice's action (re-frame style broadcast):
+// the owning slice dispatches, other slices fold the same action.
+// Referencing the foreign action creator (not a raw type string) keeps
+// the coupling visible and rename-safe.
+
+type ExternalActionCreator = { readonly type: string }
+
+type ExtraReducer<S> = {
+  readonly creator: ExternalActionCreator
+  readonly reducer: (state: S, action: PayloadAction<any>) => S
+}
+
 // --- createSlice ---
 
 export function createSlice<
@@ -86,6 +100,7 @@ export function createSlice<
   readonly name: Name
   readonly initialState: S
   readonly reducers: R
+  readonly extraReducers?: readonly ExtraReducer<S>[]
 }) {
   const actionCreators = {} as Record<string, (...args: unknown[]) => unknown>
   const lookup: Record<string, (state: S, action: any) => S> = {}
@@ -115,6 +130,10 @@ export function createSlice<
       actionCreators[key] = creator
       lookup[type] = definition.reducer
     }
+  }
+
+  for (const external of config.extraReducers ?? []) {
+    lookup[external.creator.type] = external.reducer
   }
 
   const reducer = (state: S | undefined, action: { readonly type: string }): S => {

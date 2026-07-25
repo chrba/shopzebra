@@ -8,6 +8,7 @@
 
 import type { Middleware } from '@reduxjs/toolkit'
 import { listsClientStorageHandler } from '../features/lists/domain/listsClientStorageHandler'
+import { preferencesClientStorageHandler } from '../features/preferences/domain/preferencesClientStorageHandler'
 
 type ClientStorageHandler = (
   action: { readonly type: string; readonly payload?: unknown },
@@ -16,6 +17,7 @@ type ClientStorageHandler = (
 
 const handlers: readonly ClientStorageHandler[] = [
   listsClientStorageHandler,
+  preferencesClientStorageHandler,
 ]
 
 export const clientStorageMiddleware: Middleware = (api) => (next) => (action) => {

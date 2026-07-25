@@ -1,13 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useAppDispatch, useAppSelector } from '../../../app/store'
-import {
-  listDeleted,
-  selectAllLists,
-  selectAllListPreferences,
-  FAMILY_MEMBERS,
-  type ListColor,
-} from '../domain/listsSlice'
+import { listDeleted, selectAllLists } from '../domain/listsSlice'
+import { selectAllListPreferences } from '../../preferences/domain/preferencesSlice'
+import type { ListColor } from '../../preferences/domain/preferencesDomain'
 import { ListsHeader } from './ListsHeader'
 import { SummaryChips } from './SummaryChips'
 import { ListSummaryCard } from './ListSummaryCard'
@@ -28,12 +24,31 @@ import {
 
 const COLORS: readonly ListColor[] = ['green', 'blue', 'red', 'purple', 'yellow']
 
-function defaultColor(id: string): ListColor {
+const MEMBER_AVATAR_COLORS: readonly string[] = [
+  '#6BBF6B',
+  '#5BA8D5',
+  '#E07B7B',
+  '#A07BCC',
+  '#E8C44A',
+]
+
+function hashOf(id: string): number {
   let hash = 0
-  for (let i = 0; i < id.length; i++) {
-    hash = (hash * 31 + id.charCodeAt(i)) | 0
+  for (const character of id) {
+    hash = (hash * 31 + character.charCodeAt(0)) | 0
   }
-  return COLORS[Math.abs(hash) % COLORS.length]!
+  return Math.abs(hash)
+}
+
+// Deterministic defaults derived from the id — no stored state, no null checks
+// (architecture/domain-model.md §3). Member display names arrive later via
+// server-written listMemberAdded events; until then the id provides the letter.
+function defaultColor(id: string): ListColor {
+  return COLORS[hashOf(id) % COLORS.length] ?? 'green'
+}
+
+function memberAvatarColor(memberId: string): string {
+  return MEMBER_AVATAR_COLORS[hashOf(memberId) % MEMBER_AVATAR_COLORS.length] ?? '#888'
 }
 
 type DeleteTarget = {
@@ -130,9 +145,9 @@ export function ListsPage() {
       color: prefs?.color ?? defaultColor(list.id),
       emoji: prefs?.emoji ?? '\u{1F6D2}',
       itemCount: 0,
-      members: list.memberIds.map((id) => ({
-        letter: FAMILY_MEMBERS[id]?.name[0] ?? '?',
-        color: FAMILY_MEMBERS[id]?.color ?? '#888',
+      members: list.memberIds.map((memberId) => ({
+        letter: memberId.charAt(0).toUpperCase() || '?',
+        color: memberAvatarColor(memberId),
       })),
     }
   })

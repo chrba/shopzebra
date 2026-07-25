@@ -105,7 +105,7 @@ Wer online auf ein Event *reagiert*, dessen eigenes Event erreicht den Server zw
 
 Rebase setzt **granulare Intention-Events** voraus. Ein Full-State-Event wie `listUpdated { name, memberIds }` klobbert beim Replay zuverlässig, was zwischenzeitlich bestätigt wurde. Das gilt verschärft gegenüber jedem anderen Ansatz, weil der Pending-Stack mehrfach neu über den bestätigten State gespielt wird.
 
-`services/events.md` spezifiziert bereits korrekt granular (`listRenamed`, `listMemberAdded`, `listMemberRemoved`); `listsSlice.ts` weicht davon ab und muss angeglichen werden.
+`services/events.md` spezifiziert bereits korrekt granular (`listRenamed`, `listMemberAdded`, `listMemberRemoved`); `listsSlice.ts` ist seit 2026-07-25 daran angeglichen.
 
 ---
 

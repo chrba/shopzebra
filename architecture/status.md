@@ -31,7 +31,9 @@ Alle anderen Dokumente in `architecture/` und `services/events.md` beschreiben d
 
 **Auth** — `features/auth/`. Sign-In, Sign-Up, Passwort-Vergessen über Cognito via Amplify. Session-Restore im `beforeLoad` der Root-Route. Route-Guards `requireAuth` / `requireGuest`.
 
-**Listen** — `features/lists/` und `features/manage-list/`. Übersicht mit Swipe-to-Delete, Erstellen, Bearbeiten, Löschen. Farb- und Emoji-Präferenzen pro Liste.
+**Listen** — `features/lists/` (`domain`/`overview`/`manage`). Übersicht mit Swipe-to-Delete, Erstellen (Ersteller = Owner, Owner-Modell), Umbenennen, Löschen. Actions folgen dem Wire-Format aus `events.md` (`listCreated { listId, name, ownerId }`, `listRenamed`, `listDeleted`); Member-Verwaltung ist aus der UI entfernt — sie kommt über Invite-Commands.
+
+**Preferences** — `features/preferences/` mit eigenem Slice und eigenem Storage-Key (Farbe/Emoji pro Liste), wie in `domain-model.md` §3 vorgesehen. Reagiert per `extraReducers` auf `listDeleted`.
 
 **Profil** — `features/profile/ProfilePage.tsx`.
 
@@ -42,13 +44,12 @@ Alle anderen Dokumente in `architecture/` und `services/events.md` beschreiben d
 ### Nicht gebaut
 
 - **`features/shopping/`** — der Hauptscreen der App. Kein Slice, keine Page, keine Item-Komponenten. `ShoppingListPage`, `CategorySection`, `ItemTile` aus `domain-model.md` §4 existieren nicht. Kein Produktkatalog, kein Varianten-Modell, kein Bottom Sheet.
-- `features/recipes/`, `features/meal-plan/`, `features/family/`, `features/activity/`
-- **Eigener `preferencesSlice`** — `domain-model.md` §3 sieht einen getrennten Slice mit eigenem Speicher vor. Heute leben Farbe und Emoji als `preferences`-Feld **innerhalb** von `listsSlice`. Abweichung von der Spec.
+- `features/recipes/`, `features/meal-plan/`, `features/activity/`
 
 ### Bekannte Provisorien
 
 - **`router.ts` enthält sechs hartkodierte Demo-Listen** (`DEFAULT_LISTS`) samt Präferenzen als Fallback, wenn nichts gespeichert ist. Demo-Daten, kein Feature.
-- **`FAMILY_MEMBERS` ist in `listsSlice.ts` hartkodiert** (mama, papa, lena, opa) — Platzhalter. Das Familien-Konzept ist gestrichen (§7B); Members kommen künftig aus server-geschriebenen `listMemberAdded`-Events.
+- **Member-Avatare sind Ableitungen aus der `memberId`** (Anfangsbuchstabe + deterministische Farbe) — Display-Namen kommen künftig aus server-geschriebenen `listMemberAdded`-Events. `FAMILY_MEMBERS` ist entfernt.
 - `listsSyncHandler.ts` besteht aus zwei Funktionen, deren `authFetch`-Aufrufe **auskommentiert** sind. Es geht heute kein HTTP-Request an den Server.
 
 ---
@@ -141,8 +142,8 @@ Verbleibende Namens-Abweichung: Spec sagt `listsSync.ts`, Code hat `listsSyncHan
 Die Sync- und Backend-Arbeit ist in Tasks aufgeteilt; Reihenfolge und Abhängigkeiten stehen in [sync-engine.md](./sync-engine.md) §9. Kurzfassung:
 
 1. Membership-Loch schließen (Sicherheitsdefekt, unabhängig von allem anderen)
-2. `listUpdated` in Intention-Events zerlegen
-3. `eventIdMiddleware`: `fromServer`-Actions überspringen
+2. ~~`listUpdated` in Intention-Events zerlegen~~ ✅ 2026-07-25 (`listRenamed`; Member-Änderungen nur noch über Commands)
+3. ~~`eventIdMiddleware`: `fromServer`-Actions überspringen~~ ✅ 2026-07-25
 4. Event Store entkoppeln (PK, ULID, Envelope-Validierung)
 5. Sync Engine Stufe 1 — Outbox, Cursor, Retry
 6. Property-Tests — Konvergenz, Rebase, Ack/Dedup, Totalität

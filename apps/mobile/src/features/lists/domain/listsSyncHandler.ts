@@ -3,9 +3,9 @@ import { listCreated, listDeleted } from './listsSlice'
 // import { authFetch } from '@/app/authFetch'
 
 async function postList(_payload: {
-  readonly id: string
+  readonly listId: string
   readonly name: string
-  readonly memberIds: readonly string[]
+  readonly ownerId: string
 }): Promise<void> {
   // TODO: authFetch('/lists', { method: 'POST', body: JSON.stringify(payload) })
 }

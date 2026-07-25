@@ -1,46 +1,46 @@
 import { useNavigate } from '@tanstack/react-router'
-import { useAppDispatch } from '../../../app/store'
-import { listCreated, listPreferencesSet } from '../domain/listsSlice'
-import { FAMILY_MEMBERS } from '../domain/listsSlice'
-import { ListEditor, type FamilyMember } from './ListEditor'
-
-const familyMembersList: readonly FamilyMember[] = Object.entries(FAMILY_MEMBERS).map(
-  ([id, member]) => ({ id, name: member.name, color: member.color }),
-)
+import { useAppDispatch, useAppSelector } from '../../../app/store'
+import { listCreated } from '../domain/listsSlice'
+import { listPreferencesSet } from '../../preferences/domain/preferencesSlice'
+import { selectAuthUser } from '../../auth/domain/authSlice'
+import { ListEditor } from './ListEditor'
 
 const DEFAULT_VALUES = {
   emoji: '\u{1F6D2}',
   name: '',
   color: 'green' as const,
-  selectedMemberIds: ['mama', 'papa'],
 }
 
 /**
  * Page for creating a new shopping list.
- * Dispatches domain + preferences actions on submit.
+ * The signed-in user becomes the owner (owner model — members join
+ * later via invites, never at creation time).
  */
 export function CreateListPage() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
+  const owner = useAppSelector(selectAuthUser)
+
+  // The route guard (requireAuth) guarantees a signed-in user.
+  if (!owner) return null
 
   return (
     <ListEditor
       title="Neue Liste"
       submitLabel="Liste erstellen"
       initialValues={DEFAULT_VALUES}
-      familyMembers={familyMembersList}
       onSubmit={(result) => {
-        const id = crypto.randomUUID()
+        const listId = crypto.randomUUID()
         dispatch(
           listCreated({
-            id,
+            listId,
             name: result.name,
-            memberIds: result.memberIds,
+            ownerId: owner.userId,
           }),
         )
         dispatch(
           listPreferencesSet({
-            listId: id,
+            listId,
             preferences: { color: result.color, emoji: result.emoji },
           }),
         )

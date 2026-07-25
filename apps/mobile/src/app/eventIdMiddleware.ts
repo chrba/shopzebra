@@ -13,6 +13,10 @@ import { ActionMeta, isPayloadAction } from './createSlice'
 export const eventIdMiddleware: Middleware<{}, { readonly app: AppState }> = (storeAPI) => (next) => (action) => {
   if (!isPayloadAction(action)) return next(action);
 
+  // Server-originated actions keep their identity: regenerating the eventId
+  // would break server-side dedup and the pending-queue match on confirmation.
+  if (action.meta?.remote) return next(action);
+
   const meta: ActionMeta = {
       ...action.meta,
       eventId: crypto.randomUUID(),

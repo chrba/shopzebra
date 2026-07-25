@@ -17,7 +17,8 @@ import {
 } from '@tanstack/react-router'
 import { getCurrentUser, fetchAuthSession } from 'aws-amplify/auth'
 import { store } from './store'
-import { listsLoaded, listPreferencesLoaded } from '../features/lists/domain/listsSlice'
+import { listsLoaded } from '../features/lists/domain/listsSlice'
+import { listPreferencesLoaded } from '../features/preferences/domain/preferencesSlice'
 import {
   sessionRestored,
   sessionNotFound,
@@ -26,7 +27,8 @@ import {
 } from '../features/auth/domain/authSlice'
 import { appLoaded } from './appSlice'
 import { getItem, setItem } from './clientStorage'
-import type { ShoppingList, ListPreferences } from '../features/lists/domain/listsSlice'
+import type { ShoppingList } from '../features/lists/domain/listsDomain'
+import type { ListPreferences } from '../features/preferences/domain/preferencesDomain'
 import { RootLayout } from './RootLayout'
 import { ListsPage } from '../features/lists/overview/ListsPage'
 import { CreateListPage } from '../features/lists/manage/CreateListPage'
@@ -41,12 +43,12 @@ const LISTS_KEY = 'shopzebra_lists'
 const PREFS_KEY = 'shopzebra_list_preferences'
 
 const DEFAULT_LISTS: readonly ShoppingList[] = [
-  { id: 'rewe', name: 'REWE Wocheneinkauf', memberIds: ['mama', 'papa', 'lena'] },
-  { id: 'dm', name: 'dm Drogerie', memberIds: ['papa'] },
-  { id: 'party', name: 'Geburtstagsparty Lena', memberIds: ['mama', 'papa', 'lena', 'opa'] },
-  { id: 'aldi', name: 'ALDI Vorräte', memberIds: ['mama'] },
-  { id: 'baumarkt', name: 'Baumarkt Garten', memberIds: ['papa', 'opa'] },
-  { id: 'wochenmarkt', name: 'Wochenmarkt Samstag', memberIds: ['mama', 'lena'] },
+  { id: 'rewe', name: 'REWE Wocheneinkauf', ownerId: 'mama', memberIds: ['mama', 'papa', 'lena'] },
+  { id: 'dm', name: 'dm Drogerie', ownerId: 'papa', memberIds: ['papa'] },
+  { id: 'party', name: 'Geburtstagsparty Lena', ownerId: 'mama', memberIds: ['mama', 'papa', 'lena', 'opa'] },
+  { id: 'aldi', name: 'ALDI Vorräte', ownerId: 'mama', memberIds: ['mama'] },
+  { id: 'baumarkt', name: 'Baumarkt Garten', ownerId: 'papa', memberIds: ['papa', 'opa'] },
+  { id: 'wochenmarkt', name: 'Wochenmarkt Samstag', ownerId: 'mama', memberIds: ['mama', 'lena'] },
 ]
 
 const DEFAULT_LIST_PREFERENCES: { readonly [listId: string]: ListPreferences } = {
@@ -96,7 +98,19 @@ const rootRoute = createRootRoute({
       try {
         const parsed: unknown = JSON.parse(rawLists)
         if (Array.isArray(parsed) && parsed.length > 0) {
-          lists = parsed as readonly ShoppingList[]
+          // Lists persisted before the owner model lack ownerId —
+          // fall back to the first member.
+          const stored = parsed as readonly Partial<ShoppingList>[]
+          lists = stored.flatMap((entry) =>
+            entry.id && entry.name
+              ? [{
+                  id: entry.id,
+                  name: entry.name,
+                  ownerId: entry.ownerId ?? entry.memberIds?.[0] ?? 'unknown',
+                  memberIds: entry.memberIds ?? [],
+                }]
+              : [],
+          )
         }
       } catch {
         // ignore malformed data
