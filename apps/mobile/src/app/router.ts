@@ -18,6 +18,8 @@ import {
 import { getCurrentUser, fetchAuthSession } from 'aws-amplify/auth'
 import { store } from './store'
 import { listsLoaded } from '../features/lists/domain/listsSlice'
+import { shoppingLoaded } from '../features/shopping/domain/shoppingSlice'
+import { SHOPPING_STORAGE_KEY } from '../features/shopping/domain/shoppingClientStorageHandler'
 import { listPreferencesLoaded } from '../features/preferences/domain/preferencesSlice'
 import {
   sessionRestored,
@@ -33,6 +35,8 @@ import { RootLayout } from './RootLayout'
 import { ListsPage } from '../features/lists/overview/ListsPage'
 import { CreateListPage } from '../features/lists/manage/CreateListPage'
 import { EditListPage } from '../features/lists/manage/EditListPage'
+import { ShoppingListPage } from '../features/shopping/list-view/ShoppingListPage'
+import { CategoryPage } from '../features/shopping/category/CategoryPage'
 import { SignInPage } from '../features/auth/sign-in/SignInPage'
 import { SignUpPage } from '../features/auth/sign-up/SignUpPage'
 import { ForgotPasswordPage } from '../features/auth/forgot-password/ForgotPasswordPage'
@@ -138,6 +142,23 @@ const rootRoute = createRootRoute({
       await setItem(DEVICE_ID_KEY, deviceId)
     }
 
+    // 4. Load persisted shopping items
+    const rawShopping = await getItem(SHOPPING_STORAGE_KEY)
+    if (rawShopping) {
+      try {
+        const parsed: unknown = JSON.parse(rawShopping)
+        if (parsed && typeof parsed === 'object') {
+          store.dispatch(
+            shoppingLoaded(
+              parsed as Parameters<typeof shoppingLoaded>[0],
+            ),
+          )
+        }
+      } catch {
+        // ignore malformed data
+      }
+    }
+
     store.dispatch(listsLoaded({ lists: allLists }))
     store.dispatch(listPreferencesLoaded(allPreferences))
     store.dispatch(appLoaded({ theme: 'dark', deviceId }))
@@ -215,6 +236,26 @@ const editListRoute = createRoute({
   },
 })
 
+const shoppingListRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/lists/$listId',
+  beforeLoad: requireAuth,
+  component: () => {
+    const { listId } = shoppingListRoute.useParams()
+    return ShoppingListPage({ listId })
+  },
+})
+
+const categoryRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/lists/$listId/category/$categoryId',
+  beforeLoad: requireAuth,
+  component: () => {
+    const { listId, categoryId } = categoryRoute.useParams()
+    return CategoryPage({ listId, categoryId })
+  },
+})
+
 const profileRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/profile',
@@ -230,6 +271,8 @@ const routeTree = rootRoute.addChildren([
   listsRoute,
   createListRoute,
   editListRoute,
+  shoppingListRoute,
+  categoryRoute,
   profileRoute,
 ])
 

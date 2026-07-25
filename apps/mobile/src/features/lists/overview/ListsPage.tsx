@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useAppDispatch, useAppSelector } from '../../../app/store'
 import { listDeleted, selectAllLists } from '../domain/listsSlice'
+import { selectItemCountByListId } from '../../shopping/domain/shoppingSlice'
 import { selectAllListPreferences } from '../../preferences/domain/preferencesSlice'
 import type { ListColor } from '../../preferences/domain/preferencesDomain'
 import { ListsHeader } from './ListsHeader'
@@ -136,6 +137,7 @@ export function ListsPage() {
   const dispatch = useAppDispatch()
   const shoppingLists = useAppSelector(selectAllLists)
   const preferences = useAppSelector(selectAllListPreferences)
+  const itemCountByListId = useAppSelector(selectItemCountByListId)
 
   const lists = shoppingLists.map((list) => {
     const prefs = preferences[list.id]
@@ -144,7 +146,7 @@ export function ListsPage() {
       name: list.name,
       color: prefs?.color ?? defaultColor(list.id),
       emoji: prefs?.emoji ?? '\u{1F6D2}',
-      itemCount: 0,
+      itemCount: itemCountByListId[list.id] ?? 0,
       members: list.memberIds.map((memberId) => ({
         letter: memberId.charAt(0).toUpperCase() || '?',
         color: memberAvatarColor(memberId),
@@ -192,7 +194,9 @@ export function ListsPage() {
           >
             <ListSummaryCard
               list={list}
-              onClick={() => {}}
+              onClick={() =>
+                navigate({ to: '/lists/$listId', params: { listId: list.id } })
+              }
               onEdit={() =>
                 navigate({ to: '/lists/$listId/edit', params: { listId: list.id } })
               }

@@ -6,6 +6,7 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { useDispatch, useSelector } from 'react-redux'
 import { listsReducer } from '../features/lists/domain/listsSlice'
+import { shoppingReducer } from '../features/shopping/domain/shoppingSlice'
 import { preferencesReducer } from '../features/preferences/domain/preferencesSlice'
 import { authReducer } from '../features/auth/domain/authSlice'
 import { appReducer } from './appSlice'
@@ -19,6 +20,7 @@ export const store = configureStore({
     app: appReducer,
     auth: authReducer,
     lists: listsReducer,
+    shopping: shoppingReducer,
     preferences: preferencesReducer,
   },
   middleware: (getDefaultMiddleware) =>

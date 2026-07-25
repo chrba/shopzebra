@@ -15,7 +15,7 @@ Alle anderen Dokumente in `architecture/` und `services/events.md` beschreiben d
 | Auth (Cognito) | ✅ funktionsfähig |
 | Listen-Übersicht + Verwaltung | ✅ funktionsfähig, lokal |
 | Lokale Persistenz | ✅ funktionsfähig |
-| **Einkaufsliste (Hauptscreen)** | ❌ **existiert nicht** |
+| **Einkaufsliste (Hauptscreen)** | ✅ funktionsfähig, lokal (Katalog + Suche + Varianten-Sheet) |
 | Wochenplan, Rezepte, Aktivität, Family | ❌ existiert nicht |
 | Backend-API | 🟡 Gerüst, keine funktionierende Route |
 | Sync zum Server | ❌ verkabelt, aber ohne Wirkung |
@@ -35,15 +35,18 @@ Alle anderen Dokumente in `architecture/` und `services/events.md` beschreiben d
 
 **Preferences** — `features/preferences/` mit eigenem Slice und eigenem Storage-Key (Farbe/Emoji pro Liste), wie in `domain-model.md` §3 vorgesehen. Reagiert per `extraReducers` auf `listDeleted`.
 
+**Einkaufsliste** — `features/shopping/` (`domain`/`list-view`/`category`), Routen `/lists/$listId` und `/lists/$listId/category/$categoryId`. Events im Wire-Format (`itemAdded/Checked/Unchecked/Removed/Updated/NoteUpdated`, `customVariantAdded`), Compound-IDs für Varianten, Produktkatalog als statische Referenzdaten (aus `design/pure/list.html` generiert, 178 Produkte/10 Kategorien). UI: Tile-Grid (Tap = abhaken, Long-Press = Detail-Sheet), Erledigt-Sektion, Celebration, Katalog-Suche, Kategorie-Grid mit Toggle. Gemeinsames `ItemDetailSheet` (Varianten-Chips, Menge, Notiz, Custom-Variante, Entfernen). 16 Verhaltens-Tests.
+
+Bewusst noch offen gegenüber den Prototypen: Emoji-Picker im Sheet (braucht `productPrefs` in preferences), Produkt-Memory beim Reselect, Confetti-Animation, Spracheingabe (Capacitor).
+
 **Profil** — `features/profile/ProfilePage.tsx`.
 
 **Infrastruktur** — `app/store.ts` mit den Slices `app`, `auth`, `lists`; Middleware-Pipeline `eventIdMiddleware → themeMiddleware → clientStorageMiddleware → syncMiddleware`. Eigenes `createSlice` ohne Immer. `clientStorage` als plattform-agnostischer Wrapper. Theme-Handling.
 
-**Routen:** `/signin`, `/signup`, `/forgot-password`, `/lists`, `/lists/new`, `/lists/$listId/edit`, `/profile`.
+**Routen:** `/signin`, `/signup`, `/forgot-password`, `/lists`, `/lists/new`, `/lists/$listId`, `/lists/$listId/edit`, `/lists/$listId/category/$categoryId`, `/profile`.
 
 ### Nicht gebaut
 
-- **`features/shopping/`** — der Hauptscreen der App. Kein Slice, keine Page, keine Item-Komponenten. `ShoppingListPage`, `CategorySection`, `ItemTile` aus `domain-model.md` §4 existieren nicht. Kein Produktkatalog, kein Varianten-Modell, kein Bottom Sheet.
 - `features/recipes/`, `features/meal-plan/`, `features/activity/`
 
 ### Bekannte Provisorien
