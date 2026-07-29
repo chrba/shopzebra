@@ -140,9 +140,13 @@ export class Outbox {
 
   private commit(next: PersistedSync): Promise<void> {
     this.state = next
-    this.lastWrite = this.lastWrite.then(() =>
-      this.storage.setItem(SYNC_STORAGE_KEY, JSON.stringify(this.state)),
-    )
+    this.lastWrite = this.lastWrite
+      .then(() =>
+        this.storage.setItem(SYNC_STORAGE_KEY, JSON.stringify(this.state)),
+      )
+      .catch((error: unknown) => {
+        console.warn('sync: outbox persist failed', error)
+      })
     return this.lastWrite
   }
 }

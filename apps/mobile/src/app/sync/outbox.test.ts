@@ -81,4 +81,34 @@ describe('Outbox', () => {
     expect(outbox.head()).toBeNull()
     expect(outbox.size()).toBe(0)
   })
+
+  it('recovers from storage write failure and continues persisting', async () => {
+    let failCount = 1
+    const storage = {
+      data: new Map<string, string>(),
+      getItem: (key: string) => Promise.resolve(storage.data.get(key) ?? null),
+      setItem: (key: string, value: string) => {
+        if (failCount > 0) {
+          failCount--
+          return Promise.reject(new Error('storage write failed'))
+        }
+        storage.data.set(key, value)
+        return Promise.resolve()
+      },
+    } as SyncStorage & { readonly data: Map<string, string> }
+
+    const outbox = await Outbox.load(storage)
+    // First write fails
+    await outbox.enqueue(eventEntry('e1'))
+    // Second write succeeds (should contain both e1 and e2)
+    await outbox.enqueue(eventEntry('e2'))
+
+    // Verify both entries are in the final storage state
+    const stored = storage.data.get('shopzebra_sync')
+    expect(stored).toBeDefined()
+    const parsed = JSON.parse(stored!)
+    expect(parsed.queue).toHaveLength(2)
+    expect(parsed.queue[0].action.meta.eventId).toBe('e1')
+    expect(parsed.queue[1].action.meta.eventId).toBe('e2')
+  })
 })
