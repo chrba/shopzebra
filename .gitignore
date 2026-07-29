@@ -4,3 +4,4 @@ dist/
 pnpm-debug.log*
 services/target
 cdk.out
+.DS_Store
