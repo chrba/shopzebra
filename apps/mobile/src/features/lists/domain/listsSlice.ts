@@ -17,6 +17,7 @@ const initialState: ListsState = {
 
 const listsSlice = createSlice({
   name: 'lists',
+  synced: true,
   initialState,
   reducers: {
     // Local hydration from clientStorage — not a domain event.

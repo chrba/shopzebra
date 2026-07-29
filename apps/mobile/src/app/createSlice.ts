@@ -8,6 +8,10 @@ export type ActionMeta = {
   readonly deviceId: string
   /** Set by fromServer() for events received from the backend. SyncMiddleware skips these. */
   readonly remote?: boolean
+  /** Server-assigned log position — present only on events folded from the server. */
+  readonly position?: string
+  /** JWT-derived author — present only on events folded from the server. */
+  readonly userId?: string
 }
 
 export type PayloadAction<P> = {
@@ -16,7 +20,9 @@ export type PayloadAction<P> = {
   readonly meta?: ActionMeta
 }
 
-export function isPayloadAction(action: unknown): action is PayloadAction<unknown> {
+export function isPayloadAction(
+  action: unknown,
+): action is PayloadAction<unknown> {
   return typeof action === 'object' && action !== null && 'type' in action
 }
 
@@ -28,7 +34,9 @@ export function isPayloadAction(action: unknown): action is PayloadAction<unknow
 // A crypto.randomUUID() inside a reducer would produce a different ID each time — broken.
 // prepare runs BEFORE dispatch (only once), the result is fixed in the action payload.
 
-type ReducerFunction<S> = ((state: S) => S) | ((state: S, action: PayloadAction<any>) => S)
+type ReducerFunction<S> =
+  | ((state: S) => S)
+  | ((state: S, action: PayloadAction<any>) => S)
 
 type ReducerWithPrepare<S> = {
   readonly prepare: (...args: any[]) => { readonly payload: any }
@@ -39,33 +47,49 @@ type ReducerDefinition<S> = ReducerFunction<S> | ReducerWithPrepare<S>
 
 // --- Action Creator inference ---
 
-type RawActionCreatorFromFunction<Name extends string, Key extends string, R> =
-  R extends (...args: infer A) => any
-    ? A extends [any, PayloadAction<infer P>]
-      ? (payload: P) => { readonly type: `${Name}/${Key}`; readonly payload: P }
-      : () => { readonly type: `${Name}/${Key}` }
-    : never
+type RawActionCreatorFromFunction<
+  Name extends string,
+  Key extends string,
+  R,
+> = R extends (...args: infer A) => any
+  ? A extends [any, PayloadAction<infer P>]
+    ? (payload: P) => { readonly type: `${Name}/${Key}`; readonly payload: P }
+    : () => { readonly type: `${Name}/${Key}` }
+  : never
 
-type RawActionCreatorFromPrepare<Name extends string, Key extends string, R> =
-  R extends { readonly prepare: (...args: infer A) => { readonly payload: infer P } }
-    ? (...args: A) => { readonly type: `${Name}/${Key}`; readonly payload: P }
-    : never
+type RawActionCreatorFromPrepare<
+  Name extends string,
+  Key extends string,
+  R,
+> = R extends {
+  readonly prepare: (...args: infer A) => { readonly payload: infer P }
+}
+  ? (...args: A) => { readonly type: `${Name}/${Key}`; readonly payload: P }
+  : never
 
-type RawActionCreator<Name extends string, Key extends string, R> =
-  R extends { readonly prepare: any; readonly reducer: any }
-    ? RawActionCreatorFromPrepare<Name, Key, R>
-    : RawActionCreatorFromFunction<Name, Key, R>
+type RawActionCreator<Name extends string, Key extends string, R> = R extends {
+  readonly prepare: any
+  readonly reducer: any
+}
+  ? RawActionCreatorFromPrepare<Name, Key, R>
+  : RawActionCreatorFromFunction<Name, Key, R>
 
-type InferPayload<R> =
-  R extends { readonly prepare: (...args: any[]) => { readonly payload: infer P } }
-    ? P
-    : R extends (...args: infer _A) => any
-      ? _A extends [any, PayloadAction<infer P>] ? P : undefined
+type InferPayload<R> = R extends {
+  readonly prepare: (...args: any[]) => { readonly payload: infer P }
+}
+  ? P
+  : R extends (...args: infer _A) => any
+    ? _A extends [any, PayloadAction<infer P>]
+      ? P
       : undefined
+    : undefined
 
 type ActionCreatorWithMeta<F, T extends string, P> = F & {
   readonly type: T
-  readonly match: (action: { readonly type: string; readonly payload?: unknown }) => action is PayloadAction<P>
+  readonly match: (action: {
+    readonly type: string
+    readonly payload?: unknown
+  }) => action is PayloadAction<P>
 }
 
 type ActionCreators<Name extends string, R extends Record<string, any>> = {
@@ -90,6 +114,18 @@ type ExtraReducer<S> = {
   readonly reducer: (state: S, action: PayloadAction<any>) => S
 }
 
+// --- Sync Policy ---
+//
+// The only sync policy: a slice opts in with `synced: true` and every
+// action of that slice becomes a candidate for the outbox
+// (sync-engine.md §3 — one boolean per slice, no per-action ifs).
+const syncedSliceNames = new Set<string>()
+
+export function isSyncedActionType(type: string): boolean {
+  const sliceName = type.split('/')[0]
+  return sliceName !== undefined && syncedSliceNames.has(sliceName)
+}
+
 // --- createSlice ---
 
 export function createSlice<
@@ -101,7 +137,10 @@ export function createSlice<
   readonly initialState: S
   readonly reducers: R
   readonly extraReducers?: readonly ExtraReducer<S>[]
+  readonly synced?: boolean
 }) {
+  if (config.synced) syncedSliceNames.add(config.name)
+
   const actionCreators = {} as Record<string, (...args: unknown[]) => unknown>
   const lookup: Record<string, (state: S, action: any) => S> = {}
 
@@ -136,7 +175,10 @@ export function createSlice<
     lookup[external.creator.type] = external.reducer
   }
 
-  const reducer = (state: S | undefined, action: { readonly type: string }): S => {
+  const reducer = (
+    state: S | undefined,
+    action: { readonly type: string },
+  ): S => {
     if (state === undefined) return config.initialState
     const caseReducer = lookup[action.type]
     return caseReducer ? caseReducer(state, action) : state

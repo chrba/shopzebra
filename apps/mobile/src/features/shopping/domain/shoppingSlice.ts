@@ -42,6 +42,7 @@ function withItems(
 
 const shoppingSlice = createSlice({
   name: 'shopping',
+  synced: true,
   initialState,
   reducers: {
     // Local hydration from clientStorage — not a domain event.
