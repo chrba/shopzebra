@@ -11,7 +11,14 @@ import { initialSyncCompleted } from '../appSlice'
 import { syncEngine } from './syncEngine'
 import { fetchEventsSince, fetchListIds, sendEntry } from './transport'
 
+// beforeLoad can run concurrently (StrictMode double-invoke) — the
+// engine, listeners and initial catch-up must only ever start once.
+let started = false
+
 export function startSync(): void {
+  if (started) return
+  started = true
+
   void syncEngine
     .start({
       storage: { getItem, setItem },

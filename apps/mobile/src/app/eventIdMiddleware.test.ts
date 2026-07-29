@@ -14,7 +14,7 @@ function runMiddleware(action: AnyAction): AnyAction {
     app: { theme: 'dark', deviceId: 'device-1', initialSyncDone: false },
   }
   const passThrough = (dispatched: unknown): unknown => dispatched
-  const dispatch = <T>(dispatched: T): T => dispatched
+  const dispatch = <T,>(dispatched: T): T => dispatched
   const result = eventIdMiddleware({ getState: () => appState, dispatch })(
     passThrough,
   )(action)
@@ -44,11 +44,7 @@ describe('eventIdMiddleware', () => {
     const serverAction = {
       type: 'lists/listRenamed',
       payload: { listId: 'groceries', name: 'Neu' },
-      meta: {
-        remote: true,
-        eventId: 'server-event-1',
-        deviceId: 'other-device',
-      },
+      meta: { remote: true, eventId: 'server-event-1', deviceId: 'other-device' },
     }
 
     const result = runMiddleware(serverAction)
