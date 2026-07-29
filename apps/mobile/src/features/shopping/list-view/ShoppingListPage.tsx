@@ -51,6 +51,62 @@ function CelebrationIcon() {
   )
 }
 
+const CONFETTI_COLORS = [
+  '#4E9DA6',
+  '#E8923A',
+  '#4ade80',
+  '#fb7185',
+  '#a78bfa',
+  '#facc15',
+  '#60a5fa',
+] as const
+
+type ConfettiPiece = {
+  readonly leftPercent: number
+  readonly color: string
+  readonly sizePx: number
+  readonly durationSeconds: number
+  readonly delaySeconds: number
+  readonly isRound: boolean
+}
+
+function createConfettiPieces(): readonly ConfettiPiece[] {
+  return Array.from({ length: 40 }, () => ({
+    leftPercent: Math.random() * 100,
+    color:
+      CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)] ??
+      CONFETTI_COLORS[0],
+    sizePx: 5 + Math.random() * 6,
+    durationSeconds: 1.5 + Math.random() * 1.5,
+    delaySeconds: Math.random() * 0.5,
+    isRound: Math.random() > 0.5,
+  }))
+}
+
+/** Falling confetti overlay of the celebration state. */
+function ConfettiBurst() {
+  const [pieces] = useState(createConfettiPieces)
+  return (
+    <div className="pointer-events-none absolute inset-0 z-[2] overflow-hidden">
+      {pieces.map((piece, index) => (
+        <span
+          key={index}
+          className="animate-confetti-fall absolute -top-2.5"
+          style={{
+            left: `${piece.leftPercent}%`,
+            width: `${piece.sizePx}px`,
+            height: `${piece.sizePx}px`,
+            backgroundColor: piece.color,
+            borderRadius: piece.isRound ? '50%' : '2px',
+            animationDuration: `${piece.durationSeconds}s`,
+            animationDelay: `${piece.delaySeconds}s`,
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
 type ShoppingListPageProps = {
   readonly listId: string
 }
@@ -95,8 +151,8 @@ export function ShoppingListPage({ listId }: ShoppingListPageProps) {
           product.name.toLowerCase().includes(searchTerm),
         ).slice(0, SEARCH_RESULT_LIMIT)
 
-  const openItemCountFor = (categoryId: string) =>
-    items.filter((item) => !item.checked && item.category === categoryId).length
+  const cartItemCountFor = (categoryId: string) =>
+    items.filter((item) => item.category === categoryId).length
 
   const addProduct = (product: CatalogProduct) => {
     if (product.variants) {
@@ -118,6 +174,12 @@ export function ShoppingListPage({ listId }: ShoppingListPageProps) {
   }
 
   const checkOffGroup = (groupItemIds: readonly string[]) => {
+    const openCount = items.filter((item) => !item.checked).length
+    if (groupItemIds.length === openCount) {
+      // Checking off the last open group completes the list — the done
+      // section stays visible during celebration but starts collapsed.
+      setCompletedExpanded(false)
+    }
     for (const itemId of groupItemIds) {
       dispatch(itemChecked({ listId, itemId, checkedBy: currentUserId }))
     }
@@ -172,7 +234,7 @@ export function ShoppingListPage({ listId }: ShoppingListPageProps) {
           </span>
         </div>
 
-        {total > 0 && (
+        {total > 0 && !allDone && (
           <div className="mt-2">
             <div className="text-muted-foreground flex justify-between text-[11px] font-medium">
               <span>
@@ -189,23 +251,7 @@ export function ShoppingListPage({ listId }: ShoppingListPageProps) {
           </div>
         )}
 
-        {allDone ? (
-          <div className="flex flex-col items-center gap-2 py-8 text-center">
-            <div className="bg-teal/15 flex size-16 items-center justify-center rounded-full">
-              <CelebrationIcon />
-            </div>
-            <p className="font-display text-lg font-bold">Alles eingekauft!</p>
-            <p className="text-muted-foreground text-xs">
-              {total} Artikel erledigt
-            </p>
-            <Button
-              onClick={startNewShopping}
-              className="bg-teal mt-2 rounded-xl px-6 font-bold text-white"
-            >
-              Neuer Einkauf
-            </Button>
-          </div>
-        ) : (
+        {!allDone && (
           <div className="mt-3 grid grid-cols-3 gap-2">
             {openGroups.map((group) => (
               <ItemTile
@@ -230,8 +276,9 @@ export function ShoppingListPage({ listId }: ShoppingListPageProps) {
           </p>
         )}
 
-        {/* Completed section */}
-        {doneGroups.length > 0 && !allDone && (
+        {/* Completed section — stays visible during celebration so items
+            can still be restored after everything is checked off */}
+        {doneGroups.length > 0 && (
           <div className="mt-4">
             <button
               type="button"
@@ -267,6 +314,28 @@ export function ShoppingListPage({ listId }: ShoppingListPageProps) {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Celebration */}
+        {allDone && (
+          <div className="animate-celebrate-in relative flex flex-col items-center gap-2 py-8 text-center">
+            <ConfettiBurst />
+            <div className="animate-celebrate-pulse bg-teal/15 relative z-[1] flex size-16 items-center justify-center rounded-full">
+              <CelebrationIcon />
+            </div>
+            <p className="font-display relative z-[1] text-lg font-bold">
+              Alles eingekauft!
+            </p>
+            <p className="text-muted-foreground relative z-[1] text-xs">
+              Alle {total} Artikel erledigt
+            </p>
+            <Button
+              onClick={startNewShopping}
+              className="bg-teal relative z-[1] mt-2 rounded-xl px-6 font-bold text-white"
+            >
+              Neuer Einkauf
+            </Button>
           </div>
         )}
       </section>
@@ -306,7 +375,7 @@ export function ShoppingListPage({ listId }: ShoppingListPageProps) {
         </h2>
         <div className="flex flex-col gap-1.5">
           {PRODUCT_CATEGORIES.map((category) => {
-            const badgeCount = openItemCountFor(category.id)
+            const badgeCount = cartItemCountFor(category.id)
             return (
               <button
                 key={category.id}

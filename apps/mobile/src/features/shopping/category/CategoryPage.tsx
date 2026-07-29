@@ -109,7 +109,7 @@ export function CategoryPage({ listId, categoryId }: CategoryPageProps) {
     (product) => product.categoryId === categoryId,
   )
   const currentUserId = user?.userId ?? 'unknown'
-  const listItemCount = items.filter((item) => !item.checked).length
+  const listItemCount = items.length
 
   const itemsOf = (productId: string) =>
     items.filter((item) => (item.parentId ?? item.id) === productId)

@@ -37,7 +37,7 @@ Alle anderen Dokumente in `architecture/` und `services/events.md` beschreiben d
 
 **Einkaufsliste** — `features/shopping/` (`domain`/`list-view`/`category`), Routen `/lists/$listId` und `/lists/$listId/category/$categoryId`. Events im Wire-Format (`itemAdded/Checked/Unchecked/Removed/Updated/NoteUpdated`, `customVariantAdded`), Compound-IDs für Varianten, Produktkatalog als statische Referenzdaten (aus `design/pure/list.html` generiert, 178 Produkte/10 Kategorien). UI: Tile-Grid (Tap = abhaken, Long-Press = Detail-Sheet), Erledigt-Sektion, Celebration, Katalog-Suche, Kategorie-Grid mit Toggle. Gemeinsames `ItemDetailSheet` (Varianten-Chips, Menge, Notiz, Custom-Variante, Entfernen). 16 Verhaltens-Tests.
 
-Bewusst noch offen gegenüber den Prototypen: Emoji-Picker im Sheet (braucht `productPrefs` in preferences), Produkt-Memory beim Reselect, Confetti-Animation, Spracheingabe (Capacitor).
+Bewusst noch offen gegenüber den Prototypen: Emoji-Picker im Sheet (braucht `productPrefs` in preferences), Produkt-Memory beim Reselect, Spracheingabe (Capacitor). Celebration folgt `design/shadcn/list.html` (2026-07-29): Konfetti, Erledigt-Sektion bleibt sichtbar (automatisch zugeklappt), Kategorie-Zähler zählt auch erledigte Items.
 
 **Profil** — `features/profile/ProfilePage.tsx`.
 
