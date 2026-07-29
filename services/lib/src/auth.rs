@@ -3,8 +3,8 @@ use lambda_http::{Request, RequestExt};
 
 use crate::error::ApiError;
 
-pub fn extract_user_id(event: &Request) -> Result<String, ApiError> {
-    let context = match event.request_context_ref() {
+pub fn extract_user_id(request: &Request) -> Result<String, ApiError> {
+    let context = match request.request_context_ref() {
         Some(ctx) => ctx,
         None => return Err(ApiError::Unauthorized),
     };

@@ -1,6 +1,6 @@
 # Implementierungs-Stand — ShopZebra
 
-**Stand: 2026-07-25** · Branch `feat/implement-backend`
+**Stand: 2026-07-28** · Branch `feat/implement-backend`
 
 Alle anderen Dokumente in `architecture/` und `services/events.md` beschreiben den **Zielzustand**. Dieses Dokument beschreibt, was davon heute existiert. Wer den Code bewertet, plant oder erweitert, liest es zuerst — sonst bewertet er eine App, die es so noch nicht gibt.
 
@@ -17,11 +17,11 @@ Alle anderen Dokumente in `architecture/` und `services/events.md` beschreiben d
 | Lokale Persistenz | ✅ funktionsfähig |
 | **Einkaufsliste (Hauptscreen)** | ✅ funktionsfähig, lokal (Katalog + Suche + Varianten-Sheet) |
 | Wochenplan, Rezepte, Aktivität, Family | ❌ existiert nicht |
-| Backend-API | 🟡 Domain-Hexagon mit Validierung + Tests; noch keine erreichbare Route |
+| Backend-API | 🟡 4 Endpunkte fertig (Create, Append, Get-Events, Get-Lists) inkl. CDK; Deploy nicht verifiziert, AppSync fehlt |
 | Sync zum Server | ❌ verkabelt, aber ohne Wirkung |
 | Offline-Queue | ❌ existiert nicht |
 | Echtzeit (AppSync) | ❌ existiert nicht |
-| Tests | 🟡 Vitest + 15 Verhaltens-Tests für `listsSlice`; Backend keine |
+| Tests | 🟡 Frontend: 31 Verhaltens-Tests (`listsSlice`, `shoppingSlice`); Backend: 20 Domain-Tests |
 
 ---
 
@@ -61,37 +61,42 @@ Bewusst noch offen gegenüber den Prototypen: Emoji-Picker im Sheet (braucht `pr
 
 ### Gebaut
 
-**`services/lib/`** — gemeinsame Crate mit `auth.rs` (User-ID aus dem JWT-Claim `sub` des API-Gateway-Authorizers), `error.rs`, `response.rs`, `runtime.rs`.
+**`services/domain/`** — das Hexagon nach [backend-structure.md](./backend-structure.md), ohne AWS-Dependencies: Envelope- **und JSON-Schema-Validierung** (13 Schemas als eingebettete Daten, Klasse-2-Typen werden am generischen Pfad abgelehnt), Owner/Membership-Regeln, Ports (`EventStore` mit Positions-Monotonie- und Dedup-Kontrakt, `MembershipStore`, `EventPublisher`), In-Memory-Adapter, Use Cases `append_event` (Klasse 1) und `create_list` (Klasse 2: Server claimt Ownership atomar und schreibt `listCreated` selbst). **20 Tests grün** (`cargo test`).
 
-**`services/domain/`** — das Hexagon nach [backend-structure.md](./backend-structure.md), ohne AWS-Dependencies: Envelope- **und JSON-Schema-Validierung** (13 Schemas als eingebettete Daten, Klasse-2-Typen werden am generischen Pfad abgelehnt), Owner/Membership-Regeln, Ports (`EventStore` mit ULID-Monotonie- und Dedup-Kontrakt, `MembershipStore`, `EventPublisher`), In-Memory-Adapter, Use Case `append_event`. **16 Tests grün.**
+**`services/adapters/`** — DynamoDB-Implementierungen der Ports: `DynamoDbEventStore`, `DynamoDbMembershipStore`, dazu `NoopEventPublisher` als Platzhalter.
 
-**`services/hello/`** — Beispiel-Lambda.
+**`services/lambdas/append-event/`** — Lambda für `POST /lists/{listId}/events`: JWT → Membership → Envelope/Schema → Append an Server-Position → Broadcast (best-effort). Der generische Klasse-1-Pfad.
 
-### Gerüst, nicht funktionsfähig
+**`services/lambdas/create-list/`** — Lambda für `POST /lists`: erster Klasse-2-Command-Endpunkt.
 
-**`services/event-handler/`** — `handle()` loggt das Event und gibt `"Done1"` zurück. `persist()` und `is_duplicate_event()` sind implementiert, werden aber **nie aufgerufen**. Zusätzlich offen (siehe Task #4):
+**`services/lambdas/get-events/`** — Lambda für `GET /lists/{listId}/events?since=<position>`: der Cursor-Catch-up. Membership-Prüfung, ohne `?since` kommt der ganze Log (Bootstrap). Antwort im Wire-Format (`StoredEvent::to_wire`), direkt faltbar.
 
-- `pk0` ist `USER#{user}`, muss `LIST#{listId}` werden
-- `user` ist die Konstante `"user"`, kein echter Aufrufer
-- `enum EventData` kennt nur `ListCreated` — braucht Envelope-Validierung statt Deserialisierung pro Typ
-- Kein Publish auf AppSync
+**`services/lambdas/get-lists/`** — Lambda für `GET /lists`: Listen-IDs des Aufrufers aus der Membership-Projektion — Startpunkt neuer Geräte und Reconnect-Fanout.
 
-### Nicht gebaut
+Alle Binaries leben unter `lambdas/` (Workspace-Glob `lambdas/*`); die drei Architektur-Crates `domain`/`adapters`/`lib` auf Root-Ebene — siehe [backend-structure.md](./backend-structure.md).
 
-- DynamoDB Events Table (auch nicht im CDK)
-- Snapshot Table
-- Kein einziger Klasse-2-Command-Endpunkt
-- AppSync Events
+**`services/lib/`** — dünne HTTP-Hilfscrate (`auth.rs`, `error.rs`, `response.rs`, `wire.rs` für das Redux-Action-Wire-Format). Kein Domain-Code — der lebt in `domain/`.
+
+### Offen
+
+- **`EventPublisher` ist ein Noop** — kein echtes AppSync-Publish, andere Geräte erfahren nichts in Echtzeit
+- **Membership-Commands fehlen** (`POST /lists/{id}/invites`, `POST /lists/join`, `DELETE /lists/{id}/members/{memberId}`) — die Abwehrseite von Task #1 steht (Allowlist lehnt Klasse-2-Typen ab), die Schreibseite nicht
+- Snapshot Table / Snapshot-Endpunkte
+- Rate Limiting (API-Gateway-Usage-Plan)
+
+### Altlast
+
+~~`services/event-handler/` und `services/hello/`~~ — **entfernt (2026-07-27)**, ebenso der tote CDK-Construct `EventHandler.ts` und das ungenutzte `lib/runtime.rs`.
 
 ---
 
 ## 4. Infrastruktur (`apps/infrastructure`)
 
-CDK-Projekt existiert — entgegen `project-structure.md`, wo es noch als „kommt später" steht.
+`ShopZebraApiStack` ist vollständig für die vier existierenden Endpunkte: Events- und Membership-Table (PAY_PER_REQUEST, Membership mit `byUser`-GSI), `RustFunction`s für `create-list`, `append-event`, `get-events`, `get-lists` (manifestPath `services/lambdas/…`), HTTP-API mit Cognito-JWT-Authorizer und Routen `POST /lists`, `GET /lists`, `POST`+`GET /lists/{listId}/events`, Grants nach Least-Privilege (Lese-Lambdas nur `grantReadData`). `cdk synth` läuft grün.
 
-`ShopZebraApiStack` instanziiert bislang nur den `EventHandler`-Construct (eine `RustFunction`). **HTTP-API, Cognito-Authorizer und Lambda-Integration sind auskommentiert**, DynamoDB-Tabellen gar nicht angelegt. Es gibt also keine erreichbare API.
+Noch nicht im Stack: AppSync Events, Rate Limiting (Usage Plan). Der Cognito User Pool selbst lebt außerhalb dieses Stacks (ID hartkodiert).
 
-Cognito selbst läuft (die App authentifiziert erfolgreich) — der User Pool ist offenbar außerhalb dieses Stacks angelegt.
+**Nicht verifiziert: ob der Stack in dieser Form schon deployed ist.**
 
 ---
 
@@ -99,7 +104,7 @@ Cognito selbst läuft (die App authentifiziert erfolgreich) — der User Pool is
 
 **Frontend:** Vitest ist eingerichtet (`pnpm test` in `apps/mobile`). `listsSlice` hat 15 Verhaltens-Tests (Actions rein, Beobachtung nur über Selektoren — keine Mocks, kein State-Shape): Listen-CRUD, Präferenzen, Totalität bei unbekannten IDs, Referenzstabilität, Replay-Determinismus. Sie nageln das heutige Verhalten fest — inklusive des Full-State-`listUpdated`, das laut Spec noch in Intention-Events zerlegt werden muss (beim Umbau ändern sich diese Tests bewusst mit).
 
-**Backend:** keine Tests.
+**Backend:** 20 Tests im `domain`-Crate gegen die In-Memory-Ports (`cargo test`): Envelope/Schema-Ablehnungen, Membership-Regeln, Append-Semantik (Monotonie, Dedup-Retry, Cursor). Die DynamoDB-Adapter selbst sind ungetestet (Integrationstests offen).
 
 Relevant für die geplante Sync Engine: Der Rebase-Mechanismus und die Replay-Purity der Reducer sind genau die Art Logik, die ohne Tests unbemerkt kaputtgeht.
 
@@ -149,13 +154,13 @@ Die Sync- und Backend-Arbeit ist in Tasks aufgeteilt; Reihenfolge und Abhängigk
 1. Membership-Loch schließen (Sicherheitsdefekt, unabhängig von allem anderen)
 2. ~~`listUpdated` in Intention-Events zerlegen~~ ✅ 2026-07-25 (`listRenamed`; Member-Änderungen nur noch über Commands)
 3. ~~`eventIdMiddleware`: `fromServer`-Actions überspringen~~ ✅ 2026-07-25
-4. Event Store entkoppeln (PK, ULID monoton, Envelope- + Schema-Validierung, Rate Limit)
+4. Event Store entkoppeln (PK, Sequenz-Position, Envelope- + Schema-Validierung, Rate Limit)
 5. Sync Engine Stufe 1 — Outbox, Cursor, Retry
 6. Property-Tests — Konvergenz, Rebase, Ack/Dedup, Totalität
 7. Sync Engine Stufe 2 — `withSync`
 8. Snapshots
 
-Unabhängig davon offen: die Struktur-**Migration** (§8 — entschieden: Bounded Context), die beiden Produktfragen (§7) und `features/shopping/` — der Hauptscreen, ohne den die App ihren Zweck nicht erfüllt.
+Unabhängig davon offen: die Produktfrage A und die Folgefragen aus §7, das CDK-Nachziehen (§4 — neue Lambdas + Tabellen statt `event-handler`) sowie `features/recipes/`, `features/meal-plan/`, `features/activity/`.
 
 Kleinere Todos:
 - **Code-Splitting**: Der Production-Build erzeugt einen 573-kB-Chunk (Amplify/Redux/Router in einem Bundle). Lazy Loading pro Route (`react-best-practices.md`) anwenden — CLAUDE.md fordert das für Mobile-Performance.

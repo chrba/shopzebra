@@ -28,6 +28,7 @@ import {
   type AuthProvider,
 } from '../features/auth/domain/authSlice'
 import { appLoaded } from './appSlice'
+import { hydrateFromServer } from './serverBootstrap'
 import { getItem, setItem } from './clientStorage'
 import type { ShoppingList } from '../features/lists/domain/listsDomain'
 import type { ListPreferences } from '../features/preferences/domain/preferencesDomain'
@@ -91,8 +92,14 @@ const rootRoute = createRootRoute({
       store.dispatch(sessionNotFound())
     }
 
-    // 2. Load persisted lists + preferences
-    const rawLists = await getItem(LISTS_KEY)
+    // 2. Signed in? Rebuild domain state from the server log. Falls
+    // back to local storage when offline or the API is unreachable.
+    const serverHydrated = selectIsAuthenticated(store.getState())
+      ? await hydrateFromServer()
+      : false
+
+    // 3. Load persisted lists + preferences (lists only as offline fallback)
+    const rawLists = serverHydrated ? null : await getItem(LISTS_KEY)
     const rawPreferences = await getItem(PREFS_KEY)
 
     let lists: readonly ShoppingList[] = []
@@ -132,34 +139,35 @@ const rootRoute = createRootRoute({
       }
     }
 
-    const allLists = lists.length > 0 ? lists : DEFAULT_LISTS
     const allPreferences = Object.keys(preferences).length > 0 ? preferences : DEFAULT_LIST_PREFERENCES
 
-    // 3. Load or create device ID
+    // 4. Load or create device ID
     let deviceId = await getItem(DEVICE_ID_KEY)
     if (!deviceId) {
       deviceId = crypto.randomUUID()
       await setItem(DEVICE_ID_KEY, deviceId)
     }
 
-    // 4. Load persisted shopping items
-    const rawShopping = await getItem(SHOPPING_STORAGE_KEY)
-    if (rawShopping) {
-      try {
-        const parsed: unknown = JSON.parse(rawShopping)
-        if (parsed && typeof parsed === 'object') {
-          store.dispatch(
-            shoppingLoaded(
-              parsed as Parameters<typeof shoppingLoaded>[0],
-            ),
-          )
+    // 5. Offline fallback: lists + shopping items from clientStorage
+    if (!serverHydrated) {
+      const rawShopping = await getItem(SHOPPING_STORAGE_KEY)
+      if (rawShopping) {
+        try {
+          const parsed: unknown = JSON.parse(rawShopping)
+          if (parsed && typeof parsed === 'object') {
+            store.dispatch(
+              shoppingLoaded(
+                parsed as Parameters<typeof shoppingLoaded>[0],
+              ),
+            )
+          }
+        } catch {
+          // ignore malformed data
         }
-      } catch {
-        // ignore malformed data
       }
+      store.dispatch(listsLoaded({ lists: lists.length > 0 ? lists : DEFAULT_LISTS }))
     }
 
-    store.dispatch(listsLoaded({ lists: allLists }))
     store.dispatch(listPreferencesLoaded(allPreferences))
     store.dispatch(appLoaded({ theme: 'dark', deviceId }))
   },

@@ -37,21 +37,21 @@ pub struct ValidatedEnvelope {
 struct EventTypeSpec {
     aggregate: AggregateKind,
     /// Payload field that must equal the aggregate id from the path.
-    id_field: &'static str,
+    aggregate_id_field: &'static str,
     schema: Validator,
 }
 
-fn register(
+fn allow(
     specs: &mut HashMap<&'static str, EventTypeSpec>,
     event_type: &'static str,
     aggregate: AggregateKind,
-    id_field: &'static str,
+    aggregate_id_field: &'static str,
     schema_source: &'static str,
 ) {
     let schema: Value =
         serde_json::from_str(schema_source).expect("embedded schema is valid JSON");
     let validator = jsonschema::validator_for(&schema).expect("embedded schema compiles");
-    specs.insert(event_type, EventTypeSpec { aggregate, id_field, schema: validator });
+    specs.insert(event_type, EventTypeSpec { aggregate, aggregate_id_field, schema: validator });
 }
 
 /// The class-1 allowlist. Schemas are data (services/domain/schemas/) —
@@ -60,19 +60,19 @@ fn register(
 static ALLOWLIST: LazyLock<HashMap<&'static str, EventTypeSpec>> = LazyLock::new(|| {
     use AggregateKind::List;
     let mut specs = HashMap::new();
-    register(&mut specs, "lists/listCreated", List, "listId", include_str!("../schemas/lists.listCreated.json"));
-    register(&mut specs, "lists/listRenamed", List, "listId", include_str!("../schemas/lists.listRenamed.json"));
-    register(&mut specs, "lists/listDeleted", List, "listId", include_str!("../schemas/lists.listDeleted.json"));
-    register(&mut specs, "lists/messageSent", List, "listId", include_str!("../schemas/lists.messageSent.json"));
-    register(&mut specs, "lists/reactionAdded", List, "listId", include_str!("../schemas/lists.reactionAdded.json"));
-    register(&mut specs, "shopping/itemAdded", List, "listId", include_str!("../schemas/shopping.itemAdded.json"));
-    register(&mut specs, "shopping/itemChecked", List, "listId", include_str!("../schemas/shopping.itemChecked.json"));
-    register(&mut specs, "shopping/itemUnchecked", List, "listId", include_str!("../schemas/shopping.itemUnchecked.json"));
-    register(&mut specs, "shopping/itemRemoved", List, "listId", include_str!("../schemas/shopping.itemRemoved.json"));
-    register(&mut specs, "shopping/itemUpdated", List, "listId", include_str!("../schemas/shopping.itemUpdated.json"));
-    register(&mut specs, "shopping/itemNoteUpdated", List, "listId", include_str!("../schemas/shopping.itemNoteUpdated.json"));
-    register(&mut specs, "shopping/customVariantAdded", List, "listId", include_str!("../schemas/shopping.customVariantAdded.json"));
-    register(&mut specs, "mealPlan/ingredientsCheckedOut", List, "listId", include_str!("../schemas/mealPlan.ingredientsCheckedOut.json"));
+    allow(&mut specs, "lists/listCreated", List, "listId", include_str!("../schemas/lists.listCreated.json"));
+    allow(&mut specs, "lists/listRenamed", List, "listId", include_str!("../schemas/lists.listRenamed.json"));
+    allow(&mut specs, "lists/listDeleted", List, "listId", include_str!("../schemas/lists.listDeleted.json"));
+    allow(&mut specs, "lists/messageSent", List, "listId", include_str!("../schemas/lists.messageSent.json"));
+    allow(&mut specs, "lists/reactionAdded", List, "listId", include_str!("../schemas/lists.reactionAdded.json"));
+    allow(&mut specs, "shopping/itemAdded", List, "listId", include_str!("../schemas/shopping.itemAdded.json"));
+    allow(&mut specs, "shopping/itemChecked", List, "listId", include_str!("../schemas/shopping.itemChecked.json"));
+    allow(&mut specs, "shopping/itemUnchecked", List, "listId", include_str!("../schemas/shopping.itemUnchecked.json"));
+    allow(&mut specs, "shopping/itemRemoved", List, "listId", include_str!("../schemas/shopping.itemRemoved.json"));
+    allow(&mut specs, "shopping/itemUpdated", List, "listId", include_str!("../schemas/shopping.itemUpdated.json"));
+    allow(&mut specs, "shopping/itemNoteUpdated", List, "listId", include_str!("../schemas/shopping.itemNoteUpdated.json"));
+    allow(&mut specs, "shopping/customVariantAdded", List, "listId", include_str!("../schemas/shopping.customVariantAdded.json"));
+    allow(&mut specs, "mealPlan/ingredientsCheckedOut", List, "listId", include_str!("../schemas/mealPlan.ingredientsCheckedOut.json"));
     // Recipe and Plan aggregate schemas follow with their features.
     specs
 });
@@ -98,7 +98,7 @@ pub fn validate_envelope(
         return Err(EnvelopeError::WrongAggregateKind(event_type.to_string()));
     }
 
-    let payload_aggregate_id = payload.get(spec.id_field).and_then(Value::as_str);
+    let payload_aggregate_id = payload.get(spec.aggregate_id_field).and_then(Value::as_str);
     if payload_aggregate_id != Some(aggregate.id.as_str()) {
         return Err(EnvelopeError::AggregateIdMismatch);
     }

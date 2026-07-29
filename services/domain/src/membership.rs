@@ -18,6 +18,14 @@ pub fn check_can_append(role: Option<MemberRole>) -> Result<(), MembershipViolat
     }
 }
 
+/// Reading the log: any member, nobody else.
+pub fn check_can_read(role: Option<MemberRole>) -> Result<(), MembershipViolation> {
+    match role {
+        Some(_) => Ok(()),
+        None => Err(MembershipViolation::NotAMember),
+    }
+}
+
 /// Invites are owner-only (owner model, domain-model.md §2).
 pub fn check_can_invite(role: Option<MemberRole>) -> Result<(), MembershipViolation> {
     match role {

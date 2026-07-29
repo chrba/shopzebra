@@ -1,6 +1,6 @@
 import { fetchAuthSession } from 'aws-amplify/auth'
 
-const API_BASE_URL = '' // TODO: set when backend is deployed
+const API_BASE_URL: string = import.meta.env.VITE_API_URL ?? ''
 
 // REST API Endpoints (see architecture/design-decisions.md):
 // POST  /lists                      → Create list

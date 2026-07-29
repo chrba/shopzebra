@@ -15,11 +15,13 @@
 import type { Middleware } from '@reduxjs/toolkit'
 import { isPayloadAction, type PayloadAction } from './createSlice'
 import { listsSyncHandler } from '../features/lists/domain/listsSyncHandler'
+import { shoppingSyncHandler } from '../features/shopping/domain/shoppingSyncHandler'
 
 type SyncHandler = (action: PayloadAction<unknown>) => Promise<void> | null
 
 const handlers: readonly SyncHandler[] = [
   listsSyncHandler,
+  shoppingSyncHandler,
 ]
 
 export const syncMiddleware: Middleware = (_api) => (next) => (action) => {

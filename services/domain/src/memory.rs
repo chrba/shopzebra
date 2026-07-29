@@ -7,7 +7,7 @@ use std::sync::Mutex;
 
 use async_trait::async_trait;
 
-use crate::event::{AggregateId, NewEvent, StoredEvent, Ulid, UserId};
+use crate::event::{AggregateId, NewEvent, Position, StoredEvent, UserId};
 use crate::ports::{EventPublisher, EventStore, MemberRole, MembershipStore, StoreError};
 
 // --- Event store ---
@@ -15,7 +15,6 @@ use crate::ports::{EventPublisher, EventStore, MemberRole, MembershipStore, Stor
 #[derive(Default)]
 struct EventLog {
     events_by_partition: HashMap<String, Vec<StoredEvent>>,
-    ulid_counter: u64,
 }
 
 #[derive(Default)]
@@ -50,30 +49,24 @@ impl EventStore for MemoryEventStore {
         }
 
         let stored = StoredEvent {
-            // Zero-padded counter: lexicographically sortable and strictly
-            // monotonic — the same contract the DynamoDB adapter provides
-            // with real ULIDs.
-            ulid: Ulid(format!("{:026}", {
-                log.ulid_counter += 1;
-                log.ulid_counter
-            })),
+            // The log is gap-free, so the next position is simply its
+            // length + 1 — the same contract the DynamoDB adapter
+            // enforces with conditional puts.
+            position: Position(partition.len() as u64 + 1),
             event_type: event.event_type,
             payload: event.payload,
             event_id: event.event_id,
             device_id: event.device_id,
             user_id: event.user_id,
         };
-        log.events_by_partition
-            .entry(aggregate.partition_key())
-            .or_default()
-            .push(stored.clone());
+        partition.push(stored.clone());
         Ok(stored)
     }
 
     async fn events_since(
         &self,
         aggregate: &AggregateId,
-        since: Option<&Ulid>,
+        since: Option<&Position>,
     ) -> Result<Vec<StoredEvent>, StoreError> {
         let log = self.log.lock().expect("event log lock");
         let events = log
@@ -82,7 +75,7 @@ impl EventStore for MemoryEventStore {
             .map(|partition| {
                 partition
                     .iter()
-                    .filter(|stored| since.is_none_or(|cursor| stored.ulid > *cursor))
+                    .filter(|stored| since.is_none_or(|cursor| stored.position > *cursor))
                     .cloned()
                     .collect()
             })
@@ -113,6 +106,24 @@ impl MemoryMembershipStore {
 
 #[async_trait]
 impl MembershipStore for MemoryMembershipStore {
+    async fn claim_ownership(
+        &self,
+        aggregate: &AggregateId,
+        user: &UserId,
+    ) -> Result<bool, StoreError> {
+        let mut roles = self.roles.lock().expect("membership lock");
+        let already_owned = roles
+            .iter()
+            .any(|((partition, _), role)| {
+                partition == &aggregate.partition_key() && *role == MemberRole::Owner
+            });
+        if already_owned {
+            return Ok(false);
+        }
+        roles.insert((aggregate.partition_key(), user.0.clone()), MemberRole::Owner);
+        Ok(true)
+    }
+
     async fn role_of(
         &self,
         aggregate: &AggregateId,

@@ -38,7 +38,7 @@ Aggregate-ID: `LIST#{listId}`
 
 | Event | Klasse |
 |---|---|
-| `listCreated` | 1 |
+| `listCreated` | **2** — erzeugt die Autorisierungswurzel: `POST /lists`, Server prüft `createdBy` = Aufrufer, claimt Ownership atomar und schreibt das Event |
 | `messageSent`, `reactionAdded` | 1 |
 | `listRenamed` | 1 |
 | `listDeleted` | 1 |
@@ -283,15 +283,15 @@ Dispatched von MealPlan, verarbeitet vom Shopping-Reducer (erzeugt ListItems).
 
 ```
 PK: aggregateId     (LIST#abc, RECIPE#123, PLAN#user1#2026-W15)
-SK: ULID            (vom Server beim Append vergeben)
+SK: EVT#<position>  (zero-padded Sequenznummer, vom Server beim Append vergeben)
 Attributes: type, payload (opak), userId, eventId, deviceId
 ```
 
-Kein `familyId`, kein Family-GSI: `GET /sync?since` läuft über die **Membership-Projektion** — der Server kennt die Aggregates des Aufrufers und queried deren Partitionen. Der Activity Feed ist eine Projektion **pro Liste** über deren Log.
+Kein `familyId`, kein Family-GSI. **Der Cursor ist pro Aggregate** — Positionen sind Sequenznummern je Log, es gibt keinen globalen Cursor über alle Listen. Ein Client hält je Liste eine letzte Position und holt pro Liste nach; welche Listen er hat, sagt ihm `GET /lists` (Membership-Projektion). Der Activity Feed ist eine Projektion **pro Liste** über deren Log.
 
-Die **ULID ist die kanonische Reihenfolge** — lexikographisch sortierbar, zeitstempel-basiert, eine Total Order über alle Events eines Aggregates. Sie ist die Grundlage der Konfliktauflösung ([conflict-resolution.md](../architecture/conflict-resolution.md) §3). Kein Timestamp aus dem Client kommt in den Sortierschlüssel.
+Die **Position ist die kanonische Reihenfolge** — eine pro Aggregate strikt aufsteigende, lückenlose Sequenznummer, zero-padded, damit String-Vergleich = numerischer Vergleich. Sie ist die Grundlage der Konfliktauflösung ([conflict-resolution.md](../architecture/conflict-resolution.md) §3). Keine Uhr geht in den Sortierschlüssel ein; die Server-Empfangszeit liegt als Attribut `appendedAt` im Event-Item.
 
-**Monotonie-Pflicht:** Die ULID-Vergabe muss pro Aggregate streng monoton sein (Conditional Put: neue SK > letzte SK, sonst ULID neu erzeugen und retry). Parallele Lambda-Instanzen mit Uhren-Drift könnten sonst ein Event „vor" bereits ausgelieferte ULIDs einsortieren — `GET /sync?since=<cursor>` würde es nie mehr liefern. Siehe [sync-engine.md](../architecture/sync-engine.md) §6.
+**Monotonie per Konstruktion:** Der Append liest die letzte Position und schreibt konditional auf die nächste (`attribute_not_exists` auf dem Event-Item); verlorenes Rennen → Retry auf der übernächsten. Kein Event kann vor bereits ausgelieferte Positionen rutschen — `GET /lists/{id}/events?since=<cursor>` verliert nie ein Event. Siehe [sync-engine.md](../architecture/sync-engine.md) §6.
 
 **Dedup:** Zusätzlicher Item pro `eventId`, geschrieben per Conditional Put (`attribute_not_exists`). Ein doppelt zugestelltes Event gelangt nie ins Log.
 
@@ -301,7 +301,7 @@ Die **ULID ist die kanonische Reihenfolge** — lexikographisch sortierbar, zeit
 
 ```
 PK: aggregateId
-Attributes: snapshot (opakes JSON), upToUlid
+Attributes: snapshot (opakes JSON), upToPosition
 ```
 
 Erzeugt vom **Client**, nicht von einem Stream Processor: Der Client faltet ohnehin und lädt `fold(log)` periodisch hoch. Damit existiert die Fachlogik genau einmal, in TypeScript — kein Rust-Fold, keine Doppel-Implementierung der Reducer.
@@ -315,11 +315,11 @@ Der Snapshot ist reiner Performance-Cache für den Bootstrap neuer Geräte und *
 ### Klasse 1 — generischer Event-Append
 
 ```
-POST  /lists/{id}/events        Envelope validieren, ULID vergeben, appenden, broadcasten
-GET   /lists/{id}/events        Events seit ?since=<ulid>
-GET   /lists/{id}/snapshot      Snapshot + upToUlid für den Bootstrap
+POST  /lists/{id}/events        Envelope validieren, Position vergeben, appenden, broadcasten
+GET   /lists/{id}/events        Events seit ?since=<position>
+GET   /lists/{id}/snapshot      Snapshot + upToPosition für den Bootstrap
 PUT   /lists/{id}/snapshot      Snapshot hochladen
-GET   /sync?since=<ulid>        Alle Events der eigenen Aggregates seit ULID (via Membership-Projektion)
+GET   /lists                    Aggregate-IDs des Aufrufers (Membership-Projektion) — Bootstrap + Reconnect-Fanout
 ```
 
 Analog für `/recipes/{id}/events` und `/plans/{id}/events`. **Ein Lambda bedient alle Event-Typen** — es deserialisiert das Payload nicht.
@@ -327,6 +327,7 @@ Analog für `/recipes/{id}/events` und `/plans/{id}/events`. **Ein Lambda bedien
 ### Klasse 2 — Commands mit Fachlogik
 
 ```
+POST    /lists                              → prüft createdBy = Aufrufer, claimt Ownership, schreibt listCreated
 POST    /lists/{id}/invites                 → Owner-only: erzeugt Invite-Token (Link/QR), widerrufbar
 POST    /lists/join                         → Token prüfen, schreibt listMemberAdded
 DELETE  /lists/{id}/members/{memberId}      → Owner (jeden) oder Mitglied (sich selbst), schreibt listMemberRemoved

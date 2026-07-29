@@ -470,8 +470,8 @@ Das Event landet im Log des **ShoppingList-Aggregates** (`LIST#{listId}`) und is
 **Offline → Online:**
 ```
 1. App kommt online
-2. GET /sync?since=<letzte bestätigte ULID>
-3. Eingehende Events nach ULID sortieren, in den bestätigten State falten
+2. Pro Liste: GET /lists/{id}/events?since=<letzte bestätigte Position dieser Liste>
+3. Eingehende Events nach Position sortieren, in den bestätigten State falten
 4. Eigene Pending-Events obendrauf replayen (Rebase)
 5. Pending-Events an den Server senden
 6. Jeder Reducer verarbeitet "seine" Events, ignoriert den Rest
@@ -491,20 +491,20 @@ Das Backend ist ein dummer Event Store + Broadcaster. Keine Business-Logik.
 
 ```
 PK: aggregateId    (z.B. LIST#abc, RECIPE#123, PLAN#user1#2026-W09)
-SK: ULID           (vom Server beim Append vergeben)
+SK: EVT#<position> (zero-padded Sequenznummer, vom Server vergeben)
 
 Attributes: type, payload (opak), userId, eventId, deviceId
 ```
 
-Kein `familyId`, kein GSI: `GET /sync?since` läuft über die Membership-Projektion — der Server queried die Partitionen der Aggregates des Aufrufers. Der Activity Feed ist eine Projektion pro Liste.
+Kein `familyId`, kein Family-GSI. Der Cursor ist **pro Aggregate** (Positionen sind je Log vergeben); der Client holt pro Liste nach. Welche Listen er hat, liefert `GET /lists` aus der Membership-Projektion. Der Activity Feed ist eine Projektion pro Liste.
 
-Die ULID ist gleichzeitig Sortierschlüssel und **kanonische Reihenfolge** für die Konfliktauflösung. Kein Client-Timestamp geht in den Sortierschlüssel ein.
+Die Position — eine pro Aggregate strikt aufsteigende, lückenlose Sequenznummer — ist gleichzeitig Sortierschlüssel und **kanonische Reihenfolge** für die Konfliktauflösung. Keine Uhr geht in den Sortierschlüssel ein; die Server-Empfangszeit liegt als Attribut `appendedAt` im Event.
 
 ### Snapshot Table (Optimierung)
 
 ```
 PK: aggregateId
-Attributes: snapshot (opakes JSON), upToUlid
+Attributes: snapshot (opakes JSON), upToPosition
 ```
 
 Erzeugt vom **Client**, nicht von einem Stream Processor — der Client faltet ohnehin. Damit existiert die Fachlogik genau einmal, in TypeScript. Der Snapshot ist reiner Bootstrap-Cache und nie autoritativ; jeder Client kann ihn gegen den Log nachrechnen.
@@ -517,10 +517,10 @@ Wer auf ein Aggregate schreiben darf, wird **nicht** aus dem client-geschriebene
 
 ```
 Events (generisch, ein Lambda für alle Typen):
-POST  /lists/{id}/events       → Envelope validieren, ULID vergeben, appenden, publishen
-GET   /lists/{id}/events       → Events seit ?since=<ulid>
-GET   /lists/{id}/snapshot     → Snapshot + upToUlid für den Bootstrap
-GET   /sync?since=<ulid>       → Alle Events der eigenen Aggregates seit ULID
+POST  /lists/{id}/events       → Envelope validieren, Position vergeben, appenden, publishen
+GET   /lists/{id}/events       → Events seit ?since=<position>
+GET   /lists/{id}/snapshot     → Snapshot + upToPosition für den Bootstrap
+GET   /lists                   → Aggregate-IDs des Aufrufers (Membership-Projektion)
 
 Commands (je ein eigenes Lambda, Server schreibt das Event):
 POST    /lists/{id}/invites    → Owner-only: Invite-Token (Link/QR)
@@ -548,9 +548,9 @@ Analog für `/recipes/{id}/events` und `/plans/{id}/events`. Vollständige Liste
 
 Dasselbe Objekt ist Redux Action, Domain Event und Wire Format. Kein Mapping, kein Serialisierungslayer. Ein Konzept durchgehend.
 
-**Event-Metadaten:** Jedes Event trägt in `meta` eine `eventId` (Idempotenz beim Senden, Match gegen die Pending-Queue) und eine `deviceId` (Herkunft), beide erzeugt in der Middleware. Bestätigte Events tragen zusätzlich die vom Server vergebene `ulid`.
+**Event-Metadaten:** Jedes Event trägt in `meta` eine `eventId` (Idempotenz beim Senden, Match gegen die Pending-Queue) und eine `deviceId` (Herkunft), beide erzeugt in der Middleware. Bestätigte Events tragen zusätzlich die vom Server vergebene `position`.
 
-**Keine Feld-Versionen.** Die Domain-Types oben (`ListItem` etc.) sind vollständig — es gibt keinen zusätzlichen `{ value, version }`-Wrapper pro konfliktbehaftetem Feld. Konflikte werden nicht durch Versionsvergleich im Reducer aufgelöst, sondern dadurch, dass alle Clients das server-geordnete Log in ULID-Reihenfolge falten. Siehe [conflict-resolution.md](./conflict-resolution.md) §3 und [sync-engine.md](./sync-engine.md).
+**Keine Feld-Versionen.** Die Domain-Types oben (`ListItem` etc.) sind vollständig — es gibt keinen zusätzlichen `{ value, version }`-Wrapper pro konfliktbehaftetem Feld. Konflikte werden nicht durch Versionsvergleich im Reducer aufgelöst, sondern dadurch, dass alle Clients das server-geordnete Log in Positions-Reihenfolge falten. Siehe [conflict-resolution.md](./conflict-resolution.md) §3 und [sync-engine.md](./sync-engine.md).
 
 **Reducer-Constraint:** Weil beim Rebase mehrfach gefaltet wird, müssen alle Reducer replay-pur sein — kein `Date.now()`, kein `crypto.randomUUID()`, kein `Math.random()`. IDs und Timestamps entstehen in der Middleware und reisen im Event mit.
 

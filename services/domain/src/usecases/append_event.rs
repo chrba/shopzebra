@@ -4,7 +4,7 @@ use thiserror::Error;
 use crate::envelope::{validate_envelope, EnvelopeError};
 use crate::event::{AggregateId, NewEvent, StoredEvent, UserId};
 use crate::membership::{check_can_append, MembershipViolation};
-use crate::ports::{EventPublisher, EventStore, MembershipStore, StoreError};
+use crate::ports::{Ports, StoreError};
 
 #[derive(Debug, Error)]
 pub enum AppendEventError {
@@ -28,21 +28,20 @@ pub struct AppendEventRequest {
 }
 
 /// Class 1, generic for every aggregate: check membership, validate form,
-/// append with server-assigned ULID, broadcast (sync-engine.md §6).
+/// append at the server-assigned position, broadcast (sync-engine.md §6).
 pub async fn append_event(
-    store: &impl EventStore,
-    membership: &impl MembershipStore,
-    publisher: &impl EventPublisher,
+    ports: &Ports<'_>,
     caller: &UserId,
     aggregate: &AggregateId,
     request: AppendEventRequest,
 ) -> Result<StoredEvent, AppendEventError> {
-    let role = membership.role_of(aggregate, caller).await?;
+    let role = ports.membership.role_of(aggregate, caller).await?;
     check_can_append(role)?;
 
     let validated = validate_envelope(aggregate, &request.event_type, request.payload)?;
 
-    let stored = store
+    let stored = ports
+        .events
         .append(
             aggregate,
             NewEvent {
@@ -58,7 +57,7 @@ pub async fn append_event(
     // Best-effort: the cursor catch-up is the reliable delivery path,
     // AppSync only cuts latency. A failed broadcast must not fail an
     // append that is already in the canonical log.
-    let _ = publisher.publish(&aggregate.channel(), &stored).await;
+    let _ = ports.broadcast.publish(&aggregate.channel(), &stored).await;
 
     Ok(stored)
 }
@@ -67,7 +66,7 @@ pub async fn append_event(
 mod tests {
     use super::*;
     use crate::memory::{MemoryEventPublisher, MemoryEventStore, MemoryMembershipStore};
-    use crate::ports::MemberRole;
+    use crate::ports::{EventStore, MemberRole};
     use serde_json::json;
 
     fn groceries() -> AggregateId {
@@ -87,6 +86,14 @@ mod tests {
         }
     }
 
+    fn wired<'a>(
+        store: &'a MemoryEventStore,
+        membership: &'a MemoryMembershipStore,
+        publisher: &'a MemoryEventPublisher,
+    ) -> Ports<'a> {
+        Ports { events: store, membership, broadcast: publisher }
+    }
+
     async fn members_only_store() -> MemoryMembershipStore {
         MemoryMembershipStore::new()
             .with_member(&groceries(), &mama(), MemberRole::Member)
@@ -99,7 +106,7 @@ mod tests {
         let membership = members_only_store().await;
         let publisher = MemoryEventPublisher::new();
 
-        let stored = append_event(&store, &membership, &publisher, &mama(), &groceries(), rename_request("event-1"))
+        let stored = append_event(&wired(&store, &membership, &publisher), &mama(), &groceries(), rename_request("event-1"))
             .await
             .expect("append succeeds");
 
@@ -113,7 +120,7 @@ mod tests {
         let membership = MemoryMembershipStore::new();
         let publisher = MemoryEventPublisher::new();
 
-        let result = append_event(&store, &membership, &publisher, &mama(), &groceries(), rename_request("event-1")).await;
+        let result = append_event(&wired(&store, &membership, &publisher), &mama(), &groceries(), rename_request("event-1")).await;
 
         assert!(matches!(result, Err(AppendEventError::Forbidden(_))));
         let log = store.events_since(&groceries(), None).await.expect("readable");
@@ -133,7 +140,7 @@ mod tests {
             device_id: "device-1".into(),
         };
 
-        let result = append_event(&store, &membership, &publisher, &mama(), &groceries(), garbage).await;
+        let result = append_event(&wired(&store, &membership, &publisher), &mama(), &groceries(), garbage).await;
 
         assert!(matches!(result, Err(AppendEventError::InvalidEnvelope(_))));
         let log = store.events_since(&groceries(), None).await.expect("readable");
@@ -141,19 +148,19 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn ulids_are_strictly_monotonic_per_aggregate() {
+    async fn positions_are_strictly_monotonic_per_aggregate() {
         let store = MemoryEventStore::new();
         let membership = members_only_store().await;
         let publisher = MemoryEventPublisher::new();
 
-        let first = append_event(&store, &membership, &publisher, &mama(), &groceries(), rename_request("event-1"))
+        let first = append_event(&wired(&store, &membership, &publisher), &mama(), &groceries(), rename_request("event-1"))
             .await
             .expect("append succeeds");
-        let second = append_event(&store, &membership, &publisher, &mama(), &groceries(), rename_request("event-2"))
+        let second = append_event(&wired(&store, &membership, &publisher), &mama(), &groceries(), rename_request("event-2"))
             .await
             .expect("append succeeds");
 
-        assert!(second.ulid > first.ulid);
+        assert!(second.position > first.position);
     }
 
     #[tokio::test]
@@ -162,14 +169,14 @@ mod tests {
         let membership = members_only_store().await;
         let publisher = MemoryEventPublisher::new();
 
-        let first = append_event(&store, &membership, &publisher, &mama(), &groceries(), rename_request("event-1"))
+        let first = append_event(&wired(&store, &membership, &publisher), &mama(), &groceries(), rename_request("event-1"))
             .await
             .expect("append succeeds");
-        let retried = append_event(&store, &membership, &publisher, &mama(), &groceries(), rename_request("event-1"))
+        let retried = append_event(&wired(&store, &membership, &publisher), &mama(), &groceries(), rename_request("event-1"))
             .await
             .expect("retry succeeds");
 
-        assert_eq!(retried.ulid, first.ulid);
+        assert_eq!(retried.position, first.position);
         let log = store.events_since(&groceries(), None).await.expect("readable");
         assert_eq!(log.len(), 1);
     }
@@ -180,15 +187,15 @@ mod tests {
         let membership = members_only_store().await;
         let publisher = MemoryEventPublisher::new();
 
-        let first = append_event(&store, &membership, &publisher, &mama(), &groceries(), rename_request("event-1"))
+        let first = append_event(&wired(&store, &membership, &publisher), &mama(), &groceries(), rename_request("event-1"))
             .await
             .expect("append succeeds");
-        append_event(&store, &membership, &publisher, &mama(), &groceries(), rename_request("event-2"))
+        append_event(&wired(&store, &membership, &publisher), &mama(), &groceries(), rename_request("event-2"))
             .await
             .expect("append succeeds");
 
         let tail = store
-            .events_since(&groceries(), Some(&first.ulid))
+            .events_since(&groceries(), Some(&first.position))
             .await
             .expect("readable");
 

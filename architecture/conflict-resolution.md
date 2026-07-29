@@ -2,7 +2,7 @@
 
 Wie ShopZebra Konflikte auflöst, wenn mehrere Familienmitglieder gleichzeitig dieselbe Liste bearbeiten. Für den Sync-Mechanismus selbst siehe [sync-engine.md](./sync-engine.md), für die Sync-Architektur [design-decisions.md](./design-decisions.md), für das Datenmodell [domain-model.md](./domain-model.md).
 
-> **Entscheidung getroffen:** Konflikte werden über ein **server-geordnetes Log (ULID) mit Client-Rebase** aufgelöst (§3). Der zuvor gleichrangig geführte Alternativweg — CRDT-Semantik von Hand mit Feld-Versionen und HLC — ist **verworfen** (§4).
+> **Entscheidung getroffen:** Konflikte werden über ein **server-geordnetes Log (Sequenz-Positionen) mit Client-Rebase** aufgelöst (§3). Der zuvor gleichrangig geführte Alternativweg — CRDT-Semantik von Hand mit Feld-Versionen und HLC — ist **verworfen** (§4).
 
 ---
 
@@ -54,13 +54,13 @@ Zweite Einsicht: Ein reines Last-Writer-Wins ist keine „Konfliktfreiheit", son
 
 Der Client bleibt optimistic und offline-fähig, aber die **autoritative Reihenfolge der Events legt der Server beim Append fest**, und jeder Client faltet das Log in genau dieser Reihenfolge.
 
-Der entscheidende Punkt: **Diese Ordnung existiert bei uns bereits.** Der `event-handler` vergibt beim Persistieren eine ULID als Sort Key — lexikographisch sortierbar, zeitstempel-basiert, eine Total Order über alle Events.
+Der entscheidende Punkt: **Diese Ordnung existiert bei uns bereits.** Der Append-Pfad vergibt beim Persistieren eine **Position** als Sort Key — eine pro Aggregate strikt aufsteigende, lückenlose Sequenznummer, eine Total Order über alle Events des Aggregates.
 
 ### Prinzip
 
 ```
 1. Eigenes Event   → sofort lokal anwenden (optimistic) + in Pending-Queue
-2. POST an Server  → Server appended, ULID = autoritative Position im Log
+2. POST an Server  → Server appended an der nächsten Position im Log
 3. Client-State    = fold(bestätigtes Server-Log) ⊕ replay(eigene Pending-Events)
 4. Bestätigtes Event trifft ein (eigenes oder fremdes, per AppSync oder Sync)
                    → in den bestätigten State folden, Pending-Events oben drauf
@@ -68,7 +68,7 @@ Der entscheidende Punkt: **Diese Ordnung existiert bei uns bereits.** Der `event
                      die Pending-Queue (Match per eventId)
 ```
 
-Offline funktioniert unverändert: Events sammeln sich in der Pending-Queue, die UI rechnet sie optimistisch ein. Beim Reconnect: `GET /sync?since=<ulid>`, bestätigten State nachfolden, Pending-Events senden. Die Pending-Queue **ist** die ohnehin geplante Offline-Queue — kein zusätzliches Konzept.
+Offline funktioniert unverändert: Events sammeln sich in der Pending-Queue, die UI rechnet sie optimistisch ein. Beim Reconnect: pro Liste `GET /lists/{id}/events?since=<position>`, bestätigten State nachfolden, Pending-Events senden. Die Pending-Queue **ist** die ohnehin geplante Offline-Queue — kein zusätzliches Konzept.
 
 Die konkrete Umsetzung (Higher-Order Reducer `withSync`, Outbox, Transport) steht in [sync-engine.md](./sync-engine.md).
 
@@ -78,10 +78,10 @@ Das Divergenz-Beispiel aus §2 unter Rebase:
 
 ```
 Start: Milch qty = 1
-Papa setzt qty=2  → erreicht Server zuerst  → ULID₁
-Mama setzt qty=5  → erreicht Server danach  → ULID₂
+Papa setzt qty=2  → erreicht Server zuerst  → Position 7
+Mama setzt qty=5  → erreicht Server danach  → Position 8
 
-Kanonisches Log: [qty=2 (ULID₁), qty=5 (ULID₂)]
+Kanonisches Log: [qty=2 (7), qty=5 (8)]
 
 Papas Gerät: fold([…, qty=2, qty=5]) → 5
 Mamas Gerät: fold([…, qty=2, qty=5]) → 5
@@ -94,9 +94,9 @@ Alle Geräte falten dasselbe Log in derselben Reihenfolge → sie **können** ni
 Es gibt nur noch eine relevante Uhr: die des Servers beim Append.
 
 ```
-Papa setzt qty=2                          → erreicht Server zuerst  → ULID₁
-Mama sieht Papas Änderung, setzt qty=5    → erreicht Server danach  → ULID₂
-Vergleich: ULID₂ > ULID₁                  → Mama gewinnt ✅
+Papa setzt qty=2                          → erreicht Server zuerst  → Position 7
+Mama sieht Papas Änderung, setzt qty=5    → erreicht Server danach  → Position 8
+Vergleich: 8 > 7                          → Mama gewinnt ✅
 ```
 
 Wer online auf ein Event *reagiert*, dessen eigenes Event erreicht den Server zwangsläufig später — Kausalität ist durch die Log-Reihenfolge gratis gewahrt. Keine HLC, kein Drift-Problem, keine Client-Uhren im Merge-Pfad.
@@ -125,7 +125,7 @@ Jedes Feld hätte zusätzlich seine **Version** gespeichert — `(time, deviceId
 
 **1. Es widerspricht unserem eigenen Kernprinzip.** `design-principals.md` fordert *State ist Derived Data* und *Values statt Objects*. `state = fold(events in kanonischer Ordnung)` ist die wörtliche Umsetzung davon. „State wird inkrementell gepatcht, wobei jedes Feld seine Versionsmetadaten mitschleppt und der Reducer beim Anwenden vergleicht" ist es nicht — das *complected* den Wert mit der Frage, wer ihn zuletzt gesetzt hat.
 
-**2. Wir haben bereits eine zentrale Ordnungs-Autorität.** Hand-CRDTs sind die richtige Antwort für Systeme *ohne* zentrale Ordnung (P2P, Multi-Master). Wir haben DynamoDB-Append mit ULID. Dieser Weg hätte auf dem Client Maschinerie gebaut, um eine vorhandene Ordnung *nicht* nutzen zu müssen — das braucht eine Rechtfertigung, die wir nicht haben.
+**2. Wir haben bereits eine zentrale Ordnungs-Autorität.** Hand-CRDTs sind die richtige Antwort für Systeme *ohne* zentrale Ordnung (P2P, Multi-Master). Wir haben den DynamoDB-Append mit server-vergebener Position. Dieser Weg hätte auf dem Client Maschinerie gebaut, um eine vorhandene Ordnung *nicht* nutzen zu müssen — das braucht eine Rechtfertigung, die wir nicht haben.
 
 **3. Die Merge-Semantik hätte pro Event entschieden und gepflegt werden müssen.** Mit sechs weiteren Aggregates (shopping, recipes, meal-plan, family, activity) wächst diese Tabelle mit jedem Feature. Unter §3 ist Konvergenz gratis.
 
@@ -144,7 +144,7 @@ Auch das Dedup vereinfacht sich: Der Server lehnt doppelte `eventId`s beim Appen
 
 ### Der eine echte Vorteil, den wir aufgeben
 
-Der CRDT-Weg wäre **transport-unabhängig** gewesen: Weil kommutativ, hätte die Zustellreihenfolge keine Rolle gespielt. Unter §3 muss der Client eingehende Events **nach ULID sortieren**, und ein verspätetes Event mit älterer ULID erzwingt ein Re-Fold ab dem letzten bestätigten Stand. AppSync Events garantiert keine strikte Zustellreihenfolge, das ist also real. Der Preis ist bekannt und lokal begrenzt — er lebt in der Sync-Schicht, nicht in jedem Reducer. Voraussetzung dafür, dass der Cursor-Mechanismus dabei nichts verliert: Die ULID-Vergabe ist pro Aggregate streng monoton ([sync-engine.md](./sync-engine.md) §6) — sonst könnte ein verspätet geschriebenes Event dauerhaft hinter dem Cursor aller Clients verschwinden.
+Der CRDT-Weg wäre **transport-unabhängig** gewesen: Weil kommutativ, hätte die Zustellreihenfolge keine Rolle gespielt. Unter §3 muss der Client eingehende Events **nach Position sortieren**, und ein verspätetes Event mit kleinerer Position erzwingt ein Re-Fold ab dem letzten bestätigten Stand. AppSync Events garantiert keine strikte Zustellreihenfolge, das ist also real. Der Preis ist bekannt und lokal begrenzt — er lebt in der Sync-Schicht, nicht in jedem Reducer. Voraussetzung dafür, dass der Cursor-Mechanismus dabei nichts verliert: Die Positions-Vergabe ist pro Aggregate streng monoton und lückenlos ([sync-engine.md](./sync-engine.md) §6) — sonst könnte ein verspätet geschriebenes Event dauerhaft hinter dem Cursor aller Clients verschwinden.
 
 ---
 
@@ -203,8 +203,8 @@ Ebenfalls sichtbar: Beim Rebase kann die UI **springen**, wenn ein fremdes Event
 ## 10. Zusammenfassung
 
 - Konflikte entstehen durch **Nebenläufigkeit**. „Append-only → keine Konflikte" gilt nur für die Speicher-Ebene; semantische Konflikte bleiben und werden beim **Falten** aufgelöst.
-- **Gewählt:** server-geordnetes Log (ULID) + Client-Rebase. Der Client faltet bestätigten Stand plus eigene Pending-Events. Konvergenz **per Konstruktion**, keine Feld-Versionen, keine HLC.
+- **Gewählt:** server-geordnetes Log (Sequenz-Positionen) + Client-Rebase. Der Client faltet bestätigten Stand plus eigene Pending-Events. Konvergenz **per Konstruktion**, keine Feld-Versionen, keine HLC.
 - **Verworfen:** CRDT-Semantik von Hand. Sie widerspricht dem Prinzip *State ist Derived Data*, ignoriert eine bereits vorhandene zentrale Ordnung und hätte pro Feature Merge-Entscheidungen plus eine Doppel-Implementierung in Rust erfordert.
 - **Voraussetzung:** granulare Intention-Events. Full-State-Events klobbern beim Rebase.
-- **Preis:** Sortierung nach ULID beim Empfang, „last sync wins" bei Offline-Konflikten, sichtbare Sprünge beim Rebase.
+- **Preis:** Sortierung nach Position beim Empfang, „last sync wins" bei Offline-Konflikten, sichtbare Sprünge beim Rebase.
 - Autorisierung ist eine **eigene Achse** — Konvergenz schützt nicht vor unberechtigten Schreibzugriffen (§6).

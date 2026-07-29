@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "test": "vitest run"
   },
   "dependencies": {
     "aws-cdk-lib": "^2.180.0",
@@ -14,6 +15,7 @@
     "aws-cdk": "^2.180.0",
     "cargo-lambda-cdk": "^0.0.36",
     "ts-node": "^10.9.2",
-    "typescript": "~5.7.0"
+    "typescript": "~5.7.0",
+    "vitest": "^3.0.0"
   }
 }

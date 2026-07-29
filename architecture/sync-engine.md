@@ -39,7 +39,7 @@ Dabei liegt die Voraussetzung schon vor: Das Wire-Format ist bereits uniform. `{
 | Mutation-Log + Server-Reconciliation | Replicache, Linear LSE | Server-Order + Client-Rebase |
 | CRDT | Yjs, Automerge, Loro | kommutativer Merge, keine zentrale Order |
 
-Wir sind architektonisch **Familie 3** — optimistic local write, Server-Append mit ULID, Broadcast, Fold beim Empfänger. Das ist Server-Reconciliation in Event-Sourcing-Vokabular.
+Wir sind architektonisch **Familie 3** — optimistic local write, Server-Append mit Positionsvergabe, Broadcast, Fold beim Empfänger. Das ist Server-Reconciliation in Event-Sourcing-Vokabular.
 
 Verworfen wurde, eine fertige Engine zu übernehmen: Electric, PowerSync und Zero sind Postgres-zentriert — sie zu nutzen hieße DynamoDB, AppSync, die Rust-Lambdas *und* Event Sourcing aufzugeben, und damit den Activity Feed, der bei uns als Projektion über den Log gratis abfällt. Replicache wäre backend-agnostisch (eigene Push/Pull-Endpunkte, DynamoDB möglich), ist aber im Maintenance-Modus — Rocicorp entwickelt mit Zero einen Nachfolger. Auf eine abgekündigte Engine zu setzen ist kein tragfähiges Fundament. Für ein flaches Datenmodell mit rund zwölf Event-Typen ist der Eigenbau kleiner als der Umstieg.
 
@@ -54,21 +54,21 @@ Die Rebase-Logik gehört **nicht** in Middleware. Sie ist eine pure Funktion üb
 type SyncState<S> = {
   readonly confirmed: S                               // fold(Server-Log)
   readonly pending: readonly PayloadAction<unknown>[] // lokal, unbestätigt
-  readonly cursor: string | null                      // letzte gefaltete ULID
+  readonly cursor: string | null                      // letzte gefaltete Position
   readonly visible: S                                 // was Selektoren lesen
 }
 
 export function withSync<S>(rootReducer: Reducer<S>) {
   return (state: SyncState<S>, action: AnyAction): SyncState<S> => {
     if (eventsConfirmed.match(action)) {
-      const incoming = [...action.payload.events].sort(byUlid)
+      const incoming = [...action.payload.events].sort(byPosition)
       const confirmed = incoming.reduce(rootReducer, state.confirmed)
       const acked = new Set(incoming.map((event) => event.meta.eventId))
       const pending = state.pending.filter((event) => !acked.has(event.meta.eventId))
       return {
         confirmed,
         pending,
-        cursor: incoming.at(-1)?.meta.ulid ?? state.cursor,
+        cursor: incoming.at(-1)?.meta.position ?? state.cursor,
         visible: pending.reduce(rootReducer, confirmed),   // ← der Rebase
       }
     }
@@ -108,7 +108,7 @@ Ein Boolean pro Slice statt ein `if` pro Action. Maßgeblich ist dabei das **Agg
 app/sync/
   syncReducer.ts     # Higher-Order Reducer: confirmed + pending + rebase (pure)
   outbox.ts          # Persistenz von pending + cursor über clientStorage
-  transport.ts       # POST /events, GET /sync?since, AppSync-Subscribe
+  transport.ts       # POST /events, GET /events?since (pro Liste), AppSync-Subscribe
   syncMiddleware.ts  # nur Effects
 ```
 
@@ -116,8 +116,8 @@ app/sync/
 |---|---|
 | **Outbox** | Jede synced, nicht-remote `PayloadAction` anhängen und über `clientStorage` persistieren (überlebt App-Neustart) |
 | **Transport** | `POST /events` gebatcht, Retry mit Backoff, idempotent über `meta.eventId` |
-| **Cursor** | Letzte bestätigte ULID persistieren; beim Reconnect `GET /sync?since=<ulid>` |
-| **Empfang** | AppSync-Subscribe, eingehende Events nach ULID sortieren, Dedup per `eventId` |
+| **Cursor** | Letzte bestätigte Position **pro Aggregate** persistieren; beim Reconnect je Liste `GET /lists/{id}/events?since=<position>` (Listen-Menge aus `GET /lists`) |
+| **Empfang** | AppSync-Subscribe, eingehende Events nach Position sortieren, Dedup per `eventId` |
 | **Rebase** | Siehe §3 — im Reducer, nicht in der Middleware |
 
 **Ablehnung statt Endlos-Retry:** Retry gilt nur für Netzwerk- und 5xx-Fehler. Lehnt der Server ein Event fachlich ab (4xx — ungültiger Envelope, fehlende Membership, gelöschtes Aggregate), verlässt es die Outbox **endgültig** und wird auch aus `pending` entfernt — sonst blockiert ein einzelnes abgelehntes Event die Queue für immer. Ob und wie der Nutzer über verworfene Offline-Änderungen informiert wird, ist eine offene UX-Frage.
@@ -129,7 +129,7 @@ app/sync/
 Die App läuft nativ via Capacitor — zwei Konsequenzen für die Engine:
 
 - **Storage:** `clientStorage` schreibt JSON-Blobs via **Capacitor Filesystem** (atomar: write-temp-then-rename), z.B. eine Datei pro Aggregate-State plus Outbox-Datei. **Preferences nur für Kleinkram** (Theme, Cursor) — Android SharedPreferences hat ein ~1-MB-Praxislimit und wird komplett in den Speicher geladen. Kein SQLite (Begründung: [design-decisions.md](./design-decisions.md)).
-- **Reconnect-Trigger sind Pflicht-Bausteine, nicht Nice-to-have:** Android (Doze) killt die WebSocket-Verbindung im Hintergrund. Nach **App-Resume** (`appStateChange`-Listener) und **Network-Change** (Capacitor Network Plugin) gilt immer: AppSync neu subscriben, `GET /sync?since=<cursor>` nachholen, Outbox flushen. Die Subscription allein reicht als Empfangspfad nie aus — der Cursor-Catch-up ist der verlässliche Pfad, AppSync nur die Latenz-Optimierung.
+- **Reconnect-Trigger sind Pflicht-Bausteine, nicht Nice-to-have:** Android (Doze) killt die WebSocket-Verbindung im Hintergrund. Nach **App-Resume** (`appStateChange`-Listener) und **Network-Change** (Capacitor Network Plugin) gilt immer: AppSync neu subscriben, pro Liste `GET /lists/{id}/events?since=<cursor>` nachholen, Outbox flushen. Die Subscription allein reicht als Empfangspfad nie aus — der Cursor-Catch-up ist der verlässliche Pfad, AppSync nur die Latenz-Optimierung.
 
 Liegt in `app/`, unabhängig davon, wie die Struktur-Frage aus [refactoring.md](./refactoring.md) entschieden wird. Kein Feature importiert daraus.
 
@@ -153,7 +153,7 @@ Der Event Store bleibt append-only und uninterpretierend. Davor sitzt ein Gate, 
 
 ### Zwei Klassen von Nachrichten
 
-**Klasse 1 — kollaborative Domain-Events.** `itemAdded`, `itemChecked`, `listRenamed`, `recipeCreated`, `recipeAssigned`, `messageSent`. Keine Invariante über Nutzer hinweg. Wer Mitglied des Aggregates ist, darf sie senden. Das Backend prüft Auth + Membership + Wohlgeformtheit, vergibt eine ULID, hängt an und broadcastet. Semantik interpretiert es nicht. **Ein generisches Lambda für alle**, kein Deploy pro Event-Typ.
+**Klasse 1 — kollaborative Domain-Events.** `itemAdded`, `itemChecked`, `listRenamed`, `recipeCreated`, `recipeAssigned`, `messageSent`. Keine Invariante über Nutzer hinweg. Wer Mitglied des Aggregates ist, darf sie senden. Das Backend prüft Auth + Membership + Wohlgeformtheit, vergibt die nächste Position, hängt an und broadcastet. Semantik interpretiert es nicht. **Ein generisches Lambda für alle**, kein Deploy pro Event-Typ.
 
 **Klasse 2 — sicherheitsrelevante Commands.** Invite-Erzeugung (Owner-only), `listMemberAdded` (Invite-Token einlösen), `listMemberRemoved`, Rezept-Import per URL. Echte Invarianten, echte Außenwirkung. Diese gehen **nicht** durch den Event-Append-Pfad: eigener Endpunkt, eigenes Lambda, Server validiert, Server entscheidet, und **der Server schreibt das resultierende Event in den Log**. Der Client schlägt vor, der Server verfügt.
 
@@ -175,11 +175,13 @@ Das Backend kennt damit die **Form** der Events, nicht ihre **Bedeutung**. Diese
 
 Dazu gehören Rate Limiting pro User (API-Gateway-Usage-Plan) und ein Payload-Cap. Ein append-only Log, in den Clients schreiben, ist sonst ein unbegrenzter Storage- und Fold-Angriff.
 
-### ULID-Vergabe: pro Aggregate streng monoton
+### Positions-Vergabe: pro Aggregate streng monoton und lückenlos
 
-Der Cursor-Mechanismus (`GET /sync?since=<ulid>`) funktioniert nur, wenn nie ein Event mit *kleinerer* ULID geschrieben wird, nachdem Clients ihren Cursor bereits dahinter weitergezogen haben. ULIDs sind zeitstempel-basiert — parallele Lambda-Instanzen mit Uhren-Drift können diese Annahme verletzen. Das betroffene Event würde von `?since` nie mehr geliefert und wäre für alle nachholenden Clients dauerhaft unsichtbar.
+Der Cursor-Mechanismus (`GET /lists/{id}/events?since=<position>`) funktioniert nur, wenn nie ein Event *vor* einer Position eingefügt wird, die Clients bereits passiert haben — sonst wäre es für alle nachholenden Clients dauerhaft unsichtbar, während Live-Zuhörer es gefaltet haben: permanente Divergenz.
 
-Deshalb erzwingt der Append die Monotonie: Conditional Put nur, wenn die neue ULID größer als die letzte SK des Aggregates ist — andernfalls ULID neu erzeugen und erneut versuchen. (Ein Überlappungsfenster bei der Sync-Query wäre die Alternative, verlagert die Komplexität aber in jeden Lese-Pfad.)
+Deshalb ist die Position eine **fortlaufende Sequenznummer pro Aggregate** (zero-padded, damit String-Vergleich = numerischer Vergleich): Der Append liest die letzte Position und schreibt konditional auf die nächste (`attribute_not_exists` auf dem Event-Item). Verliert er das Rennen gegen einen parallelen Writer, versucht er die übernächste — bounded Retry. **Keine Uhr im Ordnungspfad**: Uhren-Drift zwischen Lambda-Instanzen kann die Reihenfolge prinzipiell nicht beeinflussen. Die Lückenlosigkeit gibt Clients gratis eine Integritätsprüfung — wer 41 und 43 hat, weiß, dass 42 fehlt.
+
+*Verworfen (2026-07-28):* zeitstempel-basierte ULIDs als Sort Key. Sie hätten die Monotonie nicht strukturell, sondern per zusätzlichem Register (HEAD-Item mit CAS) oder per Überlappungsfenster in jedem Lese-Pfad erzwingen müssen — ein Konzept mehr für dieselbe Garantie. Der Server-Zeitstempel lebt stattdessen als Attribut `appendedAt` im Event-Item.
 
 ### Membership ist eine Server-Projektion
 
@@ -199,15 +201,15 @@ Stattdessen: **Snapshots sind opake Blobs, erzeugt vom Client.**
 
 ```
 Client faltet ohnehin → lädt periodisch fold(log) als JSON hoch,
-getaggt mit der ULID, bis zu der gefaltet wurde.
+getaggt mit der Position, bis zu der gefaltet wurde.
 Server speichert es, ohne es zu interpretieren.
 
-Neues Gerät: Snapshot laden → GET /sync?since=<snapshot.ulid> → falten → fertig.
+Neues Gerät: Snapshot laden → GET /lists/{id}/events?since=<snapshot.position> → falten → fertig.
 ```
 
 Damit gibt es die Fachlogik **genau einmal, in TypeScript**.
 
-**Sicherheits-Constraint:** Der Snapshot ist reiner Performance-Cache, nie autoritativ. Der Upload wird gehärtet — Membership-Check, Größen-Cap, `upToUlid`-Pflicht — mehr nicht, der Blob bleibt per Design opak. Damit bleibt ein **akzeptiertes Restrisiko** (entschieden 2026-07-25): Ein böswilliges Listen-Mitglied kann den Bootstrap neuer Geräte *seiner* Liste mit einem Zustand vergiften, der per validierten Events nie erreichbar wäre. Begrenzt auf die eigene Liste; im Verdachtsfall Snapshot verwerfen und den Log neu falten.
+**Sicherheits-Constraint:** Der Snapshot ist reiner Performance-Cache, nie autoritativ. Der Upload wird gehärtet — Membership-Check, Größen-Cap, `upToPosition`-Pflicht — mehr nicht, der Blob bleibt per Design opak. Damit bleibt ein **akzeptiertes Restrisiko** (entschieden 2026-07-25): Ein böswilliges Listen-Mitglied kann den Bootstrap neuer Geräte *seiner* Liste mit einem Zustand vergiften, der per validierten Events nie erreichbar wäre. Begrenzt auf die eigene Liste; im Verdachtsfall Snapshot verwerfen und den Log neu falten.
 
 **Trade-off:** Serverseitige Queries oder Analytics über den materialisierten State sind damit ausgeschlossen. Brauchen wir heute nicht, aber es ist eine bewusste Einbahnstraße.
 
@@ -234,9 +236,9 @@ Ehrlich benannt, damit es später niemanden überrascht:
 | 1 | Membership-Loch schließen (Klasse-2-Endpunkt) | — |
 | 2 | `listUpdated` in Intention-Events zerlegen | 1 |
 | 3 | `eventIdMiddleware` überspringt `fromServer`-Actions | — |
-| 4 | Backend: PK auf `LIST#{listId}`, ULID als SK, Envelope- + Schema-Validierung, Dedup, Rate Limit, Publish | — |
+| 4 | Backend: PK auf `LIST#{listId}`, Sequenz-Position als SK, Envelope- + Schema-Validierung, Dedup, Rate Limit, Publish | — |
 | 5 | **Outbox + Cursor + Retry** — erstmals echt offline-fähig, kein Designrisiko | 3, 4 |
-| 6 | **Property-Tests** — Konvergenz (fold in ULID-Ordnung), Rebase, Ack/Dedup, Totalität | 5 |
+| 6 | **Property-Tests** — Konvergenz (fold in Positions-Ordnung), Rebase, Ack/Dedup, Totalität | 5 |
 | 7 | **`withSync`** — Konvergenz-Garantie | 5, 6 |
 | 8 | Snapshots | 7 |
 

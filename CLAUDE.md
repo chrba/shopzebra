@@ -27,7 +27,7 @@ Die Kernregeln unten sind eine Kurzfassung — bei Zweifelsfällen immer das vol
 - Reducer müssen **replay-pur** sein: kein `Date.now()`, kein `crypto.randomUUID()`, kein `Math.random()`. Die Sync Engine faltet beim Rebase mehrfach — IDs und Timestamps entstehen in der Middleware und reisen im Event mit
 
 **Sync & Events:**
-- Konflikte werden über die **Log-Reihenfolge** aufgelöst (Server vergibt ULID, alle Clients falten in dieser Reihenfolge). Keine Feld-Versionen, keine HLC, kein LWW
+- Konflikte werden über die **Log-Reihenfolge** aufgelöst (Server vergibt eine fortlaufende Position pro Aggregate, alle Clients falten in dieser Reihenfolge). Keine Feld-Versionen, keine HLC, kein LWW
 - **Intention-Events, keine Full-State-Events.** `listRenamed` statt `listUpdated { name, memberIds }` — Full-State klobbert beim Rebase
 - Neue Events kosten **keinen** Sync-Code: `synced: true` am Slice genügt. Kein `if` pro Action, keine Per-Feature-Sync-Handler
 - Alles mit nutzerübergreifender Invariante oder Außenwirkung (Membership, Invites, externe Fetches) ist ein **Command** mit eigenem Endpunkt — der Server schreibt das Event, nie der Client
