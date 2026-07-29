@@ -1,42 +1,14 @@
-// Sends local changes to the server.
-//
-// When a user creates or deletes a list, the store updates immediately (optimistic).
-// This middleware sees that action and tells the server about it.
-//
-// Actions that already came FROM the server (tagged with fromServer()) are skipped —
-// otherwise we'd send them right back in a loop.
-//
-//   User creates list → store updates → middleware → API call
-//   Server pushes list → store updates → middleware → skipped (already synced)
-//
-// Each feature decides which actions to sync (see listsSyncHandler.ts).
-// New features just add their handler to the array below.
+// Effects only (sync-engine.md §3): every dispatched action is offered
+// to the sync engine, which decides via toOutboxEntry whether it enters
+// the outbox. No per-feature handlers — a new synced event costs zero
+// sync code.
 
 import type { Middleware } from '@reduxjs/toolkit'
-import { isPayloadAction, type PayloadAction } from './createSlice'
-import { listsSyncHandler } from '../features/lists/domain/listsSyncHandler'
-import { shoppingSyncHandler } from '../features/shopping/domain/shoppingSyncHandler'
+import { isPayloadAction } from './createSlice'
+import { syncEngine } from './sync/syncEngine'
 
-type SyncHandler = (action: PayloadAction<unknown>) => Promise<void> | null
-
-const handlers: readonly SyncHandler[] = [
-  listsSyncHandler,
-  shoppingSyncHandler,
-]
-
-export const syncMiddleware: Middleware = (_api) => (next) => (action) => {
+export const syncMiddleware: Middleware = () => (next) => (action) => {
   const result = next(action)
-
-  if (!isPayloadAction(action)) return result
-  if (action.meta?.remote) return result
-
-  for (const handler of handlers) {
-    const promise = handler(action)
-    if (promise) {
-      void promise // Later: void syncOrQueue(promise) for offline queue
-      break
-    }
-  }
-
+  if (isPayloadAction(action)) syncEngine.record(action)
   return result
 }
