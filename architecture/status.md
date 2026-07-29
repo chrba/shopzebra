@@ -17,11 +17,11 @@ Alle anderen Dokumente in `architecture/` und `services/events.md` beschreiben d
 | Lokale Persistenz | ✅ funktionsfähig |
 | **Einkaufsliste (Hauptscreen)** | ✅ funktionsfähig, lokal (Katalog + Suche + Varianten-Sheet) |
 | Wochenplan, Rezepte, Aktivität, Family | ❌ existiert nicht |
-| Backend-API | 🟡 4 Endpunkte fertig (Create, Append, Get-Events, Get-Lists) inkl. CDK; Deploy nicht verifiziert, AppSync fehlt |
-| Sync zum Server | ❌ verkabelt, aber ohne Wirkung |
-| Offline-Queue | ❌ existiert nicht |
+| Backend-API | ✅ 4 Endpunkte (Create, Append, Get-Events, Get-Lists) inkl. CDK; **deployed und live verifiziert (2026-07-29)**; AppSync fehlt |
+| Sync zum Server | ✅ **Stufe 1 (Outbox, Cursor, Retry)** — live verifiziert; Rebase (`withSync`) fehlt noch |
+| Offline-Queue | ✅ persistente Outbox mit Retry/Backoff (Retry-Pfad nur unit-getestet, nicht live) |
 | Echtzeit (AppSync) | ❌ existiert nicht |
-| Tests | 🟡 Frontend: 31 Verhaltens-Tests (`listsSlice`, `shoppingSlice`); Backend: 20 Domain-Tests |
+| Tests | 🟡 Frontend: 65 Tests (Slices + Sync-Engine); Backend: 20 Domain-Tests |
 
 ---
 
@@ -45,6 +45,12 @@ Bewusst noch offen gegenüber den Prototypen: Emoji-Picker im Sheet (braucht `pr
 
 **Infrastruktur** — `app/store.ts` mit den Slices `app`, `auth`, `lists`; Middleware-Pipeline `eventIdMiddleware → themeMiddleware → clientStorageMiddleware → syncMiddleware`. Eigenes `createSlice` ohne Immer. `clientStorage` als plattform-agnostischer Wrapper. Theme-Handling.
 
+**Sync-Engine Stufe 1** — `app/sync/` (2026-07-29, Plan `.claude/plans/2026-07-29-sync-engine-stufe-1-outbox-cursor.md`): `outbox.ts` (persistente FIFO-Queue + Cursor pro Liste + eventId-Dedup in einem Blob `shopzebra_sync`), `transport.ts` (confirmed/retry/rejected-Klassifikation), `flush.ts` (Single-Flight-Drain, Backoff 1s→30s, 4xx wird endgültig verworfen), `catchUp.ts` (`?since=<cursor>` statt Wipe-and-Refold), `syncedActions.ts` (`synced: true` am Slice ist die einzige Policy; einzige Klasse-2-Ausnahme `listCreated` → `POST /lists`), `syncEngine.ts` + `startSync.ts` (Singleton, StrictMode-Guard, Reconnect-Trigger via `@capacitor/network` + `@capacitor/app`). `syncMiddleware` ist nur noch Enqueue-Effect; die Per-Feature-Handler (`listsSyncHandler`, `shoppingSyncHandler`) und `serverBootstrap.ts` sind gelöscht. **Boot ist local-first:** Storage-Hydration rendert sofort, Catch-up läuft im Hintergrund; `initialSyncDone` (appSlice) steuert Skeleton-Karten auf frischen Geräten. Die Demo-`DEFAULT_LISTS` sind entfernt.
+
+**Live verifiziert (2026-07-29, Chrome gegen deployte API):** Outbox-POST → 201, Event landet im DynamoDB-Log, Cursor-Catch-up mit `?since`, eventId-Dedup (kein Doppel-Fold nach Reload), Duplikat-Healing bei der Hydration. **Nicht live verifiziert:** Offline-Retry/Backoff (nur Unit-Tests), Reconnect-Trigger nativ (Capacitor-Plugins deklarieren Peer-Core ≥8, App pinnt Core ^7 — vor Native-Builds auflösen).
+
+**Stufe-1-Grenzen (bewusst, bis `withSync`/Stufe 2):** Ordnungs-Divergenz bei nebenläufigen Edits wird erst durch den Rebase strukturell aufgelöst; Crash-Fenster zwischen Fold und Cursor-Persist kann den Tail einer Liste doppelt falten (Reducer sind total und id-idempotent — `listCreated` ignoriert existierende Aggregate seit dem Duplikat-Fix).
+
 **Routen:** `/signin`, `/signup`, `/forgot-password`, `/lists`, `/lists/new`, `/lists/$listId`, `/lists/$listId/edit`, `/lists/$listId/category/$categoryId`, `/profile`.
 
 ### Nicht gebaut
@@ -53,9 +59,8 @@ Bewusst noch offen gegenüber den Prototypen: Emoji-Picker im Sheet (braucht `pr
 
 ### Bekannte Provisorien
 
-- **`router.ts` enthält sechs hartkodierte Demo-Listen** (`DEFAULT_LISTS`) samt Präferenzen als Fallback, wenn nichts gespeichert ist. Demo-Daten, kein Feature.
 - **Member-Avatare sind Ableitungen aus der `memberId`** (Anfangsbuchstabe + deterministische Farbe) — Display-Namen kommen künftig aus server-geschriebenen `listMemberAdded`-Events. `FAMILY_MEMBERS` ist entfernt.
-- `listsSyncHandler.ts` besteht aus zwei Funktionen, deren `authFetch`-Aufrufe **auskommentiert** sind. Es geht heute kein HTTP-Request an den Server.
+- **Capacitor-Peer-Mismatch:** `@capacitor/network`/`@capacitor/app` verlangen Core ≥8, die App pinnt `@capacitor/core ^7` — funktioniert im Web-Dev, muss vor Native-Builds aufgelöst werden.
 
 ---
 
@@ -156,9 +161,9 @@ Die Sync- und Backend-Arbeit ist in Tasks aufgeteilt; Reihenfolge und Abhängigk
 1. Membership-Loch schließen (Sicherheitsdefekt, unabhängig von allem anderen)
 2. ~~`listUpdated` in Intention-Events zerlegen~~ ✅ 2026-07-25 (`listRenamed`; Member-Änderungen nur noch über Commands)
 3. ~~`eventIdMiddleware`: `fromServer`-Actions überspringen~~ ✅ 2026-07-25
-4. Event Store entkoppeln (PK, Sequenz-Position, Envelope- + Schema-Validierung, Rate Limit)
-5. Sync Engine Stufe 1 — Outbox, Cursor, Retry
-6. Property-Tests — Konvergenz, Rebase, Ack/Dedup, Totalität
+4. Event Store entkoppeln (PK, Sequenz-Position, Envelope- + Schema-Validierung ✅; Rate Limit offen)
+5. ~~Sync Engine Stufe 1 — Outbox, Cursor, Retry~~ ✅ 2026-07-29 (live verifiziert; siehe §2)
+6. **Property-Tests — Konvergenz, Rebase, Ack/Dedup, Totalität ← nächster Schritt**
 7. Sync Engine Stufe 2 — `withSync`
 8. Snapshots
 
