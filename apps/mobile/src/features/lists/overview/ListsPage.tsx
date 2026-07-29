@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useAppDispatch, useAppSelector } from '../../../app/store'
+import { selectInitialSyncDone } from '../../../app/appSlice'
 import { listDeleted, selectAllLists } from '../domain/listsSlice'
 import { selectItemCountByListId } from '../../shopping/domain/shoppingSlice'
 import { selectAllListPreferences } from '../../preferences/domain/preferencesSlice'
@@ -9,6 +10,7 @@ import { ListsHeader } from './ListsHeader'
 import { SummaryChips } from './SummaryChips'
 import { ListSummaryCard } from './ListSummaryCard'
 import { SwipeToDelete } from './SwipeToDelete'
+import { ListCardSkeleton } from './ListsPageSkeleton'
 import { Card } from '@/components/ui/card'
 import {
   AlertDialog,
@@ -23,7 +25,13 @@ import {
 
 // --- Helpers ---
 
-const COLORS: readonly ListColor[] = ['green', 'blue', 'red', 'purple', 'yellow']
+const COLORS: readonly ListColor[] = [
+  'green',
+  'blue',
+  'red',
+  'purple',
+  'yellow',
+]
 
 const MEMBER_AVATAR_COLORS: readonly string[] = [
   '#6BBF6B',
@@ -49,7 +57,10 @@ function defaultColor(id: string): ListColor {
 }
 
 function memberAvatarColor(memberId: string): string {
-  return MEMBER_AVATAR_COLORS[hashOf(memberId) % MEMBER_AVATAR_COLORS.length] ?? '#888'
+  return (
+    MEMBER_AVATAR_COLORS[hashOf(memberId) % MEMBER_AVATAR_COLORS.length] ??
+    '#888'
+  )
 }
 
 type DeleteTarget = {
@@ -108,19 +119,13 @@ function DeleteListDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Liste löschen?</AlertDialogTitle>
           <AlertDialogDescription>
-            Möchtest du &ldquo;{target?.name}&rdquo; wirklich
-            löschen? Diese Aktion kann nicht rückgängig gemacht
-            werden.
+            Möchtest du &ldquo;{target?.name}&rdquo; wirklich löschen? Diese
+            Aktion kann nicht rückgängig gemacht werden.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onCancel}>
-            Abbrechen
-          </AlertDialogCancel>
-          <AlertDialogAction
-            variant="destructive"
-            onClick={onConfirm}
-          >
+          <AlertDialogCancel onClick={onCancel}>Abbrechen</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" onClick={onConfirm}>
             Löschen
           </AlertDialogAction>
         </AlertDialogFooter>
@@ -138,6 +143,7 @@ export function ListsPage() {
   const shoppingLists = useAppSelector(selectAllLists)
   const preferences = useAppSelector(selectAllListPreferences)
   const itemCountByListId = useAppSelector(selectItemCountByListId)
+  const initialSyncDone = useAppSelector(selectInitialSyncDone)
 
   const lists = shoppingLists.map((list) => {
     const prefs = preferences[list.id]
@@ -153,6 +159,8 @@ export function ListsPage() {
       })),
     }
   })
+
+  const showSyncSkeleton = lists.length === 0 && !initialSyncDone
 
   const [openSwipeId, setOpenSwipeId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
@@ -175,22 +183,24 @@ export function ListsPage() {
 
   return (
     <div className="min-h-screen pb-[100px]">
-      <ListsHeader title="Meine Listen" onAdd={goToCreateList} onProfile={goToProfile} />
-      <SummaryChips
-        listCount={lists.length}
-        itemCount={0}
-        memberCount={0}
+      <ListsHeader
+        title="Meine Listen"
+        onAdd={goToCreateList}
+        onProfile={goToProfile}
       />
+      <SummaryChips listCount={lists.length} itemCount={0} memberCount={0} />
       <div className="grid grid-cols-2 gap-3 px-5">
+        {showSyncSkeleton &&
+          [0, 1, 2, 3].map((index) => (
+            <ListCardSkeleton key={index} delayMs={index * 150} />
+          ))}
         {lists.map((list) => (
           <SwipeToDelete
             key={list.id}
             isOpen={openSwipeId === list.id}
             onOpen={() => setOpenSwipeId(list.id)}
             onClose={() => setOpenSwipeId(null)}
-            onDelete={() =>
-              setDeleteTarget({ id: list.id, name: list.name })
-            }
+            onDelete={() => setDeleteTarget({ id: list.id, name: list.name })}
           >
             <ListSummaryCard
               list={list}
@@ -198,12 +208,15 @@ export function ListsPage() {
                 navigate({ to: '/lists/$listId', params: { listId: list.id } })
               }
               onEdit={() =>
-                navigate({ to: '/lists/$listId/edit', params: { listId: list.id } })
+                navigate({
+                  to: '/lists/$listId/edit',
+                  params: { listId: list.id },
+                })
               }
             />
           </SwipeToDelete>
         ))}
-        <CreateListCard onClick={goToCreateList} />
+        {!showSyncSkeleton && <CreateListCard onClick={goToCreateList} />}
       </div>
 
       <DeleteListDialog

@@ -7,7 +7,7 @@ const CARD_STAGGER_MS = 150
 function noop() {}
 
 /** Grey placeholder block with a shimmer sweep running across it. */
-function Shimmer({
+export function Shimmer({
   className,
   delayMs = 0,
 }: {
@@ -25,7 +25,7 @@ function Shimmer({
 }
 
 /** Placeholder with the exact shape of a ListSummaryCard. */
-function ListCardSkeleton({ delayMs }: { readonly delayMs: number }) {
+export function ListCardSkeleton({ delayMs }: { readonly delayMs: number }) {
   return (
     <Card className="gap-0 rounded-2xl px-4 py-5">
       <CardContent className="flex flex-col gap-2.5 px-0 py-0">
