@@ -27,7 +27,14 @@ const listsSlice = createSlice({
         readonly lists: readonly ShoppingList[]
       }>,
     ): ListsState => ({
-      lists: action.payload.lists,
+      // Dedup by id, first occurrence wins. This heals already-persisted
+      // state that was damaged by a non-total fold before listCreated
+      // guarded against re-applying an event for a list it already knows.
+      lists: action.payload.lists.filter(
+        (list, index) =>
+          action.payload.lists.findIndex((other) => other.id === list.id) ===
+          index,
+      ),
     }),
 
     listCreated: (
@@ -37,18 +44,29 @@ const listsSlice = createSlice({
         readonly name: string
         readonly ownerId: string
       }>,
-    ): ListsState => ({
-      ...state,
-      lists: [
-        ...state.lists,
-        {
-          id: action.payload.listId,
-          name: action.payload.name,
-          ownerId: action.payload.ownerId,
-          memberIds: [action.payload.ownerId],
-        },
-      ],
-    }),
+    ): ListsState => {
+      // Reducer totality (architecture/sync-engine.md §5): an event that is
+      // not applicable to the current state is ignored, never applied
+      // destructively. On cursor catch-up the same listCreated can be
+      // folded onto state that already contains the list (e.g. fresh
+      // applied-set after an upgrade) — appending blindly would duplicate it.
+      if (state.lists.some((list) => list.id === action.payload.listId)) {
+        return state
+      }
+
+      return {
+        ...state,
+        lists: [
+          ...state.lists,
+          {
+            id: action.payload.listId,
+            name: action.payload.name,
+            ownerId: action.payload.ownerId,
+            memberIds: [action.payload.ownerId],
+          },
+        ],
+      }
+    },
 
     listRenamed: (
       state: ListsState,
