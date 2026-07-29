@@ -27,13 +27,14 @@ import {
   selectIsAuthenticated,
   type AuthProvider,
 } from '../features/auth/domain/authSlice'
-import { appLoaded } from './appSlice'
+import { appLoaded, selectIsAppLoaded } from './appSlice'
 import { hydrateFromServer } from './serverBootstrap'
 import { getItem, setItem } from './clientStorage'
 import type { ShoppingList } from '../features/lists/domain/listsDomain'
 import type { ListPreferences } from '../features/preferences/domain/preferencesDomain'
 import { RootLayout } from './RootLayout'
 import { ListsPage } from '../features/lists/overview/ListsPage'
+import { ListsPageSkeleton } from '../features/lists/overview/ListsPageSkeleton'
 import { CreateListPage } from '../features/lists/manage/CreateListPage'
 import { EditListPage } from '../features/lists/manage/EditListPage'
 import { ShoppingListPage } from '../features/shopping/list-view/ShoppingListPage'
@@ -48,35 +49,67 @@ const LISTS_KEY = 'shopzebra_lists'
 const PREFS_KEY = 'shopzebra_list_preferences'
 
 const DEFAULT_LISTS: readonly ShoppingList[] = [
-  { id: 'rewe', name: 'REWE Wocheneinkauf', ownerId: 'mama', memberIds: ['mama', 'papa', 'lena'] },
+  {
+    id: 'rewe',
+    name: 'REWE Wocheneinkauf',
+    ownerId: 'mama',
+    memberIds: ['mama', 'papa', 'lena'],
+  },
   { id: 'dm', name: 'dm Drogerie', ownerId: 'papa', memberIds: ['papa'] },
-  { id: 'party', name: 'Geburtstagsparty Lena', ownerId: 'mama', memberIds: ['mama', 'papa', 'lena', 'opa'] },
+  {
+    id: 'party',
+    name: 'Geburtstagsparty Lena',
+    ownerId: 'mama',
+    memberIds: ['mama', 'papa', 'lena', 'opa'],
+  },
   { id: 'aldi', name: 'ALDI Vorräte', ownerId: 'mama', memberIds: ['mama'] },
-  { id: 'baumarkt', name: 'Baumarkt Garten', ownerId: 'papa', memberIds: ['papa', 'opa'] },
-  { id: 'wochenmarkt', name: 'Wochenmarkt Samstag', ownerId: 'mama', memberIds: ['mama', 'lena'] },
+  {
+    id: 'baumarkt',
+    name: 'Baumarkt Garten',
+    ownerId: 'papa',
+    memberIds: ['papa', 'opa'],
+  },
+  {
+    id: 'wochenmarkt',
+    name: 'Wochenmarkt Samstag',
+    ownerId: 'mama',
+    memberIds: ['mama', 'lena'],
+  },
 ]
 
-const DEFAULT_LIST_PREFERENCES: { readonly [listId: string]: ListPreferences } = {
-  rewe: { color: 'green', emoji: '\u{1F6D2}' },
-  dm: { color: 'blue', emoji: '\u{1F9F4}' },
-  party: { color: 'red', emoji: '\u{1F389}' },
-  aldi: { color: 'green', emoji: '\u{1F34E}' },
-  baumarkt: { color: 'blue', emoji: '\u{1F527}' },
-  wochenmarkt: { color: 'red', emoji: '\u{1F9C0}' },
-}
-
+const DEFAULT_LIST_PREFERENCES: { readonly [listId: string]: ListPreferences } =
+  {
+    rewe: { color: 'green', emoji: '\u{1F6D2}' },
+    dm: { color: 'blue', emoji: '\u{1F9F4}' },
+    party: { color: 'red', emoji: '\u{1F389}' },
+    aldi: { color: 'green', emoji: '\u{1F34E}' },
+    baumarkt: { color: 'blue', emoji: '\u{1F527}' },
+    wochenmarkt: { color: 'red', emoji: '\u{1F9C0}' },
+  }
 
 const rootRoute = createRootRoute({
   component: RootLayout,
   beforeLoad: async () => {
+    // The bootstrap below runs once per app start. beforeLoad fires on
+    // every navigation, so later runs bail out immediately — this also
+    // keeps the pending skeleton from flashing on in-app navigations.
+    if (selectIsAppLoaded(store.getState())) return
+
     // 1. Check Amplify session
     try {
       const cognitoUser = await getCurrentUser()
       const session = await fetchAuthSession()
       const claims = session.tokens?.idToken?.payload
-      const identities = (claims?.identities as readonly { readonly providerName?: string }[] | undefined)
+      const identities = claims?.identities as
+        | readonly { readonly providerName?: string }[]
+        | undefined
       const providerName = identities?.[0]?.providerName?.toLowerCase()
-      const provider: AuthProvider = providerName === 'google' ? 'google' : providerName === 'apple' ? 'apple' : 'email'
+      const provider: AuthProvider =
+        providerName === 'google'
+          ? 'google'
+          : providerName === 'apple'
+            ? 'apple'
+            : 'email'
       store.dispatch(
         sessionRestored({
           user: {
@@ -114,12 +147,14 @@ const rootRoute = createRootRoute({
           const stored = parsed as readonly Partial<ShoppingList>[]
           lists = stored.flatMap((entry) =>
             entry.id && entry.name
-              ? [{
-                  id: entry.id,
-                  name: entry.name,
-                  ownerId: entry.ownerId ?? entry.memberIds?.[0] ?? 'unknown',
-                  memberIds: entry.memberIds ?? [],
-                }]
+              ? [
+                  {
+                    id: entry.id,
+                    name: entry.name,
+                    ownerId: entry.ownerId ?? entry.memberIds?.[0] ?? 'unknown',
+                    memberIds: entry.memberIds ?? [],
+                  },
+                ]
               : [],
           )
         }
@@ -139,7 +174,10 @@ const rootRoute = createRootRoute({
       }
     }
 
-    const allPreferences = Object.keys(preferences).length > 0 ? preferences : DEFAULT_LIST_PREFERENCES
+    const allPreferences =
+      Object.keys(preferences).length > 0
+        ? preferences
+        : DEFAULT_LIST_PREFERENCES
 
     // 4. Load or create device ID
     let deviceId = await getItem(DEVICE_ID_KEY)
@@ -156,16 +194,16 @@ const rootRoute = createRootRoute({
           const parsed: unknown = JSON.parse(rawShopping)
           if (parsed && typeof parsed === 'object') {
             store.dispatch(
-              shoppingLoaded(
-                parsed as Parameters<typeof shoppingLoaded>[0],
-              ),
+              shoppingLoaded(parsed as Parameters<typeof shoppingLoaded>[0]),
             )
           }
         } catch {
           // ignore malformed data
         }
       }
-      store.dispatch(listsLoaded({ lists: lists.length > 0 ? lists : DEFAULT_LISTS }))
+      store.dispatch(
+        listsLoaded({ lists: lists.length > 0 ? lists : DEFAULT_LISTS }),
+      )
     }
 
     store.dispatch(listPreferencesLoaded(allPreferences))
@@ -284,7 +322,15 @@ const routeTree = rootRoute.addChildren([
   profileRoute,
 ])
 
-export const router = createRouter({ routeTree })
+// While the root beforeLoad hydrates the store on startup, the lists
+// skeleton renders instead of a blank screen (pendingMs 0 shows it
+// immediately, pendingMinMs keeps it from flashing on fast loads).
+export const router = createRouter({
+  routeTree,
+  defaultPendingComponent: ListsPageSkeleton,
+  defaultPendingMs: 0,
+  defaultPendingMinMs: 200,
+})
 
 declare module '@tanstack/react-router' {
   interface Register {

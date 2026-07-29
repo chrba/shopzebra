@@ -41,6 +41,8 @@ Bewusst noch offen gegenüber den Prototypen: Emoji-Picker im Sheet (braucht `pr
 
 **Profil** — `features/profile/ProfilePage.tsx`.
 
+**Startup-Skeleton** — `features/lists/overview/ListsPageSkeleton.tsx` (2026-07-29): Während das Root-`beforeLoad` bootet (Session-Restore + Hydration), zeigt der Router statt eines weißen Screens ein Shimmer-Skeleton der Listen-Übersicht (`defaultPendingComponent`, `pendingMs: 0`). Der Bootstrap läuft dank Guard (`selectIsAppLoaded`) nur noch einmal pro App-Start — Folge-Navigationen überspringen ihn. Design: `design/pure/proposals/loading-b-skeleton.html`.
+
 **Infrastruktur** — `app/store.ts` mit den Slices `app`, `auth`, `lists`; Middleware-Pipeline `eventIdMiddleware → themeMiddleware → clientStorageMiddleware → syncMiddleware`. Eigenes `createSlice` ohne Immer. `clientStorage` als plattform-agnostischer Wrapper. Theme-Handling.
 
 **Routen:** `/signin`, `/signup`, `/forgot-password`, `/lists`, `/lists/new`, `/lists/$listId`, `/lists/$listId/edit`, `/lists/$listId/category/$categoryId`, `/profile`.

@@ -58,6 +58,13 @@
     forwards;
   --animate-celebrate-pulse: celebratePulse 2s ease-in-out infinite;
   --animate-confetti-fall: confettiFall linear forwards;
+  --animate-shimmer: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 @keyframes celebrateIn {

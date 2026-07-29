@@ -25,7 +25,10 @@ const appSlice = createSlice({
   reducers: {
     appLoaded: (
       _state: AppState,
-      action: PayloadAction<{ readonly theme: Theme; readonly deviceId: string }>,
+      action: PayloadAction<{
+        readonly theme: Theme
+        readonly deviceId: string
+      }>,
     ): AppState => ({
       theme: action.payload.theme,
       deviceId: action.payload.deviceId,
@@ -42,3 +45,8 @@ export const appReducer = appSlice.reducer
 
 export const selectDeviceId = (state: { readonly app: AppState }) =>
   state.app.deviceId
+
+// deviceId is assigned in the final step of the startup bootstrap,
+// so a non-empty value means the store is fully hydrated.
+export const selectIsAppLoaded = (state: { readonly app: AppState }) =>
+  state.app.deviceId !== ''
