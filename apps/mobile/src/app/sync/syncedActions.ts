@@ -3,11 +3,7 @@
 // The class-2 exception list is intentionally tiny and explicit
 // (sync-engine.md §6) — everything else rides the generic path.
 
-import {
-  isSyncedActionType,
-  type ActionMeta,
-  type PayloadAction,
-} from '../createSlice'
+import { isSyncedActionType, type PayloadAction } from '../createSlice'
 import { listCreated } from '../../features/lists/domain/listsSlice'
 import type { OutboxEntry } from './outbox'
 import type { WireEvent } from './transport'
@@ -21,7 +17,8 @@ function aggregateListId(payload: unknown): string | null {
 export function toOutboxEntry(
   action: PayloadAction<unknown>,
 ): OutboxEntry | null {
-  if (action.meta?.remote) return null
+  const meta = action.meta
+  if (!meta || meta.remote) return null
 
   // Class-2 command: the server claims ownership and writes the event
   // itself — the wire names the creator `createdBy` (services/events.md).
@@ -33,7 +30,7 @@ export function toOutboxEntry(
       wire: {
         type: listCreated.type,
         payload: { listId, name, createdBy: ownerId },
-        meta: action.meta as ActionMeta,
+        meta,
       },
     }
   }
