@@ -28,7 +28,7 @@ import {
   type AuthProvider,
 } from '../features/auth/domain/authSlice'
 import { appLoaded, selectIsAppLoaded } from './appSlice'
-import { hydrateFromServer } from './serverBootstrap'
+import { startSync } from './sync/startSync'
 import { getItem, setItem } from './clientStorage'
 import type { ShoppingList } from '../features/lists/domain/listsDomain'
 import type { ListPreferences } from '../features/preferences/domain/preferencesDomain'
@@ -47,45 +47,6 @@ import { ProfilePage } from '../features/auth/profile/ProfilePage'
 const DEVICE_ID_KEY = 'shopzebra_device_id'
 const LISTS_KEY = 'shopzebra_lists'
 const PREFS_KEY = 'shopzebra_list_preferences'
-
-const DEFAULT_LISTS: readonly ShoppingList[] = [
-  {
-    id: 'rewe',
-    name: 'REWE Wocheneinkauf',
-    ownerId: 'mama',
-    memberIds: ['mama', 'papa', 'lena'],
-  },
-  { id: 'dm', name: 'dm Drogerie', ownerId: 'papa', memberIds: ['papa'] },
-  {
-    id: 'party',
-    name: 'Geburtstagsparty Lena',
-    ownerId: 'mama',
-    memberIds: ['mama', 'papa', 'lena', 'opa'],
-  },
-  { id: 'aldi', name: 'ALDI Vorräte', ownerId: 'mama', memberIds: ['mama'] },
-  {
-    id: 'baumarkt',
-    name: 'Baumarkt Garten',
-    ownerId: 'papa',
-    memberIds: ['papa', 'opa'],
-  },
-  {
-    id: 'wochenmarkt',
-    name: 'Wochenmarkt Samstag',
-    ownerId: 'mama',
-    memberIds: ['mama', 'lena'],
-  },
-]
-
-const DEFAULT_LIST_PREFERENCES: { readonly [listId: string]: ListPreferences } =
-  {
-    rewe: { color: 'green', emoji: '\u{1F6D2}' },
-    dm: { color: 'blue', emoji: '\u{1F9F4}' },
-    party: { color: 'red', emoji: '\u{1F389}' },
-    aldi: { color: 'green', emoji: '\u{1F34E}' },
-    baumarkt: { color: 'blue', emoji: '\u{1F527}' },
-    wochenmarkt: { color: 'red', emoji: '\u{1F9C0}' },
-  }
 
 const rootRoute = createRootRoute({
   component: RootLayout,
@@ -125,14 +86,10 @@ const rootRoute = createRootRoute({
       store.dispatch(sessionNotFound())
     }
 
-    // 2. Signed in? Rebuild domain state from the server log. Falls
-    // back to local storage when offline or the API is unreachable.
-    const serverHydrated = selectIsAuthenticated(store.getState())
-      ? await hydrateFromServer()
-      : false
-
-    // 3. Load persisted lists + preferences (lists only as offline fallback)
-    const rawLists = serverHydrated ? null : await getItem(LISTS_KEY)
+    // 2. Load persisted lists + preferences (local-first: rendered
+    // immediately, the sync engine catches up with the server log in
+    // the background once startSync() runs below).
+    const rawLists = await getItem(LISTS_KEY)
     const rawPreferences = await getItem(PREFS_KEY)
 
     let lists: readonly ShoppingList[] = []
@@ -174,40 +131,37 @@ const rootRoute = createRootRoute({
       }
     }
 
-    const allPreferences =
-      Object.keys(preferences).length > 0
-        ? preferences
-        : DEFAULT_LIST_PREFERENCES
-
-    // 4. Load or create device ID
+    // 3. Load or create device ID
     let deviceId = await getItem(DEVICE_ID_KEY)
     if (!deviceId) {
       deviceId = crypto.randomUUID()
       await setItem(DEVICE_ID_KEY, deviceId)
     }
 
-    // 5. Offline fallback: lists + shopping items from clientStorage
-    if (!serverHydrated) {
-      const rawShopping = await getItem(SHOPPING_STORAGE_KEY)
-      if (rawShopping) {
-        try {
-          const parsed: unknown = JSON.parse(rawShopping)
-          if (parsed && typeof parsed === 'object') {
-            store.dispatch(
-              shoppingLoaded(parsed as Parameters<typeof shoppingLoaded>[0]),
-            )
-          }
-        } catch {
-          // ignore malformed data
+    // 4. Hydrate lists + shopping items from clientStorage
+    const rawShopping = await getItem(SHOPPING_STORAGE_KEY)
+    if (rawShopping) {
+      try {
+        const parsed: unknown = JSON.parse(rawShopping)
+        if (parsed && typeof parsed === 'object') {
+          store.dispatch(
+            shoppingLoaded(parsed as Parameters<typeof shoppingLoaded>[0]),
+          )
         }
+      } catch {
+        // ignore malformed data
       }
-      store.dispatch(
-        listsLoaded({ lists: lists.length > 0 ? lists : DEFAULT_LISTS }),
-      )
     }
+    store.dispatch(listsLoaded({ lists }))
 
-    store.dispatch(listPreferencesLoaded(allPreferences))
+    store.dispatch(listPreferencesLoaded(preferences))
     store.dispatch(appLoaded({ theme: 'dark', deviceId }))
+
+    // 5. Local-first boot: the store above is hydrated from clientStorage
+    // and rendered immediately. If authenticated, the sync engine now
+    // catches up with the server log in the background — no await, so
+    // the app never blocks the first render on network.
+    if (selectIsAuthenticated(store.getState())) startSync()
   },
 })
 

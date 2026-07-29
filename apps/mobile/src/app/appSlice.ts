@@ -10,6 +10,7 @@ import type { Theme } from './theme'
 export type AppState = {
   readonly theme: Theme
   readonly deviceId: string
+  readonly initialSyncDone: boolean
 }
 
 // --- Slice ---
@@ -17,6 +18,7 @@ export type AppState = {
 const initialState: AppState = {
   theme: 'dark',
   deviceId: '',
+  initialSyncDone: false,
 }
 
 const appSlice = createSlice({
@@ -24,21 +26,26 @@ const appSlice = createSlice({
   initialState,
   reducers: {
     appLoaded: (
-      _state: AppState,
+      state: AppState,
       action: PayloadAction<{
         readonly theme: Theme
         readonly deviceId: string
       }>,
     ): AppState => ({
+      ...state,
       theme: action.payload.theme,
       deviceId: action.payload.deviceId,
+    }),
+    initialSyncCompleted: (state: AppState): AppState => ({
+      ...state,
+      initialSyncDone: true,
     }),
   },
 })
 
 // --- Actions ---
 
-export const { appLoaded } = appSlice.actions
+export const { appLoaded, initialSyncCompleted } = appSlice.actions
 export const appReducer = appSlice.reducer
 
 // --- Selectors ---
@@ -50,3 +57,6 @@ export const selectDeviceId = (state: { readonly app: AppState }) =>
 // so a non-empty value means the store is fully hydrated.
 export const selectIsAppLoaded = (state: { readonly app: AppState }) =>
   state.app.deviceId !== ''
+
+export const selectInitialSyncDone = (state: { readonly app: AppState }) =>
+  state.app.initialSyncDone

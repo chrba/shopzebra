@@ -48,17 +48,29 @@ export class SyncEngine {
     this.outbox = outbox
     this.flusher = createFlusher(outbox, deps.send)
     this.flusher.flush()
-    this.refresh()
+    return this.runCatchUp()
   }
 
   refresh(): void {
-    if (!this.outbox || !this.deps) return
-    void catchUp({
+    void this.runCatchUp()
+  }
+
+  // Shared by start() (awaited by callers who need the "initial sync
+  // done" moment) and refresh() (fire-and-forget reconnect trigger).
+  // Rejections are caught here so an offline catch-up never surfaces
+  // as an unhandled rejection — both callers just move on.
+  private runCatchUp(): Promise<void> {
+    if (!this.outbox || !this.deps) return Promise.resolve()
+    return catchUp({
       outbox: this.outbox,
       dispatch: this.deps.dispatch,
       fetchListIds: this.deps.fetchListIds,
       fetchEventsSince: this.deps.fetchEventsSince,
-    }).finally(() => this.flusher?.flush())
+    })
+      .catch((error: unknown) => {
+        console.warn('sync: catch-up failed', error)
+      })
+      .finally(() => this.flusher?.flush())
   }
 }
 
