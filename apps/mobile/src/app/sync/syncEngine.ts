@@ -55,6 +55,19 @@ export class SyncEngine {
     void this.runCatchUp()
   }
 
+  // Tears the engine down for the current session (sign-out, user
+  // switch on a shared device). Clearing deps/outbox makes record()
+  // buffer again and refresh()/runCatchUp() no-op, so nothing can be
+  // sent under a dying or already-replaced session. A later start()
+  // re-creates everything from scratch — there is no leftover one-shot
+  // state that would block a restart.
+  stop(): void {
+    this.outbox = null
+    this.flusher = null
+    this.deps = null
+    this.preStartBuffer = []
+  }
+
   // Shared by start() (awaited by callers who need the "initial sync
   // done" moment) and refresh() (fire-and-forget reconnect trigger).
   // Rejections are caught here so an offline catch-up never surfaces

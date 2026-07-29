@@ -6,14 +6,22 @@
 import { App as CapacitorApp } from '@capacitor/app'
 import { Network } from '@capacitor/network'
 import { store } from '../store'
-import { getItem, setItem } from '../clientStorage'
+import { getItem, setItem, removeItem } from '../clientStorage'
 import { initialSyncCompleted } from '../appSlice'
 import { syncEngine } from './syncEngine'
 import { fetchEventsSince, fetchListIds, sendEntry } from './transport'
 
-// beforeLoad can run concurrently (StrictMode double-invoke) — the
-// engine, listeners and initial catch-up must only ever start once.
+const SYNC_STORAGE_KEY = 'shopzebra_sync'
+
+// beforeLoad (app boot) and performSignIn (in-session sign-in) can both
+// race to start the engine — it must only ever run once per signed-in
+// session. stopSync() resets this so a later sign-in restarts it.
 let started = false
+
+// Capacitor listeners must survive sign-out/sign-in cycles without
+// duplicating — registered at most once per app lifetime, independent
+// of how many times the engine itself is started and stopped.
+let listenersRegistered = false
 
 export function startSync(): void {
   if (started) return
@@ -28,6 +36,12 @@ export function startSync(): void {
       fetchEventsSince,
     })
     .finally(() => store.dispatch(initialSyncCompleted()))
+    .catch((error: unknown) => {
+      console.warn('sync: start failed', error)
+    })
+
+  if (listenersRegistered) return
+  listenersRegistered = true
 
   void Network.addListener('networkStatusChange', (status) => {
     if (status.connected) syncEngine.refresh()
@@ -35,4 +49,14 @@ export function startSync(): void {
   void CapacitorApp.addListener('appStateChange', (state) => {
     if (state.isActive) syncEngine.refresh()
   })
+}
+
+// Counterpart to startSync(): stops the engine (see SyncEngine.stop())
+// and drops its persisted queue/cursor so a signed-out session can
+// never resume sending, and so the next user on this device doesn't
+// inherit a stale outbox.
+export async function stopSync(): Promise<void> {
+  started = false
+  syncEngine.stop()
+  await removeItem(SYNC_STORAGE_KEY)
 }

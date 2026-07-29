@@ -15,6 +15,12 @@ import {
   fetchAuthSession,
 } from 'aws-amplify/auth'
 import type { AppDispatch } from '../../../app/store'
+import { removeItem } from '../../../app/clientStorage'
+import { startSync, stopSync } from '../../../app/sync/startSync'
+import { listsLoaded } from '../../lists/domain/listsSlice'
+import { shoppingLoaded } from '../../shopping/domain/shoppingSlice'
+import { SHOPPING_STORAGE_KEY } from '../../shopping/domain/shoppingClientStorageHandler'
+import { listPreferencesLoaded } from '../../preferences/domain/preferencesSlice'
 import {
   signInSucceeded,
   signInFailed,
@@ -29,6 +35,11 @@ import {
   signedOut,
   type AuthUser,
 } from './authSlice'
+
+// Mirrors router.ts's bootstrap keys — per-user storage purged on
+// sign-out so a shared device never leaks one user's data to the next.
+const LISTS_KEY = 'shopzebra_lists'
+const PREFS_KEY = 'shopzebra_list_preferences'
 
 async function fetchCurrentAuthUser(): Promise<AuthUser> {
   const cognitoUser = await getCurrentUser()
@@ -74,6 +85,10 @@ export const performSignIn =
       await signIn({ username: args.email, password: args.password })
       const user = await fetchCurrentAuthUser()
       dispatch(signInSucceeded({ user }))
+      // beforeLoad only starts the engine on app boot — an in-session
+      // sign-in (no reload) needs the same trigger here, or catch-up
+      // never runs and recorded actions rot in the pre-start buffer.
+      startSync()
     } catch (error) {
       dispatch(signInFailed({ error: toErrorMessage(error) }))
     }
@@ -105,8 +120,7 @@ export const performConfirmSignUp =
   }
 
 export const performForgotPassword =
-  (args: { readonly email: string }) =>
-  async (dispatch: AppDispatch) => {
+  (args: { readonly email: string }) => async (dispatch: AppDispatch) => {
     try {
       await resetPassword({ username: args.email })
       dispatch(forgotPasswordCodeSent({ email: args.email }))
@@ -135,9 +149,23 @@ export const performResetPassword =
   }
 
 export const performSignOut = () => async (dispatch: AppDispatch) => {
+  // Stop the sync engine first — before Amplify's session is torn down
+  // and before any storage purge — so a shared-device user switch can
+  // never POST this user's queued outbox events under the next user's
+  // JWT (finding I1).
+  await stopSync()
   try {
     await signOut()
   } finally {
+    // Per-user data purge: device id and theme are per-device and
+    // survive; everything else must not leak into the next user's
+    // session on this device.
+    await removeItem(LISTS_KEY)
+    await removeItem(PREFS_KEY)
+    await removeItem(SHOPPING_STORAGE_KEY)
+    dispatch(listsLoaded({ lists: [] }))
+    dispatch(shoppingLoaded({ itemsByListId: {}, customVariantsByListId: {} }))
+    dispatch(listPreferencesLoaded({}))
     dispatch(signedOut())
   }
 }
