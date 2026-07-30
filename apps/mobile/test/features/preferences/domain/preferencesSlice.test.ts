@@ -5,9 +5,9 @@ import {
   preferencesReducer,
   selectAllListPreferences,
   selectListPreferences,
-} from './preferencesSlice'
-import { listDeleted } from '../../lists/domain/listsSlice'
-import type { ListPreferences } from './preferencesDomain'
+} from '@/features/preferences/domain/preferencesSlice'
+import { listDeleted } from '@/features/lists/domain/listsSlice'
+import type { ListPreferences } from '@/features/preferences/domain/preferencesDomain'
 
 // Behavior-level tests through public actions and selectors — no mocks.
 

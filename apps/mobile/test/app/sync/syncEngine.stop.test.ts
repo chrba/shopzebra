@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import type { PayloadAction } from '../createSlice'
-import type { OutboxEntry, SyncStorage } from './outbox'
-import type { SendResult } from './transport'
-import { SyncEngine, type SyncEngineDeps } from './syncEngine'
+import type { PayloadAction } from '@/app/createSlice'
+import type { OutboxEntry, SyncStorage } from '@/app/sync/outbox'
+import type { SendResult, Transport } from '@/app/sync/transport'
+import { SyncEngine } from '@/app/sync/syncEngine'
 // Side-effect import: registers 'shopping' as a synced slice name (see
 // createSlice({ synced: true })). Vitest isolates modules per test file,
 // so this must happen here too — same pattern as syncEngine.test.ts.
-import '../../features/shopping/domain/shoppingSlice'
+import '@/features/shopping/domain/shoppingSlice'
 
 function memoryStorage(): SyncStorage {
   const data = new Map<string, string>()
@@ -29,40 +29,34 @@ function syncedAction(eventId: string): PayloadAction<unknown> {
 
 describe('SyncEngine.stop', () => {
   it('buffers actions recorded after stop and delivers them on the next start', async () => {
-    const engine = new SyncEngine()
     const sent: OutboxEntry[] = []
-    const deps: SyncEngineDeps = {
-      storage: memoryStorage(),
-      dispatch: () => undefined,
-      send: (entry) => {
+    const transport: Transport = {
+      sendEntry: (entry) => {
         sent.push(entry)
         return Promise.resolve<SendResult>({ outcome: 'confirmed' })
       },
       fetchListIds: () => Promise.resolve([]),
       fetchEventsSince: () => Promise.resolve([]),
     }
+    const engine = new SyncEngine(memoryStorage(), transport)
 
-    await engine.start(deps)
+    await engine.start(() => undefined)
     engine.stop()
 
     // Recorded while stopped — must buffer, not throw or drop silently.
     engine.record(syncedAction('after-stop'))
 
-    await engine.start(deps)
+    await engine.start(() => undefined)
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     expect(sent).toHaveLength(1)
   })
 
   it('makes refresh() a no-op after stop', async () => {
-    const engine = new SyncEngine()
     const fetchListIdsCalls: true[] = []
     const fetchEventsSinceCalls: true[] = []
-
-    await engine.start({
-      storage: memoryStorage(),
-      dispatch: () => undefined,
-      send: () => Promise.resolve<SendResult>({ outcome: 'confirmed' }),
+    const engine = new SyncEngine(memoryStorage(), {
+      sendEntry: () => Promise.resolve<SendResult>({ outcome: 'confirmed' }),
       fetchListIds: () => {
         fetchListIdsCalls.push(true)
         return Promise.resolve([])
@@ -72,6 +66,8 @@ describe('SyncEngine.stop', () => {
         return Promise.resolve([])
       },
     })
+
+    await engine.start(() => undefined)
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     engine.stop()

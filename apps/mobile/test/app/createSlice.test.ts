@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createSlice, isSyncedActionType } from './createSlice'
+import { createSlice, isSyncedActionType } from '@/app/createSlice'
 
 describe('synced slices', () => {
   it('registers synced slices for the outbox policy', () => {

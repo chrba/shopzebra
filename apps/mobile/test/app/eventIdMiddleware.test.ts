@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { eventIdMiddleware } from './eventIdMiddleware'
-import type { AppState } from './appSlice'
-import type { PayloadAction } from './createSlice'
+import { eventIdMiddleware } from '@/app/eventIdMiddleware'
+import type { AppState } from '@/app/appSlice'
+import type { PayloadAction } from '@/app/createSlice'
 
 // The middleware contract: every locally dispatched payload action gets a
 // fresh eventId + the device's id; server-originated actions pass through

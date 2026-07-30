@@ -1,90 +1,112 @@
-// Persistent send queue + per-aggregate cursor + eventId dedup —
-// the durable core of sync engine stage 1 (sync-engine.md §4).
-//
-// The cursor deliberately does NOT advance on ack: foreign events may
-// sit between the cursor and the acked position. Catch-up advances it
-// and prunes the applied set once it has folded past those positions.
+// The bridge between send and receive path — one persisted blob
+// (`shopzebra_sync`): FIFO send queue (write side) + cursor per aggregate
+// (read side). Deliberately ONE object so the two sides can never drift
+// apart across restarts.
 
 import type { PayloadAction } from '../createSlice'
 
-export type QueuedEvent = {
-  readonly kind: 'event'
-  readonly listId: string
-  readonly action: PayloadAction<unknown>
-}
-
-export type QueuedCommand = {
-  readonly kind: 'command'
+/**
+ * One queued send: target path + wire payload. Routing happens at enqueue
+ * time (send/toOutboxEntry.ts), so queue and transport stay aggregate-agnostic.
+ */
+export type OutboxEntry = {
   readonly path: string
   readonly wire: PayloadAction<unknown>
 }
 
-export type OutboxEntry = QueuedEvent | QueuedCommand
+/** The send path's view of the bridge (send/flush.ts). */
+export interface SendQueue {
+  /** Next entry to send, or null when the queue is empty. Polled by the flush loop before every send. */
+  head(): OutboxEntry | null
+  /** Removes the head once its send is settled — accepted (2xx) or rejected (4xx). Resolves when the change is persisted. */
+  removeHead(): Promise<void>
+}
+
+/** The receive path's view of the bridge (receive/catchUp.ts). */
+export interface ReceiveLedger {
+  /** Last confirmed position of an aggregate, or null before the first catch-up. Goes into `?since=` when fetching the delta. */
+  cursorFor(aggregateId: string): string | null
+  /** Moves the cursor after a confirmed batch was dispatched — never before, or events would be skipped forever. Resolves when persisted. */
+  advanceCursor(aggregateId: string, position: string): Promise<void>
+}
 
 export type SyncStorage = {
   readonly getItem: (key: string) => Promise<string | null>
   readonly setItem: (key: string, value: string) => Promise<void>
 }
 
-export function entryEventId(entry: OutboxEntry): string {
-  const meta = entry.kind === 'event' ? entry.action.meta : entry.wire.meta
-  return meta?.eventId ?? ''
+/** Identity of an entry — used for server dedup and pending matching. */
+export function eventIdOf(entry: OutboxEntry): string {
+  return entry.wire.meta?.eventId ?? ''
 }
 
-type PersistedSync = {
+type OutboxState = {
   readonly queue: readonly OutboxEntry[]
-  readonly cursorByListId: { readonly [listId: string]: string }
-  readonly appliedEventIds: readonly string[]
+  readonly cursorByAggregateId: { readonly [aggregateId: string]: string }
 }
 
-const SYNC_STORAGE_KEY = 'shopzebra_sync'
+export const SYNC_STORAGE_KEY = 'shopzebra_sync'
 
-const EMPTY: PersistedSync = {
+const EMPTY: OutboxState = {
   queue: [],
-  cursorByListId: {},
-  appliedEventIds: [],
+  cursorByAggregateId: {},
 }
 
-function parsePersisted(raw: string | null): PersistedSync {
+function isOutboxEntry(candidate: unknown): candidate is OutboxEntry {
+  if (candidate === null || typeof candidate !== 'object') return false
+  const entry = candidate as { readonly path?: unknown; readonly wire?: unknown }
+  return typeof entry.path === 'string' && typeof entry.wire === 'object'
+}
+
+/**
+ * Turns the raw storage string into a valid OutboxState. clientStorage
+ * stores strings only, so the whole state lives as one JSON string:
+ * commit() stringifies it, this parses it back. Called once per engine
+ * start, by Outbox.load() — null on a fresh device or after sign-out.
+ * Never throws, a broken blob must not block the engine: bad JSON →
+ * EMPTY, malformed queue entries → dropped, missing fields → defaults.
+ * Worst case is a lost cursor (one full refetch), never a crash.
+ */
+function parseOutboxState(raw: string | null): OutboxState {
   if (!raw) return EMPTY
   try {
     const parsed: unknown = JSON.parse(raw)
     if (parsed === null || typeof parsed !== 'object') return EMPTY
-    const candidate = parsed as Partial<PersistedSync>
+    const candidate = parsed as Partial<OutboxState>
     return {
-      queue: Array.isArray(candidate.queue) ? candidate.queue : [],
-      cursorByListId:
-        candidate.cursorByListId !== null &&
-        typeof candidate.cursorByListId === 'object'
-          ? candidate.cursorByListId
-          : {},
-      appliedEventIds: Array.isArray(candidate.appliedEventIds)
-        ? candidate.appliedEventIds
+      queue: Array.isArray(candidate.queue)
+        ? candidate.queue.filter(isOutboxEntry)
         : [],
+      cursorByAggregateId:
+        candidate.cursorByAggregateId !== null &&
+        typeof candidate.cursorByAggregateId === 'object'
+          ? candidate.cursorByAggregateId
+          : {},
     }
   } catch {
     return EMPTY
   }
 }
 
-export class Outbox {
-  // Mutable by design: this is infrastructure state behind an
-  // immutable-value API. Writes are serialized through `lastWrite`.
-  private state: PersistedSync
+export class Outbox implements SendQueue, ReceiveLedger {
+  // Mutable infrastructure state behind an immutable-value API.
+  private state: OutboxState
   private lastWrite: Promise<void> = Promise.resolve()
 
   private constructor(
     private readonly storage: SyncStorage,
-    initial: PersistedSync,
+    initial: OutboxState,
   ) {
     this.state = initial
   }
 
+  /** Called once by SyncEngine.start(). */
   static async load(storage: SyncStorage): Promise<Outbox> {
     const raw = await storage.getItem(SYNC_STORAGE_KEY)
-    return new Outbox(storage, parsePersisted(raw))
+    return new Outbox(storage, parseOutboxState(raw))
   }
 
+  /** Next entry to send. Called by the flush loop. */
   head(): OutboxEntry | null {
     return this.state.queue[0] ?? null
   }
@@ -93,6 +115,12 @@ export class Outbox {
     return this.state.queue.length
   }
 
+  /** Called once at engine start to rebuild the reducer's pending queue. */
+  queuedEntries(): readonly OutboxEntry[] {
+    return this.state.queue
+  }
+
+  /** Called for every synced dispatch. Appends and persists. */
   enqueue(entry: OutboxEntry): Promise<void> {
     return this.commit({
       ...this.state,
@@ -100,45 +128,39 @@ export class Outbox {
     })
   }
 
-  confirmHead(): Promise<void> {
-    const confirmed = this.head()
-    if (!confirmed) return Promise.resolve()
-    return this.commit({
-      ...this.state,
-      queue: this.state.queue.slice(1),
-      appliedEventIds: [...this.state.appliedEventIds, entryEventId(confirmed)],
-    })
-  }
-
-  dropHead(): Promise<void> {
+  /**
+   * Called when the server accepted (2xx) or rejected (4xx) the head —
+   * either way its send is over. An accepted event folds in later via
+   * catch-up; a rejected one is also discarded from the reducer's pending
+   * (flush's onRejected hook).
+   */
+  removeHead(): Promise<void> {
     if (!this.head()) return Promise.resolve()
     return this.commit({ ...this.state, queue: this.state.queue.slice(1) })
   }
 
-  cursorFor(listId: string): string | null {
-    return this.state.cursorByListId[listId] ?? null
+  /** Last folded position of an aggregate. Called by catch-up (`?since=`). */
+  cursorFor(aggregateId: string): string | null {
+    return this.state.cursorByAggregateId[aggregateId] ?? null
   }
 
-  hasApplied(eventId: string): boolean {
-    return this.state.appliedEventIds.includes(eventId)
-  }
-
-  advanceCursor(
-    listId: string,
-    position: string,
-    passedEventIds: readonly string[],
-  ): Promise<void> {
-    const passed = new Set(passedEventIds)
+  /**
+   * Called after catch-up dispatched a confirmed batch. Deliberately NOT
+   * called on ack: foreign events may sit between the cursor and the
+   * acked position — they still have to be fetched.
+   */
+  advanceCursor(aggregateId: string, position: string): Promise<void> {
     return this.commit({
       ...this.state,
-      cursorByListId: { ...this.state.cursorByListId, [listId]: position },
-      appliedEventIds: this.state.appliedEventIds.filter(
-        (id) => !passed.has(id),
-      ),
+      cursorByAggregateId: {
+        ...this.state.cursorByAggregateId,
+        [aggregateId]: position,
+      },
     })
   }
 
-  private commit(next: PersistedSync): Promise<void> {
+  /** Serializes persists through a promise chain — no write overtakes another. */
+  private commit(next: OutboxState): Promise<void> {
     this.state = next
     this.lastWrite = this.lastWrite
       .then(() =>

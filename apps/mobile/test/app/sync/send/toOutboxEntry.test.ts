@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { toLocalAction, toOutboxEntry } from './syncedActions'
-import { itemAdded } from '../../features/shopping/domain/shoppingSlice'
-import { listCreated } from '../../features/lists/domain/listsSlice'
-import type { WireEvent } from './transport'
+import { toOutboxEntry } from '@/app/sync/send/toOutboxEntry'
+import { itemAdded } from '@/features/shopping/domain/shoppingSlice'
+import { listCreated } from '@/features/lists/domain/listsSlice'
 
 const meta = { eventId: 'e1', deviceId: 'device-1' }
 
@@ -21,7 +20,7 @@ describe('toOutboxEntry', () => {
       meta,
     }
     const entry = toOutboxEntry(action)
-    expect(entry).toEqual({ kind: 'event', listId: 'list-1', action })
+    expect(entry).toEqual({ path: '/lists/list-1/events', wire: action })
   })
 
   it('maps listCreated to the class-2 command endpoint with createdBy', () => {
@@ -31,7 +30,6 @@ describe('toOutboxEntry', () => {
     }
     const entry = toOutboxEntry(action)
     expect(entry).toEqual({
-      kind: 'command',
       path: '/lists',
       wire: {
         type: 'lists/listCreated',
@@ -62,40 +60,5 @@ describe('toOutboxEntry', () => {
         meta,
       }),
     ).toBeNull()
-  })
-})
-
-describe('toLocalAction', () => {
-  const wireMeta = {
-    eventId: 'e1',
-    deviceId: 'other',
-    userId: 'u2',
-    position: '00000000000000000003',
-  }
-
-  it('marks events as remote so they are not sent back', () => {
-    const event: WireEvent = {
-      type: 'shopping/itemChecked',
-      payload: { listId: 'l1', itemId: 'x' },
-      meta: wireMeta,
-    }
-    expect(toLocalAction(event)).toEqual({
-      type: 'shopping/itemChecked',
-      payload: { listId: 'l1', itemId: 'x' },
-      meta: { ...wireMeta, remote: true },
-    })
-  })
-
-  it('translates createdBy back to ownerId for listCreated', () => {
-    const event: WireEvent = {
-      type: 'lists/listCreated',
-      payload: { listId: 'l1', name: 'REWE', createdBy: 'u2' },
-      meta: wireMeta,
-    }
-    expect(toLocalAction(event).payload).toEqual({
-      listId: 'l1',
-      name: 'REWE',
-      ownerId: 'u2',
-    })
   })
 })

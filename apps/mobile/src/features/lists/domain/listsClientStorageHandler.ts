@@ -1,5 +1,5 @@
 import { setItem } from '../../../app/clientStorage'
-import { listCreated, listRenamed, listDeleted } from './listsSlice'
+import { isEventsConfirmed } from '../../../app/sync/withSync'
 import type { ShoppingList } from './listsDomain'
 
 type ListsState = {
@@ -9,20 +9,18 @@ type ListsState = {
 const LISTS_KEY = 'shopzebra_lists'
 
 /**
- * Persists the lists domain state to client storage after every
- * relevant action. Called by clientStorageMiddleware
- * (app/clientStorageMiddleware.ts) after each dispatch.
+ * Persists the CONFIRMED lists tree whenever a server batch folded in.
+ * Called by clientStorageMiddleware after each dispatch. Optimistic local
+ * events are deliberately not persisted here — they survive restarts via
+ * the outbox queue and are replayed through pendingRestored.
  */
 export function listsClientStorageHandler(
   action: { readonly type: string; readonly payload?: unknown },
   getState: () => unknown,
 ): void {
-  if (
-    listCreated.match(action) ||
-    listRenamed.match(action) ||
-    listDeleted.match(action)
-  ) {
-    const state = (getState() as { readonly lists: ListsState }).lists
-    void setItem(LISTS_KEY, JSON.stringify(state.lists))
+  if (!isEventsConfirmed(action)) return
+  const state = getState() as {
+    readonly sync: { readonly confirmed: { readonly lists: ListsState } }
   }
+  void setItem(LISTS_KEY, JSON.stringify(state.sync.confirmed.lists.lists))
 }

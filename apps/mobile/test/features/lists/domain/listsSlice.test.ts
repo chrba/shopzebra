@@ -8,8 +8,8 @@ import {
   selectAllLists,
   selectListById,
   selectListCount,
-} from './listsSlice'
-import type { ShoppingList } from './listsDomain'
+} from '@/features/lists/domain/listsSlice'
+import type { ShoppingList } from '@/features/lists/domain/listsDomain'
 
 // Behavior-level tests: actions go in through the public action creators,
 // results are observed only through the public selectors. No reaching into

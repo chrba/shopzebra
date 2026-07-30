@@ -1,33 +1,31 @@
-// Wires outbox, flush and catch-up together. A module singleton because
-// exactly one engine exists per app — the middleware records into it,
-// the bootstrap starts it, reconnect triggers call refresh().
+// Wires outbox, flush and catch-up together. Module singleton —
+// exactly one engine exists per app.
 
 import type { PayloadAction } from '../createSlice'
+import { getItem, setItem } from '../clientStorage'
 import { Outbox, type OutboxEntry, type SyncStorage } from './outbox'
-import { createFlusher, type Flusher } from './flush'
-import { catchUp } from './catchUp'
-import { toOutboxEntry } from './syncedActions'
-import type { SendResult, WireEvent } from './transport'
+import { createFlusher, type Flusher } from './send/flush'
+import { toOutboxEntry } from './send/toOutboxEntry'
+import { catchUp } from './receive/catchUp'
+import { httpTransport, type Transport } from './transport'
+import { pendingDiscarded, pendingRestored } from './withSync'
+import { domainActionOf } from './wire'
 
-export type SyncEngineDeps = {
-  readonly storage: SyncStorage
-  readonly dispatch: (action: PayloadAction<unknown>) => void
-  readonly send: (entry: OutboxEntry) => Promise<SendResult>
-  readonly fetchListIds: () => Promise<readonly string[]>
-  readonly fetchEventsSince: (
-    listId: string,
-    since: string | null,
-  ) => Promise<readonly WireEvent[]>
-}
+export type Dispatch = (action: PayloadAction<unknown>) => void
 
 export class SyncEngine {
-  // Actions can be dispatched before start() finished loading the
-  // outbox — they wait here so nothing is lost.
+  // Holds entries dispatched before start() finished loading the outbox.
   private preStartBuffer: OutboxEntry[] = []
   private outbox: Outbox | null = null
   private flusher: Flusher | null = null
-  private deps: SyncEngineDeps | null = null
+  private dispatch: Dispatch | null = null
 
+  constructor(
+    private readonly storage: SyncStorage,
+    private readonly transport: Transport,
+  ) {}
+
+  /** Called by syncMiddleware for every dispatch. Buffers until start() ran. */
   record(action: PayloadAction<unknown>): void {
     const entry = toOutboxEntry(action)
     if (!entry) return
@@ -38,47 +36,59 @@ export class SyncEngine {
     }
   }
 
-  async start(deps: SyncEngineDeps): Promise<void> {
-    this.deps = deps
-    const outbox = await Outbox.load(deps.storage)
+  /**
+   * Called once per signed-in session (startSync). Loads the persisted
+   * queue, starts sending, resolves when the first catch-up is done.
+   * `dispatch` arrives here, not in the constructor — the store is built
+   * after this singleton (the middleware needs the instance first).
+   */
+  async start(dispatch: Dispatch): Promise<void> {
+    this.dispatch = dispatch
+    const outbox = await Outbox.load(this.storage)
     for (const entry of this.preStartBuffer) {
       await outbox.enqueue(entry)
     }
     this.preStartBuffer = []
     this.outbox = outbox
-    this.flusher = createFlusher(outbox, deps.send)
+    // Refill the reducer's pending queue from the persisted outbox —
+    // without it, offline edits would be invisible after a restart.
+    dispatch(
+      pendingRestored(
+        outbox.queuedEntries().map((entry) => domainActionOf(entry.wire)),
+      ),
+    )
+    this.flusher = createFlusher(outbox, this.transport.sendEntry, (eventId) =>
+      dispatch(pendingDiscarded(eventId)),
+    )
     this.flusher.flush()
     return this.runCatchUp()
   }
 
+  /** Called on app resume and network reconnect. Fire-and-forget catch-up. */
   refresh(): void {
     void this.runCatchUp()
   }
 
-  // Tears the engine down for the current session (sign-out, user
-  // switch on a shared device). Clearing deps/outbox makes record()
-  // buffer again and refresh()/runCatchUp() no-op, so nothing can be
-  // sent under a dying or already-replaced session. A later start()
-  // re-creates everything from scratch — there is no leftover one-shot
-  // state that would block a restart.
+  /**
+   * Called on sign-out (stopSync). record() buffers again, refresh()
+   * no-ops — nothing is sent under a dying session. A later start()
+   * rebuilds everything from scratch.
+   */
   stop(): void {
     this.outbox = null
     this.flusher = null
-    this.deps = null
+    this.dispatch = null
     this.preStartBuffer = []
   }
 
-  // Shared by start() (awaited by callers who need the "initial sync
-  // done" moment) and refresh() (fire-and-forget reconnect trigger).
-  // Rejections are caught here so an offline catch-up never surfaces
-  // as an unhandled rejection — both callers just move on.
+  // Catches its own rejections — an offline catch-up is a warning, not a crash.
   private runCatchUp(): Promise<void> {
-    if (!this.outbox || !this.deps) return Promise.resolve()
+    if (!this.outbox || !this.dispatch) return Promise.resolve()
     return catchUp({
-      outbox: this.outbox,
-      dispatch: this.deps.dispatch,
-      fetchListIds: this.deps.fetchListIds,
-      fetchEventsSince: this.deps.fetchEventsSince,
+      ledger: this.outbox,
+      dispatch: this.dispatch,
+      fetchListIds: this.transport.fetchListIds,
+      fetchEventsSince: this.transport.fetchEventsSince,
     })
       .catch((error: unknown) => {
         console.warn('sync: catch-up failed', error)
@@ -87,4 +97,6 @@ export class SyncEngine {
   }
 }
 
-export const syncEngine = new SyncEngine()
+/** The app's engine: device storage + HTTP transport. syncMiddleware
+ *  records into it, startSync drives its lifecycle. */
+export const syncEngine = new SyncEngine({ getItem, setItem }, httpTransport)

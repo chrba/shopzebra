@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import type { PayloadAction } from '../createSlice'
+import type { PayloadAction } from '@/app/createSlice'
 import {
   Outbox,
-  entryEventId,
+  eventIdOf,
   type OutboxEntry,
   type SyncStorage,
-} from './outbox'
+} from '@/app/sync/outbox'
 
 function memoryStorage(
   initial?: string,
@@ -23,12 +23,12 @@ function memoryStorage(
 }
 
 function eventEntry(eventId: string, listId = 'list-1'): OutboxEntry {
-  const action: PayloadAction<unknown> = {
+  const wire: PayloadAction<unknown> = {
     type: 'shopping/itemAdded',
     payload: { listId, itemId: 'apples' },
     meta: { eventId, deviceId: 'device-1' },
   }
-  return { kind: 'event', listId, action }
+  return { path: `/lists/${listId}/events`, wire }
 }
 
 describe('Outbox', () => {
@@ -38,7 +38,7 @@ describe('Outbox', () => {
     await outbox.enqueue(eventEntry('e1'))
     await outbox.enqueue(eventEntry('e2'))
     expect(outbox.size()).toBe(2)
-    expect(entryEventId(outbox.head()!)).toBe('e1')
+    expect(eventIdOf(outbox.head()!)).toBe('e1')
   })
 
   it('survives a reload from the same storage', async () => {
@@ -47,33 +47,28 @@ describe('Outbox', () => {
     await first.enqueue(eventEntry('e1'))
     const second = await Outbox.load(storage)
     expect(second.size()).toBe(1)
-    expect(entryEventId(second.head()!)).toBe('e1')
+    expect(eventIdOf(second.head()!)).toBe('e1')
   })
 
-  it('confirmHead removes the head and records it as applied', async () => {
+  it('removeHead removes the head', async () => {
     const outbox = await Outbox.load(memoryStorage())
     await outbox.enqueue(eventEntry('e1'))
-    await outbox.confirmHead()
+    await outbox.removeHead()
     expect(outbox.head()).toBeNull()
-    expect(outbox.hasApplied('e1')).toBe(true)
   })
 
-  it('dropHead removes the head without an applied record', async () => {
+  it('queuedEntries returns the queue in order', async () => {
     const outbox = await Outbox.load(memoryStorage())
     await outbox.enqueue(eventEntry('e1'))
-    await outbox.dropHead()
-    expect(outbox.head()).toBeNull()
-    expect(outbox.hasApplied('e1')).toBe(false)
+    await outbox.enqueue(eventEntry('e2'))
+    expect(outbox.queuedEntries().map(eventIdOf)).toEqual(['e1', 'e2'])
   })
 
-  it('advanceCursor sets the cursor and prunes passed applied ids', async () => {
+  it('advanceCursor sets the cursor per aggregate', async () => {
     const outbox = await Outbox.load(memoryStorage())
-    await outbox.enqueue(eventEntry('e1'))
-    await outbox.confirmHead()
     expect(outbox.cursorFor('list-1')).toBeNull()
-    await outbox.advanceCursor('list-1', '00000000000000000042', ['e1'])
+    await outbox.advanceCursor('list-1', '00000000000000000042')
     expect(outbox.cursorFor('list-1')).toBe('00000000000000000042')
-    expect(outbox.hasApplied('e1')).toBe(false)
   })
 
   it('falls back to empty state on corrupted storage', async () => {
@@ -108,7 +103,7 @@ describe('Outbox', () => {
     expect(stored).toBeDefined()
     const parsed = JSON.parse(stored!)
     expect(parsed.queue).toHaveLength(2)
-    expect(parsed.queue[0].action.meta.eventId).toBe('e1')
-    expect(parsed.queue[1].action.meta.eventId).toBe('e2')
+    expect(parsed.queue[0].wire.meta.eventId).toBe('e1')
+    expect(parsed.queue[1].wire.meta.eventId).toBe('e2')
   })
 })

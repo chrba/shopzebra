@@ -2,6 +2,9 @@ import { fetchAuthSession } from 'aws-amplify/auth'
 
 const API_BASE_URL: string = import.meta.env.VITE_API_URL ?? ''
 
+/** Shape of authFetch — lets the sync engine swap in a fake for tests. */
+export type Fetcher = (path: string, init?: RequestInit) => Promise<Response>
+
 // REST API Endpoints (see architecture/design-decisions.md):
 // POST  /lists                      → Create list
 // POST  /lists/{id}/events          → Append event

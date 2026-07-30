@@ -14,8 +14,8 @@ import {
   selectListProgress,
   selectOpenItems,
   shoppingReducer,
-} from './shoppingSlice'
-import { listDeleted } from '../../lists/domain/listsSlice'
+} from '@/features/shopping/domain/shoppingSlice'
+import { listDeleted } from '@/features/lists/domain/listsSlice'
 
 // Behavior-level tests through public actions and selectors — no mocks.
 // Payloads follow the wire format in services/events.md.

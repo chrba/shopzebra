@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { PayloadAction } from '../createSlice'
-import { Outbox, type OutboxEntry, type SyncStorage } from './outbox'
-import type { SendResult } from './transport'
-import { createFlusher } from './flush'
+import type { PayloadAction } from '@/app/createSlice'
+import { Outbox, type OutboxEntry, type SyncStorage } from '@/app/sync/outbox'
+import type { SendResult } from '@/app/sync/send/sendEntry'
+import { createFlusher } from '@/app/sync/send/flush'
 
 function memoryStorage(): SyncStorage {
   const data = new Map<string, string>()
@@ -16,12 +16,12 @@ function memoryStorage(): SyncStorage {
 }
 
 function entry(eventId: string): OutboxEntry {
-  const action: PayloadAction<unknown> = {
+  const wire: PayloadAction<unknown> = {
     type: 'shopping/itemAdded',
     payload: { listId: 'l1' },
     meta: { eventId, deviceId: 'd1' },
   }
-  return { kind: 'event', listId: 'l1', action }
+  return { path: '/lists/l1/events', wire }
 }
 
 async function flushMicrotasks(): Promise<void> {
@@ -37,19 +37,21 @@ describe('createFlusher', () => {
     await outbox.enqueue(entry('e1'))
     await outbox.enqueue(entry('e2'))
     const sent: string[] = []
-    const flusher = createFlusher(outbox, (queued) => {
-      sent.push(
-        queued.kind === 'event' ? (queued.action.meta?.eventId ?? '') : '',
-      )
-      return Promise.resolve<SendResult>({ outcome: 'confirmed' })
-    })
+    const flusher = createFlusher(
+      outbox,
+      (queued) => {
+        sent.push(queued.wire.meta?.eventId ?? '')
+        return Promise.resolve<SendResult>({ outcome: 'confirmed' })
+      },
+      () => undefined,
+    )
     flusher.flush()
     await flushMicrotasks()
     expect(sent).toEqual(['e1', 'e2'])
     expect(outbox.size()).toBe(0)
   })
 
-  it('drops rejected entries and continues with the next', async () => {
+  it('drops rejected entries, reports them and continues with the next', async () => {
     const outbox = await Outbox.load(memoryStorage())
     await outbox.enqueue(entry('bad'))
     await outbox.enqueue(entry('good'))
@@ -57,26 +59,32 @@ describe('createFlusher', () => {
       { outcome: 'rejected', status: 422 },
       { outcome: 'confirmed' },
     ]
-    const flusher = createFlusher(outbox, () =>
-      Promise.resolve(results.shift()!),
+    const rejected: string[] = []
+    const flusher = createFlusher(
+      outbox,
+      () => Promise.resolve(results.shift()!),
+      (eventId) => rejected.push(eventId),
     )
     flusher.flush()
     await flushMicrotasks()
     expect(outbox.size()).toBe(0)
-    expect(outbox.hasApplied('bad')).toBe(false)
-    expect(outbox.hasApplied('good')).toBe(true)
+    expect(rejected).toEqual(['bad'])
   })
 
   it('retries with exponential backoff and keeps the entry at the head', async () => {
     const outbox = await Outbox.load(memoryStorage())
     await outbox.enqueue(entry('e1'))
     let attempts = 0
-    const flusher = createFlusher(outbox, () => {
-      attempts += 1
-      return Promise.resolve<SendResult>(
-        attempts < 3 ? { outcome: 'retry' } : { outcome: 'confirmed' },
-      )
-    })
+    const flusher = createFlusher(
+      outbox,
+      () => {
+        attempts += 1
+        return Promise.resolve<SendResult>(
+          attempts < 3 ? { outcome: 'retry' } : { outcome: 'confirmed' },
+        )
+      },
+      () => undefined,
+    )
     flusher.flush()
     await flushMicrotasks()
     expect(attempts).toBe(1)

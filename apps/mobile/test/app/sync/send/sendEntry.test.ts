@@ -1,16 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import type { OutboxEntry } from './outbox'
-import {
-  fetchEventsSince,
-  fetchListIds,
-  sendEntry,
-  type Fetcher,
-} from './transport'
+import type { Fetcher } from '@/app/authFetch'
+import type { OutboxEntry } from '@/app/sync/outbox'
+import { sendEntry } from '@/app/sync/send/sendEntry'
 
 const entry: OutboxEntry = {
-  kind: 'event',
-  listId: 'list-1',
-  action: {
+  path: '/lists/list-1/events',
+  wire: {
     type: 'shopping/itemAdded',
     payload: { listId: 'list-1', itemId: 'apples' },
     meta: { eventId: 'e1', deviceId: 'device-1' },
@@ -47,7 +42,6 @@ describe('sendEntry', () => {
   it('posts a command to its own path', async () => {
     const calls: string[] = []
     const command: OutboxEntry = {
-      kind: 'command',
       path: '/lists',
       wire: {
         type: 'lists/listCreated',
@@ -76,34 +70,5 @@ describe('sendEntry', () => {
   it('classifies network errors as retry', async () => {
     const offline: Fetcher = () => Promise.reject(new Error('offline'))
     expect(await sendEntry(entry, offline)).toEqual({ outcome: 'retry' })
-  })
-})
-
-describe('catch-up fetchers', () => {
-  it('fetchListIds returns the id list', async () => {
-    const ids = await fetchListIds(respondingWith(200, { lists: ['a', 'b'] }))
-    expect(ids).toEqual(['a', 'b'])
-  })
-
-  it('fetchEventsSince appends the cursor as query parameter', async () => {
-    const calls: string[] = []
-    const fetcher: Fetcher = (path) => {
-      calls.push(path)
-      return Promise.resolve(
-        new Response(JSON.stringify({ events: [] }), { status: 200 }),
-      )
-    }
-    await fetchEventsSince('list-1', '00000000000000000005', fetcher)
-    await fetchEventsSince('list-1', null, fetcher)
-    expect(calls).toEqual([
-      '/lists/list-1/events?since=00000000000000000005',
-      '/lists/list-1/events',
-    ])
-  })
-
-  it('fetchEventsSince throws on a non-ok response', async () => {
-    await expect(
-      fetchEventsSince('list-1', null, respondingWith(500, {})),
-    ).rejects.toThrow()
   })
 })
