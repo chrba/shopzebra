@@ -69,6 +69,7 @@ Outside this folder, but part of the mechanism:
 - **`app/syncMiddleware.ts`** — a single effect: every dispatched action is offered to `syncEngine.record()`. No per-feature handlers, no `if` chains.
 - **`app/eventIdMiddleware.ts`** — stamps `eventId` + `deviceId` **before** the reducer. Actions with `meta.remote` keep their identity (otherwise dedup and ack matching would break).
 - **`app/createSlice.ts`** — `synced: true` on a slice registers the slice name; `belongsToSyncedSlice()` feeds the shared `needsSync()` predicate.
+- **Class-2 events** (`lists/listMemberAdded`, `lists/listMemberRemoved`) — written by the server, never dispatched locally. They arrive **only** through catch-up and never travel the outbox. The commands that cause them (`POST /lists/join`, `DELETE /lists/{listId}/members/{memberId}`) are direct fetches, because their answer is needed *before* anything can be shown or dispatched.
 - **`features/*/domain/*ClientStorageHandler.ts`** (lists, shopping) — persist the **confirmed** tree on every `eventsConfirmed`. Optimistic events are not persisted there; they survive restarts via the outbox queue + `pendingRestored`.
 
 ```mermaid

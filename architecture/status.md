@@ -17,7 +17,7 @@ Alle anderen Dokumente in `architecture/` und `services/events.md` beschreiben d
 | Lokale Persistenz | ✅ funktionsfähig |
 | **Einkaufsliste (Hauptscreen)** | ✅ funktionsfähig, lokal (Katalog + Suche + Varianten-Sheet) |
 | Wochenplan, Rezepte, Aktivität, Family | ❌ existiert nicht |
-| Backend-API | ✅ 4 Endpunkte (Create, Append, Get-Events, Get-Lists) inkl. CDK; **deployed und live verifiziert (2026-07-29)**; AppSync fehlt |
+| Backend-API | ✅ 7 Endpunkte (Create, Append, Get-Events, Get-Lists, Create-Invite, Join, Remove-Member) inkl. CDK; die ersten vier **deployed und live verifiziert (2026-07-29)**, die drei Membership-Commands (2026-07-31) sind gebaut und `cdk synth`-verifiziert, aber noch nicht deployed; AppSync fehlt |
 | Sync zum Server | ✅ **Stufe 1 (Outbox, Cursor, Retry)** live verifiziert + **Stufe 2 (`withSync`-Rebase)** implementiert (2026-07-29, **nur unit-getestet, nicht live verifiziert**) |
 | Offline-Queue | ✅ persistente Outbox mit Retry/Backoff (Retry-Pfad nur unit-getestet, nicht live) |
 | Echtzeit (AppSync) | ❌ existiert nicht |
@@ -89,7 +89,6 @@ Alle Binaries leben unter `lambdas/` (Workspace-Glob `lambdas/*`); die drei Arch
 ### Offen
 
 - **`EventPublisher` ist ein Noop** — kein echtes AppSync-Publish, andere Geräte erfahren nichts in Echtzeit
-- **Membership-Commands fehlen** (`POST /lists/{id}/invites`, `POST /lists/join`, `DELETE /lists/{id}/members/{memberId}`) — die Abwehrseite von Task #1 steht (Allowlist lehnt Klasse-2-Typen ab), die Schreibseite nicht
 - Snapshot Table / Snapshot-Endpunkte
 - Rate Limiting (API-Gateway-Usage-Plan)
 
@@ -101,7 +100,9 @@ Alle Binaries leben unter `lambdas/` (Workspace-Glob `lambdas/*`); die drei Arch
 
 ## 4. Infrastruktur (`apps/infrastructure`)
 
-`ShopZebraApiStack` ist vollständig für die vier existierenden Endpunkte: Events- und Membership-Table (PAY_PER_REQUEST, Membership mit `byUser`-GSI), `RustFunction`s für `create-list`, `append-event`, `get-events`, `get-lists` (manifestPath `services/lambdas/…`), HTTP-API mit Cognito-JWT-Authorizer und Routen `POST /lists`, `GET /lists`, `POST`+`GET /lists/{listId}/events`, Grants nach Least-Privilege (Lese-Lambdas nur `grantReadData`). `cdk synth` läuft grün.
+`ShopZebraApiStack` deckt alle sieben Endpunkte ab: Events- und Membership-Table (PAY_PER_REQUEST, Membership mit `byUser`-GSI), `RustFunction`s für `create-list`, `append-event`, `get-events`, `get-lists` (manifestPath `services/lambdas/…`), HTTP-API mit Cognito-JWT-Authorizer und Routen `POST /lists`, `GET /lists`, `POST`+`GET /lists/{listId}/events`, Grants nach Least-Privilege (Lese-Lambdas nur `grantReadData`). Dazu seit 2026-07-31 `create-invite`, `join-list` und `remove-member` mit den Routen `POST /lists/{listId}/invites`, `POST /lists/join` und `DELETE /lists/{listId}/members/{memberId}`; `join-list` und `get-lists` haben zusätzlich `cognito-idp:ListUsers` auf den User Pool. `cdk synth` läuft grün.
+
+Der **User Pool selbst ist nicht in CDK** — er wird nur über die feste ID `eu-central-1_z6PK2KOsC` referenziert (bewusst vertagt). Damit ist auch das Attribute-Mapping für Google (`name` → `name`) reiner Konsolen-Zustand und im Repo nicht prüfbar.
 
 Noch nicht im Stack: AppSync Events, Rate Limiting (Usage Plan). Der Cognito User Pool selbst lebt außerhalb dieses Stacks (ID hartkodiert).
 
@@ -125,13 +126,23 @@ Diese stehen als Kern-Features in der Produkt-Spec, haben aber **kein Event, kei
 
 | Feature | Fehlt |
 |---|---|
-| Teilen per **Link / QR-Code** | Klasse-2-Endpunkte (`POST /lists/{id}/invites`, `POST /lists/join`) und App-Links-Anforderung (assetlinks.json / AASA) jetzt spezifiziert; Token-Format, Ablauf/Widerruf und QR-UI offen |
+| Teilen per **Link / QR-Code** | Implementiert (2026-07-31, siehe unten). Offen bleiben: echter QR-Code statt der Mockup-Attrappe, App Links (assetlinks.json / AASA) und der Widerruf von Tokens |
 | **Push-Benachrichtigungen** | In `design-decisions.md` nur als *verworfener Sync-Transport* erwähnt, nie als Feature. Kein Token-Handling, kein Trigger, kein Event |
 | **Smart Features** (Autocomplete aus Kaufhistorie, komplementäre Vorschläge, personalisierte Laden-Sortierung, wiederkehrende Items) | Kaufhistorie ist eine eigene Datendimension, die im Domain-Model nicht existiert |
 | „Ich gehe einkaufen!"-Notification | — |
 | Basics-Ausschluss und Duplikaterkennung beim Meal-Plan-Checkout | `ingredientsCheckedOut` trägt nur eine flache Zutatenliste |
 
 ---
+
+### Mitglieder & Invite-Links (2026-07-31)
+
+Ein Owner lädt per Link ein, der Eingeladene tritt bei, beide sehen einander mit Namen. Design: `.claude/plans/2026-07-31-list-members-invite-link-design.md`.
+
+- **Backend:** `create_invite` (Owner-only, 7 Tage, Reuse), `join_list` (Token prüfen, Namen aus Cognito anreichern, `listMemberAdded` schreiben, Membership setzen), `remove_member` (`listMemberRemoved`). Ports `InviteStore` + `UserDirectory` werden als separate Use-Case-Parameter gereicht — die `Ports`-Struct und damit alle bestehenden Lambdas blieben unangetastet.
+- **Owner-Name:** `GET /lists` liefert additiv `ownerNames`; das Feld `lists` behält seine Form, damit die Catch-up-Seite der Sync-Engine unverändert bleibt. Der Owner löst für sich selbst nie ein `listMemberAdded` aus, sein Name hat also kein Event.
+- **Namen überhaupt:** Vor dieser Änderung setzte `signUp` keine User-Attribute und `handleSaveName` im Profil speicherte nichts — niemand hatte einen Namen. Das Sign-up-Formular fragt ihn jetzt ab (die Registrier-Seite hat kein Mockup, also keine Design-Abweichung), das Profil schreibt ihn per `updateUserAttributes`, und nach der Bestätigung meldet `autoSignIn` direkt an.
+- **Join ohne Session:** `/join/$token` legt bei fehlender Session eine persistierte **Join-Intent** ab und leitet parameterlos auf `/signin`. `requireAuth` ist die einzige Stelle, die sie wieder auflöst — die Auth-Seiten wissen von Listen nichts. Bewusst kein `?redirect=`-Parameter: der hätte auf vier Sprünge verteilt werden müssen und überlebt keinen App-Kill, während der Eingeladene in der Mail-App den Bestätigungscode holt.
+- **Bekannte Grenzen:** QR-Code ist die Attrappe aus dem Mockup; App Links fehlen, der Link funktioniert nur im Browser/WebView derselben Origin; Token-Widerruf fehlt; Konten von vor dieser Änderung haben weiterhin keinen Namen, bis er im Profil nachgetragen wird.
 
 ## 7. Offene Widersprüche und Folgefragen
 

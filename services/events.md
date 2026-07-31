@@ -334,7 +334,11 @@ DELETE  /lists/{id}/members/{memberId}      → Owner (jeden) oder Mitglied (sic
 POST    /recipes/import                     → URL holen, parsen, schreibt recipeCreated
 ```
 
-**Invite-Links auf Mobile:** Der Invite-Link muss als **Android App Link** (`assetlinks.json`) bzw. **iOS Universal Link** (AASA) registriert sein, damit „Link öffnen" in die App führt (Capacitor App-Plugin, `appUrlOpen`). Fallback für Nutzer ohne App: Web-Landing-Page mit Store-Verweis. Token-Format, Ablauf und Widerruf: offen.
+**Invite-Links auf Mobile:** Der Invite-Link muss als **Android App Link** (`assetlinks.json`) bzw. **iOS Universal Link** (AASA) registriert sein, damit „Link öffnen" in die App führt (Capacitor App-Plugin, `appUrlOpen`). Fallback für Nutzer ohne App: Web-Landing-Page mit Store-Verweis. App Links sind noch **nicht** eingerichtet — der Link funktioniert derzeit nur im Browser/WebView derselben Origin.
+
+**Token (entschieden 2026-07-31):** UUID v4 in Simple-Form (32 Hex-Zeichen), **7 Tage** gültig, **ein aktiver Token pro Liste**. Ein erneutes `POST /lists/{id}/invites` gibt den bestehenden Token zurück, solange er gültig ist — damit bleiben Link und QR über Screen-Besuche hinweg stabil. Beide Lookups (nach Liste, nach Token) liegen in der Membership-Tabelle, bewusst ohne `userId`-Attribut, damit sie nicht im `byUser`-GSI auftauchen. Ein ersetzter Token lässt seine Token-Zeile als Leiche zurück; sie läuft über die Ablaufprüfung im Use Case aus. **Widerruf: weiterhin offen.**
+
+**Namen in `listMemberAdded`:** Der Server liest den Anzeigenamen per `cognito-idp:ListUsers` (Filter auf `sub`) aus dem User Pool — der Access Token trägt nur `sub`, keinen `name`-Claim. Der **Owner** löst für sich selbst nie ein `listMemberAdded` aus; sein Name reist deshalb additiv in `GET /lists` (`ownerNames`), nicht im Event-Log.
 
 Je ein eigenes Lambda. Diese Liste wächst **nicht** mit der Feature-Zahl — sie umfasst Identität, Zugriff und externe Effekte, nicht die Domäne.
 
