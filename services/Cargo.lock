@@ -980,6 +980,7 @@ version = "0.1.0"
 dependencies = [
  "adapters",
  "aws-config",
+ "aws-sdk-cognitoidentityprovider",
  "aws-sdk-dynamodb",
  "domain",
  "lambda_http",

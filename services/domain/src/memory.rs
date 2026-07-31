@@ -136,6 +136,16 @@ impl MembershipStore for MemoryMembershipStore {
         Ok(roles.get(&(aggregate.partition_key(), user.0.clone())).copied())
     }
 
+    async fn owner_of(&self, aggregate: &AggregateId) -> Result<Option<UserId>, StoreError> {
+        let roles = self.roles.lock().expect("membership lock");
+        Ok(roles
+            .iter()
+            .find(|((partition, _), role)| {
+                partition == &aggregate.partition_key() && **role == MemberRole::Owner
+            })
+            .map(|((_, user), _)| UserId(user.clone())))
+    }
+
     async fn add_member(
         &self,
         aggregate: &AggregateId,

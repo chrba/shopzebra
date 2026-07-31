@@ -57,6 +57,11 @@ pub trait MembershipStore: Send + Sync {
         user: &UserId,
     ) -> Result<bool, StoreError>;
 
+    /// Who owns this aggregate. Needed to show the owner by name: the
+    /// owner never triggers a `listMemberAdded` for themselves, so their
+    /// name reaches other devices through the list projection instead.
+    async fn owner_of(&self, aggregate: &AggregateId) -> Result<Option<UserId>, StoreError>;
+
     async fn add_member(
         &self,
         aggregate: &AggregateId,

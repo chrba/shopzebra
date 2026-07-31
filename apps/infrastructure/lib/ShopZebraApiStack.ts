@@ -114,16 +114,16 @@ export class ShopZebraApiStack extends cdk.Stack {
     eventsTable.grantReadWriteData(joinListFunction)
     eventsTable.grantReadWriteData(removeMemberFunction)
 
-    // The joiner's display name comes from the user pool — the access
-    // token carries only `sub`, so the name has to be looked up.
-    joinListFunction.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ['cognito-idp:ListUsers'],
-        resources: [
-          `arn:aws:cognito-idp:${this.region}:${this.account}:userpool/${COGNITO_USER_POOL_ID}`,
-        ],
-      }),
-    )
+    // The joiner's and the owner's display names come from the user pool —
+    // the access token carries only `sub`, so names have to be looked up.
+    const listUsersPolicy = new iam.PolicyStatement({
+      actions: ['cognito-idp:ListUsers'],
+      resources: [
+        `arn:aws:cognito-idp:${this.region}:${this.account}:userpool/${COGNITO_USER_POOL_ID}`,
+      ],
+    })
+    joinListFunction.addToRolePolicy(listUsersPolicy)
+    getListsFunction.addToRolePolicy(listUsersPolicy)
 
     const httpApi = new apigwv2.HttpApi(this, 'HttpApi', {
       apiName: 'shopzebra-api',

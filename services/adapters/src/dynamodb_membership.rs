@@ -104,6 +104,30 @@ impl MembershipStore for DynamoDbMembershipStore {
             .and_then(|role| role_from_attribute(&role)))
     }
 
+    async fn owner_of(&self, aggregate: &AggregateId) -> Result<Option<UserId>, StoreError> {
+        // Read the claim marker rather than scanning members for the owner
+        // role: it is a single point read, and it is written in the same
+        // transaction that makes someone owner.
+        let item = self
+            .client
+            .get_item()
+            .table_name(&self.table_name)
+            .key("pk", AttributeValue::S(aggregate.partition_key()))
+            .key("sk", AttributeValue::S(OWNER_MARKER.into()))
+            .send()
+            .await
+            .map_err(|error| StoreError(error.to_string()))?;
+
+        Ok(item
+            .item
+            .and_then(|attributes| {
+                attributes
+                    .get("claimedBy")
+                    .and_then(|value| value.as_s().ok().cloned())
+            })
+            .map(UserId))
+    }
+
     async fn add_member(
         &self,
         aggregate: &AggregateId,
