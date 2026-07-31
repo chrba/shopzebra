@@ -121,7 +121,13 @@ type ExtraReducer<S> = {
 // (sync-engine.md §3 — one boolean per slice, no per-action ifs).
 const syncedSliceNames = new Set<string>()
 
-export function isSyncedActionType(type: string): boolean {
+/**
+ * True when the slice owning this action type opted in with `synced: true`.
+ * Purely structural: it says nothing about whether a concrete action must
+ * be sent — that judgment (locality, aggregate id) lives in needsSync,
+ * which calls this on every dispatch.
+ */
+export function belongsToSyncedSlice(type: string): boolean {
   const sliceName = type.split('/')[0]
   return sliceName !== undefined && syncedSliceNames.has(sliceName)
 }

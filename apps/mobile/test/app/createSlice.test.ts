@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createSlice, isSyncedActionType } from '@/app/createSlice'
+import { createSlice, belongsToSyncedSlice } from '@/app/createSlice'
 
 describe('synced slices', () => {
   it('registers synced slices for the outbox policy', () => {
@@ -11,8 +11,8 @@ describe('synced slices', () => {
     })
     createSlice({ name: 'localDemo', initialState: {}, reducers: {} })
 
-    expect(isSyncedActionType('syncedDemo/somethingHappened')).toBe(true)
-    expect(isSyncedActionType('localDemo/somethingHappened')).toBe(false)
-    expect(isSyncedActionType('unknown/action')).toBe(false)
+    expect(belongsToSyncedSlice('syncedDemo/somethingHappened')).toBe(true)
+    expect(belongsToSyncedSlice('localDemo/somethingHappened')).toBe(false)
+    expect(belongsToSyncedSlice('unknown/action')).toBe(false)
   })
 })

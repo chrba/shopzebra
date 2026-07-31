@@ -4,20 +4,20 @@
 import type { PayloadAction } from '../../createSlice'
 import { listCreated } from '../../../features/lists/domain/listsSlice'
 import { aggregateIdOf, eventsPathFor } from '../aggregate'
-import { isSyncedEvent } from '../syncedEvent'
+import { needsSync } from '../needsSync'
 import { ownerIdToCreatedBy } from '../wire'
 import type { OutboxEntry } from '../outbox'
 
 /**
  * Called by syncMiddleware for every dispatch. Returns the queued send,
  * or null for local-only actions and server echoes (meta.remote) —
- * isSyncedEvent is the shared membership decision (also used by withSync).
+ * needsSync is the shared membership decision (also used by withSync).
  */
 export function toOutboxEntry(
   action: PayloadAction<unknown>,
 ): OutboxEntry | null {
   const meta = action.meta
-  if (!meta || !isSyncedEvent(action)) return null
+  if (!meta || !needsSync(action)) return null
 
   // Class-2 command (sync-engine.md §6): the server validates and writes
   // the event itself.
