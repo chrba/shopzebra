@@ -74,6 +74,16 @@ const authSlice = createSlice({
       error: null,
     }),
 
+    // The name lives in Cognito; this mirrors the accepted write so the
+    // profile and the members screen agree without a session refresh.
+    displayNameChanged: (
+      state: AuthState,
+      action: PayloadAction<{ readonly name: string }>,
+    ): AuthState =>
+      state.user === null
+        ? state
+        : { ...state, user: { ...state.user, name: action.payload.name } },
+
     signInFailed: (
       state: AuthState,
       action: PayloadAction<{ readonly error: string }>,
@@ -181,6 +191,7 @@ export const {
   sessionNotFound,
   authLoading,
   signInSucceeded,
+  displayNameChanged,
   signInFailed,
   signUpSucceeded,
   signUpFailed,

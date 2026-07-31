@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useAppDispatch, useAppSelector } from '../../../app/store'
 import { selectAuthUser } from '../domain/authSlice'
-import { performSignOut } from '../domain/authThunks'
+import { performChangeDisplayName, performSignOut } from '../domain/authThunks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -117,6 +117,9 @@ export function ProfilePage() {
 
   const handleSaveName = () => {
     setEditingName(false)
+    if (nameInput.trim() !== displayName) {
+      void dispatch(performChangeDisplayName({ name: nameInput }))
+    }
   }
 
   return (

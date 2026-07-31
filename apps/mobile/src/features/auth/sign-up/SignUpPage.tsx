@@ -72,9 +72,11 @@ function SignUpForm() {
   const serverError = useAppSelector(selectAuthError)
   const loading = status === 'loading'
 
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [nameError, setNameError] = useState(false)
   const [emailError, setEmailError] = useState(false)
   const [passwordError, setPasswordError] = useState(false)
   const [confirmError, setConfirmError] = useState(false)
@@ -83,6 +85,10 @@ function SignUpForm() {
     dispatch(authErrorCleared())
     let hasError = false
 
+    if (!name.trim()) {
+      setNameError(true)
+      hasError = true
+    }
     if (!email || !validateEmail(email)) {
       setEmailError(true)
       hasError = true
@@ -99,7 +105,7 @@ function SignUpForm() {
     if (hasError) return
 
     dispatch(authLoading())
-    dispatch(performSignUp({ email, password }))
+    dispatch(performSignUp({ name: name.trim(), email, password }))
   }
 
   const handleGoogleSignUp = () => {
@@ -143,6 +149,33 @@ function SignUpForm() {
           <span>{serverError}</span>
         </div>
       )}
+
+      {/* Name — collected here so every account has one from the start;
+          the members screen shows names, and an invitee registers and
+          joins in one go. */}
+      <div className="mb-3.5">
+        <Input
+          type="text"
+          placeholder="Dein Name"
+          autoComplete="name"
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value)
+            setNameError(false)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleSubmit()
+          }}
+          aria-invalid={nameError}
+          className="h-auto rounded-2xl px-[18px] py-4 text-base font-medium"
+        />
+        {nameError && (
+          <div className="mt-1.5 flex items-center gap-[5px] pl-1 text-[13px] font-medium text-destructive">
+            <ErrorIcon />
+            <span>Bitte gib deinen Namen ein</span>
+          </div>
+        )}
+      </div>
 
       {/* Email */}
       <div className="mb-3.5">

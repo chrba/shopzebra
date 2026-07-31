@@ -8,6 +8,8 @@ import {
   signIn,
   signUp,
   confirmSignUp,
+  autoSignIn,
+  updateUserAttributes,
   resetPassword,
   confirmResetPassword,
   signOut,
@@ -18,11 +20,14 @@ import type { AppDispatch } from '../../../app/store'
 import { removeItem } from '../../../app/clientStorage'
 import { startSync, stopSync } from '../../../app/sync/startSync'
 import { listsLoaded } from '../../lists/domain/listsSlice'
+import { joinIntentCleared } from '../../lists/join/joinIntentSlice'
+import { JOIN_INTENT_KEY } from '../../lists/join/joinIntentClientStorageHandler'
 import { shoppingLoaded } from '../../shopping/domain/shoppingSlice'
 import { SHOPPING_STORAGE_KEY } from '../../shopping/domain/shoppingClientStorageHandler'
 import { listPreferencesLoaded } from '../../preferences/domain/preferencesSlice'
 import {
   signInSucceeded,
+  displayNameChanged,
   signInFailed,
   signUpSucceeded,
   signUpFailed,
@@ -95,10 +100,24 @@ export const performSignIn =
   }
 
 export const performSignUp =
-  (args: { readonly email: string; readonly password: string }) =>
+  (args: {
+    readonly name: string
+    readonly email: string
+    readonly password: string
+  }) =>
   async (dispatch: AppDispatch) => {
     try {
-      await signUp({ username: args.email, password: args.password })
+      await signUp({
+        username: args.email,
+        password: args.password,
+        // The display name has to exist from the very first moment: an
+        // invitee joins a list right after registering, and the members
+        // screen shows names, not e-mail addresses.
+        options: {
+          userAttributes: { name: args.name },
+          autoSignIn: true,
+        },
+      })
       dispatch(signUpSucceeded({ email: args.email }))
     } catch (error) {
       dispatch(signUpFailed({ error: toErrorMessage(error) }))
@@ -113,7 +132,15 @@ export const performConfirmSignUp =
         username: args.email,
         confirmationCode: args.code,
       })
+      // signUp asked for autoSignIn, so the freshly confirmed account is
+      // signed in here — without it the invitee would have to retype the
+      // password they just chose before the invite link continues.
+      await autoSignIn()
+      dispatch(signInSucceeded({ user: await fetchCurrentAuthUser() }))
       dispatch(confirmSignUpSucceeded())
+      // Same reason as in performSignIn: beforeLoad only starts the engine
+      // on boot, an in-session sign-in has to trigger it here.
+      startSync()
     } catch (error) {
       dispatch(confirmSignUpFailed({ error: toErrorMessage(error) }))
     }
@@ -163,9 +190,30 @@ export const performSignOut = () => async (dispatch: AppDispatch) => {
     await removeItem(LISTS_KEY)
     await removeItem(PREFS_KEY)
     await removeItem(SHOPPING_STORAGE_KEY)
+    await removeItem(JOIN_INTENT_KEY)
     dispatch(listsLoaded({ lists: [] }))
     dispatch(shoppingLoaded({ itemsByListId: {}, customVariantsByListId: {} }))
     dispatch(listPreferencesLoaded({}))
+    // A pending invite belongs to the user who opened it, never to the
+    // next one on a shared device.
+    dispatch(joinIntentCleared())
     dispatch(signedOut())
   }
 }
+
+/**
+ * Persists the display name. Called when the profile's name field loses
+ * focus. Without this the attribute never reaches Cognito, and every
+ * member on the members screen would show a fallback instead of a name.
+ */
+export const performChangeDisplayName =
+  (args: { readonly name: string }) => async (dispatch: AppDispatch) => {
+    const name = args.name.trim()
+    if (name === '') return
+    try {
+      await updateUserAttributes({ userAttributes: { name } })
+      dispatch(displayNameChanged({ name }))
+    } catch (error) {
+      console.warn('changing the display name failed', error)
+    }
+  }
