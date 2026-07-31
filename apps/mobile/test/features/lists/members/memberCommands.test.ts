@@ -6,28 +6,38 @@ import {
   removeMember,
 } from '@/features/lists/members/memberCommands'
 
+type RecordedCall = {
+  readonly path: string
+  readonly init: RequestInit | undefined
+}
+
 function recordingFetcher(status: number, body: unknown) {
-  const calls: { path: string; init?: RequestInit }[] = []
+  const calls: RecordedCall[] = []
   const fetcher = (path: string, init?: RequestInit) => {
     calls.push({ path, init })
     return Promise.resolve(new Response(JSON.stringify(body), { status }))
   }
-  return { fetcher, calls }
+  const firstCall = (): RecordedCall => {
+    const call = calls[0]
+    if (!call) throw new Error('the fetcher was never called')
+    return call
+  }
+  return { fetcher, firstCall }
 }
 
 const meta = { eventId: 'e1', deviceId: 'd1' }
 
 describe('fetchListInvite', () => {
   it('posts to the list invites endpoint and returns the token', async () => {
-    const { fetcher, calls } = recordingFetcher(201, {
+    const { fetcher, firstCall } = recordingFetcher(201, {
       token: 'tok-1',
       expiresAt: 42,
     })
 
     const invite = await fetchListInvite('l1', fetcher)
 
-    expect(calls[0].path).toBe('/lists/l1/invites')
-    expect(calls[0].init?.method).toBe('POST')
+    expect(firstCall().path).toBe('/lists/l1/invites')
+    expect(firstCall().init?.method).toBe('POST')
     expect(invite).toEqual({ token: 'tok-1', expiresAt: 42 })
   })
 
@@ -46,13 +56,13 @@ describe('fetchListInvite', () => {
 
 describe('joinListByToken', () => {
   it('sends the token in action shape and returns the list id', async () => {
-    const { fetcher, calls } = recordingFetcher(200, { listId: 'l1' })
+    const { fetcher, firstCall } = recordingFetcher(200, { listId: 'l1' })
 
     const joined = await joinListByToken('tok-1', meta, fetcher)
 
-    expect(calls[0].path).toBe('/lists/join')
-    expect(calls[0].init?.method).toBe('POST')
-    expect(JSON.parse(String(calls[0].init?.body))).toEqual({
+    expect(firstCall().path).toBe('/lists/join')
+    expect(firstCall().init?.method).toBe('POST')
+    expect(JSON.parse(String(firstCall().init?.body))).toEqual({
       payload: { token: 'tok-1' },
       meta,
     })
@@ -68,13 +78,13 @@ describe('joinListByToken', () => {
 
 describe('removeMember', () => {
   it('deletes the member and carries the event identity', async () => {
-    const { fetcher, calls } = recordingFetcher(200, {})
+    const { fetcher, firstCall } = recordingFetcher(200, {})
 
     await removeMember('l1', 'tom', meta, fetcher)
 
-    expect(calls[0].path).toBe('/lists/l1/members/tom')
-    expect(calls[0].init?.method).toBe('DELETE')
-    expect(JSON.parse(String(calls[0].init?.body))).toEqual({ meta })
+    expect(firstCall().path).toBe('/lists/l1/members/tom')
+    expect(firstCall().init?.method).toBe('DELETE')
+    expect(JSON.parse(String(firstCall().init?.body))).toEqual({ meta })
   })
 
   it('rejects when the caller may not remove', async () => {
@@ -86,14 +96,14 @@ describe('removeMember', () => {
 
 describe('fetchOwnerNames', () => {
   it('reads the owner names from the list projection', async () => {
-    const { fetcher, calls } = recordingFetcher(200, {
+    const { fetcher, firstCall } = recordingFetcher(200, {
       lists: ['l1'],
       ownerNames: { l1: 'Sarah' },
     })
 
     const names = await fetchOwnerNames(fetcher)
 
-    expect(calls[0].path).toBe('/lists')
+    expect(firstCall().path).toBe('/lists')
     expect(names).toEqual({ l1: 'Sarah' })
   })
 
