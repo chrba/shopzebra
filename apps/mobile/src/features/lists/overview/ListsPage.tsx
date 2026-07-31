@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useAppDispatch, useAppSelector } from '../../../app/store'
 import { selectInitialSyncDone } from '../../../app/appSlice'
 import { listDeleted, selectAllLists } from '../domain/listsSlice'
+import { memberAvatarColor, memberInitial } from '../domain/memberAvatar'
 import { selectItemCountByListId } from '../../shopping/domain/shoppingSlice'
 import { selectAllListPreferences } from '../../preferences/domain/preferencesSlice'
 import type { ListColor } from '../../preferences/domain/preferencesDomain'
@@ -33,14 +34,6 @@ const COLORS: readonly ListColor[] = [
   'yellow',
 ]
 
-const MEMBER_AVATAR_COLORS: readonly string[] = [
-  '#6BBF6B',
-  '#5BA8D5',
-  '#E07B7B',
-  '#A07BCC',
-  '#E8C44A',
-]
-
 function hashOf(id: string): number {
   let hash = 0
   for (const character of id) {
@@ -54,13 +47,6 @@ function hashOf(id: string): number {
 // server-written listMemberAdded events; until then the id provides the letter.
 function defaultColor(id: string): ListColor {
   return COLORS[hashOf(id) % COLORS.length] ?? 'green'
-}
-
-function memberAvatarColor(memberId: string): string {
-  return (
-    MEMBER_AVATAR_COLORS[hashOf(memberId) % MEMBER_AVATAR_COLORS.length] ??
-    '#888'
-  )
 }
 
 type DeleteTarget = {
@@ -154,7 +140,7 @@ export function ListsPage() {
       emoji: prefs?.emoji ?? '\u{1F6D2}',
       itemCount: itemCountByListId[list.id] ?? 0,
       members: list.memberIds.map((memberId) => ({
-        letter: memberId.charAt(0).toUpperCase() || '?',
+        letter: memberInitial(memberId),
         color: memberAvatarColor(memberId),
       })),
     }

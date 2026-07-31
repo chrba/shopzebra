@@ -13,21 +13,42 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  isRedirect,
   redirect,
 } from '@tanstack/react-router'
 import { getCurrentUser, fetchAuthSession } from 'aws-amplify/auth'
 import { store } from './store'
-import { listsLoaded } from '../features/lists/domain/listsSlice'
+import {
+  listsLoaded,
+  ownerNamesLoaded,
+  selectListById,
+} from '../features/lists/domain/listsSlice'
+import {
+  joinIntentCleared,
+  joinIntentRestored,
+  joinIntentStored,
+  selectPendingJoinToken,
+} from '../features/lists/join/joinIntentSlice'
+import { JOIN_INTENT_KEY } from '../features/lists/join/joinIntentClientStorageHandler'
+import {
+  fetchListInvite,
+  fetchOwnerNames,
+  joinListByToken,
+} from '../features/lists/members/memberCommands'
+import { MembersPage } from '../features/lists/members/MembersPage'
+import { JoinListPage } from '../features/lists/join/JoinListPage'
+import { syncEngine } from './sync/syncEngine'
 import { shoppingLoaded } from '../features/shopping/domain/shoppingSlice'
 import { SHOPPING_STORAGE_KEY } from '../features/shopping/domain/shoppingClientStorageHandler'
 import { listPreferencesLoaded } from '../features/preferences/domain/preferencesSlice'
 import {
   sessionRestored,
   sessionNotFound,
+  selectAuthUser,
   selectIsAuthenticated,
   type AuthProvider,
 } from '../features/auth/domain/authSlice'
-import { appLoaded, selectIsAppLoaded } from './appSlice'
+import { appLoaded, selectDeviceId, selectIsAppLoaded } from './appSlice'
 import { startSync } from './sync/startSync'
 import { getItem, setItem } from './clientStorage'
 import type { ShoppingList } from '../features/lists/domain/listsDomain'
@@ -155,6 +176,11 @@ const rootRoute = createRootRoute({
     store.dispatch(listsLoaded({ lists }))
 
     store.dispatch(listPreferencesLoaded(preferences))
+    // A pending invite has to survive an app kill — the invitee leaves for
+    // the mail app to fetch the confirmation code.
+    store.dispatch(
+      joinIntentRestored({ token: await getItem(JOIN_INTENT_KEY) }),
+    )
     store.dispatch(appLoaded({ theme: 'dark', deviceId }))
 
     // 5. Local-first boot: the store above is hydrated from clientStorage
@@ -174,10 +200,39 @@ function requireGuest() {
   }
 }
 
-function requireAuth() {
+/** Token of an invite route, or null for every other path. */
+function joinTokenOf(pathname: string): string | null {
+  const token = pathname.startsWith('/join/')
+    ? pathname.slice('/join/'.length)
+    : ''
+  return token === '' ? null : token
+}
+
+/**
+ * Guards every protected route, and doubles as the single place where a
+ * deferred join is resolved: whichever route the user lands on after
+ * signing in, a pending invite wins. Works on a cold start too, because
+ * the intent is persisted.
+ */
+function requireAuth({
+  location,
+}: {
+  readonly location: { readonly pathname: string }
+}) {
   const state = store.getState()
+
   if (!selectIsAuthenticated(state)) {
+    // Remember the invite before sending the visitor off to sign in —
+    // otherwise the token dies on the auth detour.
+    const token = joinTokenOf(location.pathname)
+    if (token) store.dispatch(joinIntentStored({ token }))
     throw redirect({ to: '/signin' })
+  }
+
+  const pendingToken = selectPendingJoinToken(state)
+  // Not on the join route itself, or the redirect would loop.
+  if (pendingToken && joinTokenOf(location.pathname) === null) {
+    throw redirect({ to: '/join/$token', params: { token: pendingToken } })
   }
 }
 
@@ -256,6 +311,66 @@ const categoryRoute = createRoute({
   },
 })
 
+const listMembersRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/lists/$listId/members',
+  beforeLoad: requireAuth,
+  loader: async ({ params }) => {
+    const state = store.getState()
+    const list = selectListById(state, params.listId)
+    const me = selectAuthUser(state)
+
+    // The owner's name has no event to travel in, so it comes from the
+    // list projection. Failing to reach it costs a name, not the screen.
+    try {
+      store.dispatch(ownerNamesLoaded({ ownerNames: await fetchOwnerNames() }))
+    } catch (error: unknown) {
+      console.warn('reading owner names failed', error)
+    }
+
+    // Only the owner may mint invites (events.md owner model), so only for
+    // them is there an invite tab to fill.
+    if (!list || !me || list.ownerId !== me.userId) return { invite: null }
+    try {
+      return { invite: await fetchListInvite(params.listId) }
+    } catch (error: unknown) {
+      console.warn('reading the list invite failed', error)
+      return { invite: null }
+    }
+  },
+  component: () => {
+    const { listId } = listMembersRoute.useParams()
+    const { invite } = listMembersRoute.useLoaderData()
+    return MembersPage({ listId, invite })
+  },
+})
+
+const joinRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/join/$token',
+  beforeLoad: requireAuth,
+  loader: async ({ params }) => {
+    try {
+      const { listId } = await joinListByToken(params.token, {
+        eventId: crypto.randomUUID(),
+        deviceId: selectDeviceId(store.getState()),
+      })
+      // Cleared on success and on failure alike — a token left behind
+      // would fire again on every later sign-in.
+      store.dispatch(joinIntentCleared())
+      // Pull the new list and its log before navigating into it.
+      await syncEngine.requestSync()
+      throw redirect({ to: '/lists/$listId', params: { listId } })
+    } catch (error: unknown) {
+      // The success path throws a redirect — never swallow it.
+      if (isRedirect(error)) throw error
+      store.dispatch(joinIntentCleared())
+      return { failed: true }
+    }
+  },
+  component: JoinListPage,
+})
+
 const profileRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/profile',
@@ -273,6 +388,8 @@ const routeTree = rootRoute.addChildren([
   editListRoute,
   shoppingListRoute,
   categoryRoute,
+  listMembersRoute,
+  joinRoute,
   profileRoute,
 ])
 

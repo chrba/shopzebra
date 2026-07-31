@@ -7,9 +7,18 @@ import { BottomNav } from '../ui/BottomNav'
 
 const FULLSCREEN_ROUTES = ['/lists/new', '/signin', '/signup', '/forgot-password']
 
+/** Screens that own the whole viewport — no bottom nav underneath. */
+function isFullscreen(pathname: string): boolean {
+  return (
+    FULLSCREEN_ROUTES.includes(pathname) ||
+    pathname.endsWith('/members') ||
+    pathname.startsWith('/join/')
+  )
+}
+
 export function RootLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
-  const showNav = !FULLSCREEN_ROUTES.includes(pathname)
+  const showNav = !isFullscreen(pathname)
 
   return (
     <>

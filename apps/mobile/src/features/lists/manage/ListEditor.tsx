@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import type { ListColor } from '../../preferences/domain/preferencesDomain'
 import { Button } from '@/components/ui/button'
@@ -82,6 +82,8 @@ type ListEditorProps = {
   readonly submitLabel: string
   readonly initialValues: ListEditorValues
   readonly onSubmit: (result: ListEditorResult) => void
+  /** Rendered above the submit button — used for the members row on edit. */
+  readonly extraSection?: ReactNode
 }
 
 /**
@@ -98,6 +100,7 @@ export function ListEditor({
   submitLabel,
   initialValues,
   onSubmit,
+  extraSection,
 }: ListEditorProps) {
   const navigate = useNavigate()
 
@@ -226,6 +229,8 @@ export function ListEditor({
           ))}
         </ToggleGroup>
       </div>
+
+      {extraSection}
 
       {/* CTA */}
       <div className="mt-auto px-6 pb-6">
