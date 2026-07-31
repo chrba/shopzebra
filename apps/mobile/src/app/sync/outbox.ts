@@ -14,9 +14,9 @@ export type OutboxEntry = {
   readonly wire: PayloadAction<unknown>
 }
 
-/** The send path's view of the bridge (send/flush.ts). */
+/** The send path's view of the bridge (send/drainOutbox.ts). */
 export interface SendQueue {
-  /** Next entry to send, or null when the queue is empty. Polled by the flush loop before every send. */
+  /** Next entry to send, or null when the queue is empty. Polled by the drain loop before every send. */
   head(): OutboxEntry | null
   /** Removes the head once its send is settled — accepted (2xx) or rejected (4xx). Resolves when the change is persisted. */
   removeHead(): Promise<void>
@@ -106,7 +106,7 @@ export class Outbox implements SendQueue, ReceiveLedger {
     return new Outbox(storage, parseOutboxState(raw))
   }
 
-  /** Next entry to send. Called by the flush loop. */
+  /** Next entry to send. Called by the drain loop. */
   head(): OutboxEntry | null {
     return this.state.queue[0] ?? null
   }
@@ -130,9 +130,9 @@ export class Outbox implements SendQueue, ReceiveLedger {
 
   /**
    * Called when the server accepted (2xx) or rejected (4xx) the head —
-   * either way its send is over. An accepted event folds in later via
-   * catch-up; a rejected one is also discarded from the reducer's pending
-   * (flush's onRejected hook).
+   * either way its send is over. An accepted event folds in via the sync
+   * cycle's pull; a rejected one is also discarded from the reducer's
+   * pending (the engine dispatches pendingDiscarded per DrainResult).
    */
   removeHead(): Promise<void> {
     if (!this.head()) return Promise.resolve()

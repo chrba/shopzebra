@@ -79,7 +79,7 @@ flowchart LR
     UI[Component<br/>dispatch] --> MW1
     MW3 -->|record| ENG[SyncEngine]
     ENG -->|toOutboxEntry| OB[(Outbox<br/>shopzebra_sync)]
-    OB --> FL[Flusher] --> TR[transport] -->|POST| API[Backend API]
+    OB --> DR[drainOutbox] --> TR[transport] -->|POST| API[Backend API]
     API -->|GET ?since| CU[catchUp]
     CU -->|eventsConfirmed batch| store
     NET[network/app resume] -->|refresh| CU
@@ -98,14 +98,14 @@ flowchart LR
    - `listCreated` → **class-2 command**: `{ path: '/lists', wire }` with the `ownerId → createdBy` translation into wire format. The server validates and writes the event itself.
    - Slice is `synced` and the action has an aggregate (`aggregateIdOf`) → `{ path: eventsPathFor(id), wire: action }`.
    - Otherwise (e.g. `preferences/*`, hydration actions without an aggregate id) → no sync (`null`).
-6. The outbox appends the entry and persists; the flusher is kicked.
-7. `sendEntry()` POSTs the head. Response classification:
+6. The outbox appends the entry and persists; `requestSync()` is kicked — the engine runs one push-then-pull cycle.
+7. Inside the cycle, `drainOutbox()` POSTs head-by-head via `sendEntry()`. Response classification:
 
 | Result | Meaning | Reaction |
 |---|---|---|
-| 2xx `confirmed` | server appended (or deduped via `eventId`) | head leaves the queue; the event stays `pending` in the reducer until catch-up folds it into `confirmed` at its server position |
-| network error / 5xx `retry` | transient | head stays, drain again after backoff `min(1s·2ⁿ, 30s)` |
-| 4xx `rejected` | rejected on merit (envelope, membership, schema) | head is **dropped for good** — and `pendingDiscarded` rolls its optimistic effect back out of `visible`, so the UI reflects server truth |
+| 2xx `confirmed` | server appended (or deduped via `eventId`) | head leaves the queue; the cycle's pull right after folds the event into `confirmed` at its server position |
+| network error / 5xx `retry` | transient | head stays, drain reports `blocked` — the engine runs another cycle after backoff `min(1s·2ⁿ, 30s)` |
+| 4xx `rejected` | rejected on merit (envelope, membership, schema) | head is **dropped for good** — the drain reports it, the engine dispatches `pendingDiscarded` and the optimistic effect rolls back out of `visible`, so the UI reflects server truth |
 
 ```mermaid
 sequenceDiagram
@@ -113,7 +113,6 @@ sequenceDiagram
     participant S as Store (reducer)
     participant E as SyncEngine
     participant O as Outbox
-    participant F as Flusher
     participant B as Backend
 
     C->>S: dispatch(itemChecked)
@@ -121,40 +120,41 @@ sequenceDiagram
     S->>E: record(action)
     E->>O: enqueue({path, wire})
     O-->>O: persist (shopzebra_sync)
-    E->>F: flush()
-    loop until queue empty (single-flight)
-        F->>B: POST entry.path
+    E->>E: requestSync() — one cycle at a time
+    loop drainOutbox: until queue empty or blocked
+        E->>B: POST entry.path
         alt 2xx
-            B-->>F: confirmed
-            F->>O: removeHead() — confirmation folds in later via catch-up
+            B-->>E: confirmed
+            E->>O: removeHead() — the ack folds in via the cycle's pull
         else network / 5xx
-            B-->>F: retry
-            F-->>F: backoff 1s→30s, then again
+            B-->>E: retry
+            E-->>E: blocked — next cycle after backoff 1s→30s
         else 4xx
-            B-->>F: rejected
-            F->>O: removeHead()
-            F->>S: dispatch(pendingDiscarded) — optimistic effect rolled back
+            B-->>E: rejected
+            E->>O: removeHead()
+            E->>S: dispatch(pendingDiscarded) — optimistic effect rolled back
         end
     end
+    E->>B: pull — cursor catch-up (acks + foreign events)
 ```
 
-The drain is **single-flight** (closure guard `draining`): there is never more than one send in flight, because the per-aggregate order must be preserved. Retrying is safe because the server dedupes on `meta.eventId` — a lost ack leads at most to a resend, never to a duplicate log entry.
+The cycle is **single-flight**: there is never more than one cycle (and thus one send) in flight — the per-aggregate order stays preserved, and triggers arriving mid-cycle coalesce into exactly one follow-up cycle. Retrying is safe because the server dedupes on `meta.eventId` — a lost ack leads at most to a resend, never to a duplicate log entry.
 
 ---
 
 ## Receive path: cursor catch-up
 
-There is **no push subscription**. The receive path is exclusively the cursor catch-up — it runs at engine start, on app resume and on network reconnect. (This stays true once AppSync lands: a subscription is only ever a latency optimization, the cursor remains the reliable path — mobile OSes kill background connections, so reconnect catch-up is mandatory anyway.)
+There is **no push subscription**. The receive path is exclusively the cursor catch-up, and it is not triggered on its own: it is the **pull step of every sync cycle**, running right after the push. Whatever fires `requestSync()` — a recorded action, boot, sign-in, reconnect, resume, the retry timer — ends in a pull. Pull-after-push is what makes acks prompt: the own POST is confirmed before the GET reads the log, so the response reliably contains the just-delivered events along with everything foreign (quasi-realtime while both sides are actively editing). The cycle is linear and runs once, so there is no feedback loop by construction. (This stays true once AppSync lands: a subscription is only ever another `requestSync()` trigger — the cursor remains the reliable path, since mobile OSes kill background connections and reconnect catch-up is mandatory anyway.)
 
 ```mermaid
 sequenceDiagram
-    participant T as Trigger<br/>(start / resume / reconnect)
+    participant T as Sync cycle<br/>(pull step, after push)
     participant CU as catchUp
     participant B as Backend
     participant O as Outbox
     participant S as Store (withSync)
 
-    T->>CU: refresh()
+    T->>CU: catchUp()
     CU->>B: GET /lists
     B-->>CU: list ids (membership projection)
     loop per list
@@ -165,7 +165,6 @@ sequenceDiagram
         Note over S: fold batch into confirmed (position order),<br/>drop acked eventIds from pending,<br/>visible = pending replayed over confirmed (rebase)
         CU->>O: advanceCursor(last position)
     end
-    CU->>CU: then flush() — push the outbox
 ```
 
 Three things here are built this way on purpose:
@@ -204,10 +203,10 @@ Actions dispatched **before** `start()` has loaded the blob land in the engine's
 stateDiagram-v2
     [*] --> Stopped
     Stopped --> Running: startSync()<br/>(boot beforeLoad or performSignIn)
-    Running --> Running: networkStatusChange / appStateChange<br/>→ refresh() = catch-up + flush
+    Running --> Running: networkStatusChange / appStateChange<br/>→ refresh() = one push-then-pull cycle
     Running --> Stopped: stopSync()<br/>(performSignOut)
     note right of Stopped
-        stop() clears deps + buffer,
+        stop() clears deps, buffer + retry timer,
         stopSync() deletes shopzebra_sync —
         no sending under a dead session,
         no inherited outbox for the next user
@@ -236,14 +235,14 @@ These hold project-wide; the engine breaks without them:
 Three of the former stage-1 limits are gone structurally:
 
 - **Order divergence on concurrent edits** — the rebase folds everyone's events in server-position order; devices converge by construction.
-- **Race between flush and catch-up** — folding into `confirmed` and removing from `pending` happen in one atomic reducer step; a confirmation arriving before its own ack is harmless.
+- **Race between push and pull** — gone structurally: both are sequential steps of the same cycle, and folding into `confirmed` plus removing from `pending` happen in one atomic reducer step anyway.
 - **Silent 4xx effects** — a rejected event's optimistic effect is now rolled back out of `visible` (`pendingDiscarded`); the UI reflects server truth.
 
 ## Known limits
 
 1. **Crash window between confirmed-persist and cursor-persist.** The confirmed blobs (storage handlers) and the cursor (outbox) are written independently and fire-and-forget. A crash in between can refetch and re-fold one list's tail into `confirmed` (harmless for id-idempotent events like `listCreated`; `itemAdded` merges quantities by design — a double fold doubles the quantity). Reducers being total keeps this from ever crashing a fold.
 2. **The offline winner is "last sync wins"**, not "last edit wins": an offline edit from 2 pm beats an online edit from 3 pm if it syncs at 4 pm. A deliberate trade-off — for concurrent offline edits no true causal order exists, any choice is arbitrary, and the wrong value is visible and one tap away from being fixed.
-3. **No real-time receive.** Other devices see changes only on the next catch-up trigger; AppSync is not connected yet (the backend's `EventPublisher` is a noop).
+3. **No real-time receive.** A passively watching device sees changes only on the next lifecycle trigger (resume/reconnect); only actively editing devices pull with every own cycle. AppSync is not connected yet (the backend's `EventPublisher` is a noop).
 4. **Visible jump on rebase.** When a foreign event slides under own pending events, the UI can visibly reorder — a known, accepted cost of the design, as are the two state trees in memory.
 5. **No user notification for discarded events.** The rollback is silent; whether to surface "your offline change was rejected" is an open UX question.
 

@@ -1,10 +1,13 @@
-// Wires outbox, flush and catch-up together. Module singleton —
+// The sync cycle: every trigger (record, boot, sign-in, reconnect, resume,
+// retry timer) funnels into requestSync(), which runs one push-then-pull
+// cycle at a time. The whole choreography lives in syncOnce(); outbox,
+// drain and catch-up are plain steps that report results. Module singleton —
 // exactly one engine exists per app.
 
 import type { PayloadAction } from '../createSlice'
 import { getItem, setItem } from '../clientStorage'
 import { Outbox, type OutboxEntry, type SyncStorage } from './outbox'
-import { createFlusher, type Flusher } from './send/flush'
+import { drainOutbox } from './send/drainOutbox'
 import { toOutboxEntry } from './send/toOutboxEntry'
 import { catchUp } from './receive/catchUp'
 import { httpTransport, type Transport } from './transport'
@@ -13,12 +16,23 @@ import { domainActionOf } from './wire'
 
 export type Dispatch = (action: PayloadAction<unknown>) => void
 
+const RETRY_BASE_MS = 1_000
+const RETRY_MAX_MS = 30_000
+
 export class SyncEngine {
   // Holds entries dispatched before start() finished loading the outbox.
   private preStartBuffer: OutboxEntry[] = []
   private outbox: Outbox | null = null
-  private flusher: Flusher | null = null
   private dispatch: Dispatch | null = null
+
+  // One cycle at a time; triggers arriving mid-cycle coalesce into exactly
+  // one follow-up cycle.
+  private cycleInFlight: Promise<void> | null = null
+  private cycleQueued = false
+
+  // Backoff for a blocked queue (offline/5xx): 1s → 30s, reset on success.
+  private failedAttempts = 0
+  private retryTimer: ReturnType<typeof setTimeout> | null = null
 
   constructor(
     private readonly storage: SyncStorage,
@@ -29,8 +43,8 @@ export class SyncEngine {
   record(action: PayloadAction<unknown>): void {
     const entry = toOutboxEntry(action)
     if (!entry) return
-    if (this.outbox && this.flusher) {
-      void this.outbox.enqueue(entry).then(() => this.flusher?.flush())
+    if (this.outbox) {
+      void this.outbox.enqueue(entry).then(() => this.requestSync())
     } else {
       this.preStartBuffer.push(entry)
     }
@@ -38,9 +52,9 @@ export class SyncEngine {
 
   /**
    * Called once per signed-in session (startSync). Loads the persisted
-   * queue, starts sending, resolves when the first catch-up is done.
-   * `dispatch` arrives here, not in the constructor — the store is built
-   * after this singleton (the middleware needs the instance first).
+   * queue and resolves when the first sync cycle is done. `dispatch`
+   * arrives here, not in the constructor — the store is built after this
+   * singleton (the middleware needs the instance first).
    */
   async start(dispatch: Dispatch): Promise<void> {
     this.dispatch = dispatch
@@ -57,43 +71,86 @@ export class SyncEngine {
         outbox.queuedEntries().map((entry) => domainActionOf(entry.wire)),
       ),
     )
-    this.flusher = createFlusher(outbox, this.transport.sendEntry, (eventId) =>
-      dispatch(pendingDiscarded(eventId)),
-    )
-    this.flusher.flush()
-    return this.runCatchUp()
+    return this.requestSync()
   }
 
-  /** Called on app resume and network reconnect. Fire-and-forget catch-up. */
+  /** Called on app resume and network reconnect. Fire-and-forget cycle. */
   refresh(): void {
-    void this.runCatchUp()
+    void this.requestSync()
   }
 
   /**
-   * Called on sign-out (stopSync). record() buffers again, refresh()
-   * no-ops — nothing is sent under a dying session. A later start()
-   * rebuilds everything from scratch.
+   * Called on sign-out (stopSync). Cancels the retry timer, record()
+   * buffers again, refresh() no-ops — nothing is sent under a dying
+   * session. A later start() rebuilds everything from scratch.
    */
   stop(): void {
+    if (this.retryTimer) clearTimeout(this.retryTimer)
+    this.retryTimer = null
+    this.cycleQueued = false
+    this.failedAttempts = 0
     this.outbox = null
-    this.flusher = null
     this.dispatch = null
     this.preStartBuffer = []
   }
 
-  // Catches its own rejections — an offline catch-up is a warning, not a crash.
-  private runCatchUp(): Promise<void> {
-    if (!this.outbox || !this.dispatch) return Promise.resolve()
-    return catchUp({
-      ledger: this.outbox,
-      dispatch: this.dispatch,
+  /**
+   * The single entry point for every sync trigger. Catches its own
+   * rejections — an offline cycle is a warning, not a crash.
+   */
+  requestSync(): Promise<void> {
+    const outbox = this.outbox
+    const dispatch = this.dispatch
+    if (!outbox || !dispatch) return Promise.resolve()
+    if (this.cycleInFlight) {
+      this.cycleQueued = true
+      return this.cycleInFlight
+    }
+    const run = this.syncOnce(outbox, dispatch)
+      .catch((error: unknown) => {
+        console.warn('sync: cycle failed', error)
+      })
+      .finally(() => {
+        this.cycleInFlight = null
+        if (this.cycleQueued) {
+          this.cycleQueued = false
+          void this.requestSync()
+        }
+      })
+    this.cycleInFlight = run
+    return run
+  }
+
+  // The sync choreography, in one place: push own events, roll rejected
+  // ones back, then pull — the pull comes after the push so it returns the
+  // acks of the just-delivered events along with everything foreign.
+  private async syncOnce(outbox: Outbox, dispatch: Dispatch): Promise<void> {
+    const sent = await drainOutbox(outbox, this.transport.sendEntry)
+    for (const eventId of sent.rejected) {
+      dispatch(pendingDiscarded(eventId))
+    }
+    if (sent.blocked) {
+      this.scheduleRetry()
+    } else {
+      this.failedAttempts = 0
+    }
+    await catchUp({
+      ledger: outbox,
+      dispatch,
       fetchListIds: this.transport.fetchListIds,
       fetchEventsSince: this.transport.fetchEventsSince,
     })
-      .catch((error: unknown) => {
-        console.warn('sync: catch-up failed', error)
-      })
-      .finally(() => this.flusher?.flush())
+  }
+
+  // The retry timer is just another requestSync trigger.
+  private scheduleRetry(): void {
+    if (this.retryTimer) return
+    const delay = Math.min(RETRY_BASE_MS * 2 ** this.failedAttempts, RETRY_MAX_MS)
+    this.failedAttempts += 1
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = null
+      void this.requestSync()
+    }, delay)
   }
 }
 

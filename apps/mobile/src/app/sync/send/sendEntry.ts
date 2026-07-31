@@ -9,7 +9,7 @@ export type SendResult =
   | { readonly outcome: 'rejected'; readonly status: number }
 
 /**
- * Posts one entry. Called by the flush loop for the queue head.
+ * Posts one entry. Called by drainOutbox for the queue head.
  * Classifies the outcome: confirmed (2xx), rejected (4xx → drop),
  * retry (network/5xx). Resending is safe — the server dedupes on eventId.
  */
