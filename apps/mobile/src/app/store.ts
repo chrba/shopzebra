@@ -10,6 +10,7 @@ import {
 } from '@reduxjs/toolkit'
 import { useDispatch, useSelector } from 'react-redux'
 import { listsReducer } from '../features/lists/domain/listsSlice'
+import { joinIntentReducer } from '../features/lists/join/joinIntentSlice'
 import { shoppingReducer } from '../features/shopping/domain/shoppingSlice'
 import { preferencesReducer } from '../features/preferences/domain/preferencesSlice'
 import { authReducer } from '../features/auth/domain/authSlice'
@@ -26,6 +27,7 @@ const featureReducer = combineReducers({
   app: appReducer,
   auth: authReducer,
   lists: listsReducer,
+  joinIntent: joinIntentReducer,
   shopping: shoppingReducer,
   preferences: preferencesReducer,
 })
