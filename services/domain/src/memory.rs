@@ -8,7 +8,10 @@ use std::sync::Mutex;
 use async_trait::async_trait;
 
 use crate::event::{AggregateId, NewEvent, Position, StoredEvent, UserId};
-use crate::ports::{EventPublisher, EventStore, MemberRole, MembershipStore, StoreError};
+use crate::ports::{
+    EventPublisher, EventStore, InviteStore, MemberRole, MembershipStore, StoreError, StoredInvite,
+    UserDirectory,
+};
 
 // --- Event store ---
 
@@ -165,6 +168,67 @@ impl MembershipStore for MemoryMembershipStore {
     }
 }
 
+// --- Invites ---
+
+#[derive(Default)]
+pub struct MemoryInviteStore {
+    invites: Mutex<Vec<StoredInvite>>,
+}
+
+impl MemoryInviteStore {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+#[async_trait]
+impl InviteStore for MemoryInviteStore {
+    async fn invite_for(&self, aggregate: &AggregateId) -> Result<Option<StoredInvite>, StoreError> {
+        let invites = self.invites.lock().expect("invites lock");
+        Ok(invites
+            .iter()
+            .find(|invite| invite.aggregate == *aggregate)
+            .cloned())
+    }
+
+    async fn invite_by_token(&self, token: &str) -> Result<Option<StoredInvite>, StoreError> {
+        let invites = self.invites.lock().expect("invites lock");
+        Ok(invites.iter().find(|invite| invite.token == token).cloned())
+    }
+
+    async fn put_invite(&self, invite: &StoredInvite) -> Result<(), StoreError> {
+        let mut invites = self.invites.lock().expect("invites lock");
+        invites.retain(|stored| stored.aggregate != invite.aggregate);
+        invites.push(invite.clone());
+        Ok(())
+    }
+}
+
+// --- User directory ---
+
+#[derive(Default)]
+pub struct MemoryUserDirectory {
+    names: HashMap<String, String>,
+}
+
+impl MemoryUserDirectory {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_name(mut self, user_id: &str, name: &str) -> Self {
+        self.names.insert(user_id.into(), name.into());
+        self
+    }
+}
+
+#[async_trait]
+impl UserDirectory for MemoryUserDirectory {
+    async fn display_name(&self, user: &UserId) -> Result<Option<String>, StoreError> {
+        Ok(self.names.get(&user.0).cloned())
+    }
+}
+
 // --- Publisher ---
 
 #[derive(Default)]
@@ -189,5 +253,88 @@ impl EventPublisher for MemoryEventPublisher {
         let mut published = self.published.lock().expect("published lock");
         published.push((channel.to_string(), event.clone()));
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod invite_and_directory_tests {
+    use super::*;
+    use crate::ports::{InviteStore, StoredInvite, UserDirectory};
+
+    #[tokio::test]
+    async fn an_invite_is_findable_by_aggregate_and_by_token() {
+        let invites = MemoryInviteStore::new();
+        let invite = StoredInvite {
+            token: "tok-1".into(),
+            aggregate: AggregateId::list("abc"),
+            expires_at_ms: 42,
+        };
+
+        invites.put_invite(&invite).await.expect("stores");
+
+        let by_list = invites
+            .invite_for(&AggregateId::list("abc"))
+            .await
+            .expect("readable");
+        let by_token = invites.invite_by_token("tok-1").await.expect("readable");
+        assert_eq!(by_list, Some(invite.clone()));
+        assert_eq!(by_token, Some(invite));
+    }
+
+    #[tokio::test]
+    async fn a_new_invite_replaces_the_previous_one_of_the_same_list() {
+        let invites = MemoryInviteStore::new();
+        invites
+            .put_invite(&StoredInvite {
+                token: "tok-1".into(),
+                aggregate: AggregateId::list("abc"),
+                expires_at_ms: 1,
+            })
+            .await
+            .expect("stores");
+
+        invites
+            .put_invite(&StoredInvite {
+                token: "tok-2".into(),
+                aggregate: AggregateId::list("abc"),
+                expires_at_ms: 2,
+            })
+            .await
+            .expect("stores");
+
+        let current = invites
+            .invite_for(&AggregateId::list("abc"))
+            .await
+            .expect("readable");
+        assert_eq!(current.map(|invite| invite.token), Some("tok-2".into()));
+    }
+
+    #[tokio::test]
+    async fn an_unknown_token_resolves_to_nothing() {
+        let invites = MemoryInviteStore::new();
+
+        let found = invites.invite_by_token("nope").await.expect("readable");
+
+        assert_eq!(found, None);
+    }
+
+    #[tokio::test]
+    async fn the_directory_returns_the_stored_name_or_none() {
+        let users = MemoryUserDirectory::new().with_name("u1", "Sarah");
+
+        assert_eq!(
+            users
+                .display_name(&UserId("u1".into()))
+                .await
+                .expect("readable"),
+            Some("Sarah".into())
+        );
+        assert_eq!(
+            users
+                .display_name(&UserId("u2".into()))
+                .await
+                .expect("readable"),
+            None
+        );
     }
 }

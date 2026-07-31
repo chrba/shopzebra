@@ -94,3 +94,34 @@ pub struct Ports<'a> {
     pub membership: &'a dyn MembershipStore,
     pub broadcast: &'a dyn EventPublisher,
 }
+
+/// One active invite of a list. Both lookups — by aggregate for reuse on
+/// a repeated create, by token for the join — return the same value.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StoredInvite {
+    pub token: String,
+    pub aggregate: AggregateId,
+    pub expires_at_ms: u64,
+}
+
+#[async_trait]
+pub trait InviteStore: Send + Sync {
+    /// The list's current invite, if any. Lets a repeated create hand out
+    /// the same token, so link and QR stay stable across screen visits.
+    async fn invite_for(&self, aggregate: &AggregateId) -> Result<Option<StoredInvite>, StoreError>;
+
+    /// Resolves a token to its invite — the joiner knows nothing else.
+    async fn invite_by_token(&self, token: &str) -> Result<Option<StoredInvite>, StoreError>;
+
+    /// Stores an invite, replacing the list's previous one.
+    async fn put_invite(&self, invite: &StoredInvite) -> Result<(), StoreError>;
+}
+
+/// Display names of authenticated users. Backed by the identity provider,
+/// never by client input — the name travels in server-written class-2
+/// events and must be trustworthy.
+#[async_trait]
+pub trait UserDirectory: Send + Sync {
+    /// None when the user set no name yet; callers fall back.
+    async fn display_name(&self, user: &UserId) -> Result<Option<String>, StoreError>;
+}
