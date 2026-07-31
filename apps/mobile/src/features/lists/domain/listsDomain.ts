@@ -10,4 +10,11 @@ export type ShoppingList = {
   readonly name: string
   readonly ownerId: string
   readonly memberIds: readonly string[]
+  /**
+   * Display names keyed by memberId. Optional, because lists persisted
+   * before members existed carry none. Entries arrive from two sources:
+   * listMemberAdded for everyone who joined, and the list projection for
+   * the owner — who never triggers a listMemberAdded for themselves.
+   */
+  readonly memberNames?: Readonly<Record<string, string>>
 }

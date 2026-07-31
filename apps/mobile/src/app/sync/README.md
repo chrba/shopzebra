@@ -26,7 +26,7 @@ The store keeps two trees plus the pending queue. Every action reaches them in o
 
 ```mermaid
 flowchart TB
-    subgraph SyncState [SyncState — sync bookkeeping + visible top level]
+    subgraph SyncState ["SyncState — sync bookkeeping + visible top level"]
         C[confirmed<br/>fold of the server-ordered log]
         P[pending<br/>own unconfirmed events, dispatch order]
         V[visible<br/>what selectors read]

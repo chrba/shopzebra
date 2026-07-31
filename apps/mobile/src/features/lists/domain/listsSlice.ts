@@ -92,13 +92,92 @@ const listsSlice = createSlice({
       ...state,
       lists: state.lists.filter((list) => list.id !== action.payload.listId),
     }),
+
+    // Class-2 event: written by the server when someone redeems an invite
+    // token. Never dispatched locally, so it only ever arrives through the
+    // cursor catch-up with meta.remote.
+    listMemberAdded: (
+      state: ListsState,
+      action: PayloadAction<{
+        readonly listId: string
+        readonly memberId: string
+        readonly name: string
+      }>,
+    ): ListsState => ({
+      ...state,
+      lists: state.lists.map((list) =>
+        list.id === action.payload.listId
+          ? {
+              ...list,
+              memberIds: list.memberIds.includes(action.payload.memberId)
+                ? list.memberIds
+                : [...list.memberIds, action.payload.memberId],
+              memberNames: {
+                ...list.memberNames,
+                [action.payload.memberId]: action.payload.name,
+              },
+            }
+          : list,
+      ),
+    }),
+
+    // Class-2 event, counterpart of listMemberAdded.
+    listMemberRemoved: (
+      state: ListsState,
+      action: PayloadAction<{
+        readonly listId: string
+        readonly memberId: string
+      }>,
+    ): ListsState => ({
+      ...state,
+      lists: state.lists.map((list) => {
+        if (list.id !== action.payload.listId) return list
+        const { [action.payload.memberId]: _removed, ...remainingNames } =
+          list.memberNames ?? {}
+        return {
+          ...list,
+          memberIds: list.memberIds.filter(
+            (memberId) => memberId !== action.payload.memberId,
+          ),
+          memberNames: remainingNames,
+        }
+      }),
+    }),
+
+    // Local-only: owner names from GET /lists. Carries no listId at the
+    // payload root, so needsSync() keeps it out of the outbox. The owner's
+    // name has no event to travel in — listCreated holds the list's name,
+    // not the creator's.
+    ownerNamesLoaded: (
+      state: ListsState,
+      action: PayloadAction<{
+        readonly ownerNames: Readonly<Record<string, string>>
+      }>,
+    ): ListsState => ({
+      ...state,
+      lists: state.lists.map((list) => {
+        const ownerName = action.payload.ownerNames[list.id]
+        if (ownerName === undefined) return list
+        return {
+          ...list,
+          memberNames: { ...list.memberNames, [list.ownerId]: ownerName },
+        }
+      }),
+    }),
   },
 })
 
 // --- Actions ---
 
-export const { listsLoaded, listCreated, listRenamed, listDeleted } =
-  listsSlice.actions
+export const {
+  listsLoaded,
+  listCreated,
+  listRenamed,
+  listDeleted,
+  listMemberAdded,
+  listMemberRemoved,
+  ownerNamesLoaded,
+} = listsSlice.actions
 export const listsReducer = listsSlice.reducer
 
 // --- Selectors ---
@@ -112,3 +191,25 @@ export const selectListCount = (state: StateWithLists) =>
 
 export const selectListById = (state: StateWithLists, listId: string) =>
   state.lists.lists.find((list) => list.id === listId) ?? null
+
+/**
+ * Members of a list in join order, owner first. `name` is null when nobody
+ * ever supplied one — the view decides what to show instead, so no
+ * placeholder text leaks into the domain.
+ */
+export const selectListMembers = (
+  state: StateWithLists,
+  listId: string,
+): readonly {
+  readonly id: string
+  readonly name: string | null
+  readonly isOwner: boolean
+}[] => {
+  const list = state.lists.lists.find((candidate) => candidate.id === listId)
+  if (!list) return []
+  return list.memberIds.map((memberId) => ({
+    id: memberId,
+    name: list.memberNames?.[memberId] ?? null,
+    isOwner: memberId === list.ownerId,
+  }))
+}
