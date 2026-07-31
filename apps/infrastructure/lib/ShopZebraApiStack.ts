@@ -3,6 +3,7 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb'
 import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2'
 import * as apigwv2_integrations from 'aws-cdk-lib/aws-apigatewayv2-integrations'
 import * as apigwv2_authorizers from 'aws-cdk-lib/aws-apigatewayv2-authorizers'
+import * as iam from 'aws-cdk-lib/aws-iam'
 import * as path from 'path'
 import type { Construct } from 'constructs'
 import { RustFunction } from 'cargo-lambda-cdk'
@@ -43,6 +44,7 @@ export class ShopZebraApiStack extends cdk.Stack {
     const lambdaEnvironment = {
       EVENTS_TABLE: eventsTable.tableName,
       MEMBERSHIP_TABLE: membershipTable.tableName,
+      USER_POOL_ID: COGNITO_USER_POOL_ID,
       RUST_LOG: 'info',
     }
 
@@ -79,6 +81,24 @@ export class ShopZebraApiStack extends cdk.Stack {
       ...rustFunctionResources,
     })
 
+    const createInviteFunction = new RustFunction(this, 'CreateInviteFunction', {
+      functionName: 'shopzebra-create-invite',
+      manifestPath: path.join(SERVICES_DIR, 'lambdas', 'create-invite'),
+      ...rustFunctionResources,
+    })
+
+    const joinListFunction = new RustFunction(this, 'JoinListFunction', {
+      functionName: 'shopzebra-join-list',
+      manifestPath: path.join(SERVICES_DIR, 'lambdas', 'join-list'),
+      ...rustFunctionResources,
+    })
+
+    const removeMemberFunction = new RustFunction(this, 'RemoveMemberFunction', {
+      functionName: 'shopzebra-remove-member',
+      manifestPath: path.join(SERVICES_DIR, 'lambdas', 'remove-member'),
+      ...rustFunctionResources,
+    })
+
     eventsTable.grantReadWriteData(createListFunction)
     eventsTable.grantReadWriteData(appendEventFunction)
     eventsTable.grantReadData(getEventsFunction)
@@ -86,12 +106,30 @@ export class ShopZebraApiStack extends cdk.Stack {
     membershipTable.grantReadData(appendEventFunction)
     membershipTable.grantReadData(getEventsFunction)
     membershipTable.grantReadData(getListsFunction)
+    // Invites live in the membership table, so the invite lambdas need
+    // write access there; only the joiner and the remover append events.
+    membershipTable.grantReadWriteData(createInviteFunction)
+    membershipTable.grantReadWriteData(joinListFunction)
+    membershipTable.grantReadWriteData(removeMemberFunction)
+    eventsTable.grantReadWriteData(joinListFunction)
+    eventsTable.grantReadWriteData(removeMemberFunction)
+
+    // The joiner's display name comes from the user pool — the access
+    // token carries only `sub`, so the name has to be looked up.
+    joinListFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['cognito-idp:ListUsers'],
+        resources: [
+          `arn:aws:cognito-idp:${this.region}:${this.account}:userpool/${COGNITO_USER_POOL_ID}`,
+        ],
+      }),
+    )
 
     const httpApi = new apigwv2.HttpApi(this, 'HttpApi', {
       apiName: 'shopzebra-api',
       corsPreflight: {
         allowHeaders: ['Content-Type', 'Authorization'],
-        allowMethods: [apigwv2.CorsHttpMethod.POST, apigwv2.CorsHttpMethod.GET, apigwv2.CorsHttpMethod.OPTIONS],
+        allowMethods: [apigwv2.CorsHttpMethod.POST, apigwv2.CorsHttpMethod.GET, apigwv2.CorsHttpMethod.DELETE, apigwv2.CorsHttpMethod.OPTIONS],
         allowOrigins: ['http://localhost:5173'],
       },
     })
@@ -127,6 +165,27 @@ export class ShopZebraApiStack extends cdk.Stack {
       path: '/lists',
       methods: [apigwv2.HttpMethod.GET],
       integration: new apigwv2_integrations.HttpLambdaIntegration('GetListsIntegration', getListsFunction),
+      authorizer,
+    })
+
+    httpApi.addRoutes({
+      path: '/lists/{listId}/invites',
+      methods: [apigwv2.HttpMethod.POST],
+      integration: new apigwv2_integrations.HttpLambdaIntegration('CreateInviteIntegration', createInviteFunction),
+      authorizer,
+    })
+
+    httpApi.addRoutes({
+      path: '/lists/join',
+      methods: [apigwv2.HttpMethod.POST],
+      integration: new apigwv2_integrations.HttpLambdaIntegration('JoinListIntegration', joinListFunction),
+      authorizer,
+    })
+
+    httpApi.addRoutes({
+      path: '/lists/{listId}/members/{memberId}',
+      methods: [apigwv2.HttpMethod.DELETE],
+      integration: new apigwv2_integrations.HttpLambdaIntegration('RemoveMemberIntegration', removeMemberFunction),
       authorizer,
     })
 
