@@ -31,14 +31,19 @@ export type ListSummaryViewModel = {
   readonly emoji: string
   /** Number of items on this list. */
   readonly itemCount: number
-  /** Avatars of family members sharing this list. */
-  readonly members: readonly { readonly letter: string; readonly color: string }[]
+  /** Members sharing this list, owner first. */
+  readonly members: readonly {
+    readonly id: string
+    readonly initial: string
+    readonly color: string
+  }[]
 }
 
 type ListSummaryCardProps = {
   readonly list: ListSummaryViewModel
   readonly onClick: () => void
   readonly onEdit: () => void
+  readonly onManageMembers: () => void
 }
 
 const iconBgMap: Record<ListColor, string> = {
@@ -49,12 +54,15 @@ const iconBgMap: Record<ListColor, string> = {
   yellow: 'bg-yellow-500/15 shadow-[0_0_20px_rgba(232,196,74,0.4)]',
 }
 
-function formatMembers(
-  members: readonly { readonly letter: string }[],
-): string {
-  if (members.length === 0) return 'Privat'
-  if (members.length === 1) return members[0]!.letter
-  return `${members.length} Pers.`
+/** Beyond this the circles would outgrow the tile; the rest is a count. */
+const VISIBLE_AVATARS = 3
+
+function PlusIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="text-teal size-3 fill-current">
+      <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+    </svg>
+  )
 }
 
 /**
@@ -62,8 +70,14 @@ function formatMembers(
  * @param props.list View model with all data needed to render the card.
  * @param props.onClick Called when the card body is tapped (navigates to the list).
  * @param props.onEdit Called when the pencil edit button is tapped.
+ * @param props.onManageMembers Called when the member row is tapped.
  */
-export function ListSummaryCard({ list, onClick, onEdit }: ListSummaryCardProps) {
+export function ListSummaryCard({
+  list,
+  onClick,
+  onEdit,
+  onManageMembers,
+}: ListSummaryCardProps) {
   return (
     <Card
       className="group relative cursor-pointer gap-0 rounded-2xl px-4 py-5 transition-all duration-[250ms] select-none active:scale-[0.97]"
@@ -98,15 +112,38 @@ export function ListSummaryCard({ list, onClick, onEdit }: ListSummaryCardProps)
           {list.name}
         </CardTitle>
 
-        <CardDescription className="flex items-center gap-2 text-xs font-medium">
-          <span>{list.itemCount} Items</span>
-          {list.members.length > 0 && (
-            <>
-              <span className="bg-muted-foreground size-[3px] rounded-full" />
-              <span>{formatMembers(list.members)}</span>
-            </>
-          )}
+        <CardDescription className="text-xs font-medium">
+          {list.itemCount} Items
         </CardDescription>
+
+        {/* Whole row is the target — a 24px plus alone would be far below
+            the 44px minimum on a two-column grid. */}
+        <button
+          className="-mx-1 flex items-center gap-1 rounded-full px-1 py-1.5 active:opacity-70"
+          aria-label="Mitglieder verwalten"
+          onClick={(event) => {
+            event.stopPropagation()
+            onManageMembers()
+          }}
+        >
+          {list.members.slice(0, VISIBLE_AVATARS).map((member) => (
+            <span
+              key={member.id}
+              className="border-card -mr-2 flex size-6 items-center justify-center rounded-full border-2 text-[10px] font-bold text-white last:mr-0"
+              style={{ backgroundColor: member.color }}
+            >
+              {member.initial}
+            </span>
+          ))}
+          {list.members.length > VISIBLE_AVATARS && (
+            <span className="text-muted-foreground ml-1 text-[11px] font-semibold">
+              +{list.members.length - VISIBLE_AVATARS}
+            </span>
+          )}
+          <span className="border-border ml-1 flex size-6 items-center justify-center rounded-full border border-dashed">
+            <PlusIcon />
+          </span>
+        </button>
       </CardContent>
     </Card>
   )

@@ -4,6 +4,8 @@ import { useAppDispatch, useAppSelector } from '../../../app/store'
 import { selectInitialSyncDone } from '../../../app/appSlice'
 import { listDeleted, selectAllLists } from '../domain/listsSlice'
 import { memberAvatarColor, memberInitial } from '../domain/memberAvatar'
+import { memberDisplayName } from '../members/memberDisplayName'
+import { selectAuthUser } from '../../auth/domain/authSlice'
 import { selectItemCountByListId } from '../../shopping/domain/shoppingSlice'
 import { selectAllListPreferences } from '../../preferences/domain/preferencesSlice'
 import type { ListColor } from '../../preferences/domain/preferencesDomain'
@@ -130,6 +132,7 @@ export function ListsPage() {
   const preferences = useAppSelector(selectAllListPreferences)
   const itemCountByListId = useAppSelector(selectItemCountByListId)
   const initialSyncDone = useAppSelector(selectInitialSyncDone)
+  const me = useAppSelector(selectAuthUser)
 
   const lists = shoppingLists.map((list) => {
     const prefs = preferences[list.id]
@@ -140,7 +143,13 @@ export function ListsPage() {
       emoji: prefs?.emoji ?? '\u{1F6D2}',
       itemCount: itemCountByListId[list.id] ?? 0,
       members: list.memberIds.map((memberId) => ({
-        letter: memberInitial(memberId),
+        id: memberId,
+        initial: memberInitial(
+          memberDisplayName(
+            { id: memberId, name: list.memberNames?.[memberId] ?? null },
+            me,
+          ),
+        ),
         color: memberAvatarColor(memberId),
       })),
     }
@@ -196,6 +205,12 @@ export function ListsPage() {
               onEdit={() =>
                 navigate({
                   to: '/lists/$listId/edit',
+                  params: { listId: list.id },
+                })
+              }
+              onManageMembers={() =>
+                navigate({
+                  to: '/lists/$listId/members',
                   params: { listId: list.id },
                 })
               }
