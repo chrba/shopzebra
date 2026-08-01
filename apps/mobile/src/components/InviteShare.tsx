@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { QrCodeDummy } from './QrCodeDummy'
 import { useToast } from './Toast'
 
@@ -31,6 +31,27 @@ function MailIcon() {
     <svg viewBox="0 0 24 24" className="size-5 fill-current">
       <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z" />
     </svg>
+  )
+}
+
+type ShareButtonProps = {
+  readonly icon: ReactNode
+  readonly label: string
+  readonly sub: string
+  readonly onClick: () => void
+}
+
+/** One row of the "Einladung senden" section — WhatsApp, e-mail, … */
+function ShareButton({ icon, label, sub, onClick }: ShareButtonProps) {
+  return (
+    <button
+      className="bg-card flex items-center gap-3 rounded-2xl px-4 py-3.5 text-left active:opacity-70"
+      onClick={onClick}
+    >
+      {icon}
+      <span className="flex-1 text-[15px] font-semibold">{label}</span>
+      <span className="text-muted-foreground text-[13px]">{sub}</span>
+    </button>
   )
 }
 
@@ -88,30 +109,22 @@ export function InviteShare({ link, invitationText, mailSubject }: InviteSharePr
           Einladung senden
         </div>
         <div className="flex flex-col gap-2.5">
-          <button
-            className="bg-card flex items-center gap-3 rounded-2xl px-4 py-3.5 text-left active:opacity-70"
+          <ShareButton
+            icon={<span className="text-[#25D366]"><WhatsAppIcon /></span>}
+            label="Per WhatsApp"
+            sub="Direkt senden"
             onClick={() =>
               window.open(`https://wa.me/?text=${encodeURIComponent(invitationText)}`)
             }
-          >
-            <span className="text-[#25D366]">
-              <WhatsAppIcon />
-            </span>
-            <span className="flex-1 text-[15px] font-semibold">Per WhatsApp</span>
-            <span className="text-muted-foreground text-[13px]">Direkt senden</span>
-          </button>
-          <button
-            className="bg-card flex items-center gap-3 rounded-2xl px-4 py-3.5 text-left active:opacity-70"
+          />
+          <ShareButton
+            icon={<span className="text-teal"><MailIcon /></span>}
+            label="Per E-Mail"
+            sub="Einladungstext"
             onClick={() => {
               window.location.href = `mailto:?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(invitationText)}`
             }}
-          >
-            <span className="text-teal">
-              <MailIcon />
-            </span>
-            <span className="flex-1 text-[15px] font-semibold">Per E-Mail</span>
-            <span className="text-muted-foreground text-[13px]">Einladungstext</span>
-          </button>
+          />
         </div>
       </div>
 

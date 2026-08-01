@@ -1,15 +1,8 @@
 import { useNavigate } from '@tanstack/react-router'
 import { InviteShare } from '../../components/InviteShare'
+import { PageHeader } from '../../components/PageHeader'
 import type { FriendInvite } from './friendCommands'
 import { Button } from '../../components/ui/button'
-
-function BackIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-[18px] fill-current">
-      <path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-    </svg>
-  )
-}
 
 type FriendInvitePageProps = {
   readonly invite: FriendInvite | null
@@ -45,18 +38,7 @@ export function FriendInvitePage({ invite }: FriendInvitePageProps) {
 
   return (
     <div className="flex min-h-screen flex-col pb-10">
-      <header className="flex shrink-0 items-center justify-between px-6 pt-2 pb-4">
-        <Button
-          variant="ghost"
-          className="text-teal gap-1.5 px-0 text-[15px] font-semibold"
-          onClick={goBack}
-        >
-          <BackIcon />
-          Zurück
-        </Button>
-        <h1 className="font-display text-[17px] font-bold">Freund einladen</h1>
-        <div className="w-[70px]" />
-      </header>
+      <PageHeader title="Freund einladen" backLabel="Zurück" onBack={goBack} />
 
       <InviteShare
         link={inviteLink}

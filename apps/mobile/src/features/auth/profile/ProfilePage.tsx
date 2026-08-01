@@ -3,29 +3,11 @@ import { useNavigate } from '@tanstack/react-router'
 import { useAppDispatch, useAppSelector } from '../../../app/store'
 import { selectAuthUser } from '../domain/authSlice'
 import { performChangeDisplayName, performSignOut } from '../domain/authThunks'
-import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/PageHeader'
+import { DangerConfirmDialog } from '@/components/DangerConfirmDialog'
 import { Input } from '@/components/ui/input'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 
 // --- Icons ---
-
-/** Left arrow in the nav header to navigate back to lists. */
-function BackIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-5 fill-current">
-      <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
-    </svg>
-  )
-}
 
 /** Silhouette avatar for the "Name" settings row. */
 function PersonIcon() {
@@ -124,19 +106,11 @@ export function ProfilePage() {
 
   return (
     <div className="flex min-h-screen flex-col pb-10">
-      {/* Nav Header */}
-      <header className="flex shrink-0 items-center justify-between px-6 pt-2 pb-4">
-        <Button
-          variant="ghost"
-          className="text-teal gap-1.5 px-0 text-[15px] font-semibold"
-          onClick={() => navigate({ to: '/lists' })}
-        >
-          <BackIcon />
-          Listen
-        </Button>
-        <h1 className="font-display text-[17px] font-bold">Profil</h1>
-        <div className="w-[70px]" />
-      </header>
+      <PageHeader
+        title="Profil"
+        backLabel="Listen"
+        onBack={() => void navigate({ to: '/lists' })}
+      />
 
       {/* Avatar + change photo */}
       <div className="flex flex-col items-center px-6 pt-2 pb-7">
@@ -290,28 +264,14 @@ export function ProfilePage() {
       </div>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent size="sm">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Konto löschen?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Dein Konto und alle Daten werden unwiderruflich gelöscht. Diese
-              Aktion kann nicht rückgängig gemacht werden.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>
-              Abbrechen
-            </AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={() => setDeleteDialogOpen(false)}
-            >
-              Löschen
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DangerConfirmDialog
+        open={deleteDialogOpen}
+        title="Konto löschen?"
+        message="Dein Konto und alle Daten werden unwiderruflich gelöscht. Diese Aktion kann nicht rückgängig gemacht werden."
+        confirmLabel="Löschen"
+        onConfirm={() => setDeleteDialogOpen(false)}
+        onCancel={() => setDeleteDialogOpen(false)}
+      />
     </div>
   )
 }

@@ -60,6 +60,58 @@ function ErrorIcon() {
   )
 }
 
+type SignUpFieldProps = {
+  readonly type: 'text' | 'email' | 'password'
+  readonly placeholder: string
+  readonly autoComplete: string
+  readonly value: string
+  readonly error: boolean
+  readonly errorText: string
+  readonly onChange: (value: string) => void
+  readonly onSubmit: () => void
+  readonly inputMode?: 'email'
+  readonly last?: boolean
+}
+
+/** One labelled input of the sign-up form with its validation line. */
+function SignUpField({
+  type,
+  placeholder,
+  autoComplete,
+  value,
+  error,
+  errorText,
+  onChange,
+  onSubmit,
+  inputMode,
+  last,
+}: SignUpFieldProps) {
+  return (
+    <div className={last ? 'mb-5' : 'mb-3.5'}>
+      <Input
+        type={type}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        inputMode={inputMode}
+        spellCheck={type === 'password' ? undefined : false}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') onSubmit()
+        }}
+        aria-invalid={error}
+        className="h-auto rounded-2xl px-[18px] py-4 text-base font-medium"
+      />
+      {error && (
+        <div className="mt-1.5 flex items-center gap-[5px] pl-1 text-[13px] font-medium text-destructive">
+          <ErrorIcon />
+          <span>{errorText}</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function validateEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
@@ -153,106 +205,60 @@ function SignUpForm() {
       {/* Name — collected here so every account has one from the start;
           the members screen shows names, and an invitee registers and
           joins in one go. */}
-      <div className="mb-3.5">
-        <Input
-          type="text"
-          placeholder="Dein Name"
-          autoComplete="name"
-          value={name}
-          onChange={(e) => {
-            setName(e.target.value)
-            setNameError(false)
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') handleSubmit()
-          }}
-          aria-invalid={nameError}
-          className="h-auto rounded-2xl px-[18px] py-4 text-base font-medium"
-        />
-        {nameError && (
-          <div className="mt-1.5 flex items-center gap-[5px] pl-1 text-[13px] font-medium text-destructive">
-            <ErrorIcon />
-            <span>Bitte gib deinen Namen ein</span>
-          </div>
-        )}
-      </div>
-
-      {/* Email */}
-      <div className="mb-3.5">
-        <Input
-          type="email"
-          placeholder="E-Mail-Adresse"
-          autoComplete="email"
-          inputMode="email"
-          spellCheck={false}
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value)
-            setEmailError(false)
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') handleSubmit()
-          }}
-          aria-invalid={emailError}
-          className="h-auto rounded-2xl px-[18px] py-4 text-base font-medium"
-        />
-        {emailError && (
-          <div className="mt-1.5 flex items-center gap-[5px] pl-1 text-[13px] font-medium text-destructive">
-            <ErrorIcon />
-            <span>Bitte gib eine gültige E-Mail-Adresse ein</span>
-          </div>
-        )}
-      </div>
-
-      {/* Password */}
-      <div className="mb-3.5">
-        <Input
-          type="password"
-          placeholder="Passwort"
-          autoComplete="new-password"
-          value={password}
-          onChange={(e) => {
-            setPassword(e.target.value)
-            setPasswordError(false)
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') handleSubmit()
-          }}
-          aria-invalid={passwordError}
-          className="h-auto rounded-2xl px-[18px] py-4 text-base font-medium"
-        />
-        {passwordError && (
-          <div className="mt-1.5 flex items-center gap-[5px] pl-1 text-[13px] font-medium text-destructive">
-            <ErrorIcon />
-            <span>Passwort muss mindestens 8 Zeichen lang sein</span>
-          </div>
-        )}
-      </div>
-
-      {/* Confirm password */}
-      <div className="mb-5">
-        <Input
-          type="password"
-          placeholder="Passwort bestätigen"
-          autoComplete="new-password"
-          value={confirmPassword}
-          onChange={(e) => {
-            setConfirmPassword(e.target.value)
-            setConfirmError(false)
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') handleSubmit()
-          }}
-          aria-invalid={confirmError}
-          className="h-auto rounded-2xl px-[18px] py-4 text-base font-medium"
-        />
-        {confirmError && (
-          <div className="mt-1.5 flex items-center gap-[5px] pl-1 text-[13px] font-medium text-destructive">
-            <ErrorIcon />
-            <span>Passwörter stimmen nicht überein</span>
-          </div>
-        )}
-      </div>
+      <SignUpField
+        type="text"
+        placeholder="Dein Name"
+        autoComplete="name"
+        value={name}
+        error={nameError}
+        errorText="Bitte gib deinen Namen ein"
+        onChange={(value) => {
+          setName(value)
+          setNameError(false)
+        }}
+        onSubmit={handleSubmit}
+      />
+      <SignUpField
+        type="email"
+        placeholder="E-Mail-Adresse"
+        autoComplete="email"
+        inputMode="email"
+        value={email}
+        error={emailError}
+        errorText="Bitte gib eine gültige E-Mail-Adresse ein"
+        onChange={(value) => {
+          setEmail(value)
+          setEmailError(false)
+        }}
+        onSubmit={handleSubmit}
+      />
+      <SignUpField
+        type="password"
+        placeholder="Passwort"
+        autoComplete="new-password"
+        value={password}
+        error={passwordError}
+        errorText="Passwort muss mindestens 8 Zeichen lang sein"
+        onChange={(value) => {
+          setPassword(value)
+          setPasswordError(false)
+        }}
+        onSubmit={handleSubmit}
+      />
+      <SignUpField
+        type="password"
+        placeholder="Passwort bestätigen"
+        autoComplete="new-password"
+        value={confirmPassword}
+        error={confirmError}
+        errorText="Passwörter stimmen nicht überein"
+        onChange={(value) => {
+          setConfirmPassword(value)
+          setConfirmError(false)
+        }}
+        onSubmit={handleSubmit}
+        last
+      />
 
       {/* Submit */}
       <Button

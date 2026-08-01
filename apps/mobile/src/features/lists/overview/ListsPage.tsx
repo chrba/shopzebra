@@ -14,18 +14,9 @@ import { ListsHeader } from './ListsHeader'
 import { SummaryChips } from './SummaryChips'
 import { ListSummaryCard } from './ListSummaryCard'
 import { SwipeToDelete } from '../../../components/SwipeToDelete'
+import { DangerConfirmDialog } from '../../../components/DangerConfirmDialog'
 import { ListCardSkeleton } from './ListsPageSkeleton'
 import { Card } from '@/components/ui/card'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 
 // --- Helpers ---
 
@@ -98,28 +89,19 @@ function DeleteListDialog({
   readonly onCancel: () => void
 }) {
   return (
-    <AlertDialog
+    <DangerConfirmDialog
       open={target !== null}
-      onOpenChange={(open) => {
-        if (!open) onCancel()
-      }}
-    >
-      <AlertDialogContent size="sm">
-        <AlertDialogHeader>
-          <AlertDialogTitle>Liste löschen?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Möchtest du &ldquo;{target?.name}&rdquo; wirklich löschen? Diese
-            Aktion kann nicht rückgängig gemacht werden.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={onCancel}>Abbrechen</AlertDialogCancel>
-          <AlertDialogAction variant="destructive" onClick={onConfirm}>
-            Löschen
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+      title="Liste löschen?"
+      message={
+        <>
+          Möchtest du &ldquo;{target?.name}&rdquo; wirklich löschen? Diese
+          Aktion kann nicht rückgängig gemacht werden.
+        </>
+      }
+      confirmLabel="Löschen"
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+    />
   )
 }
 
