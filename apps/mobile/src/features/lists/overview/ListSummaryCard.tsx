@@ -6,6 +6,7 @@ import {
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import type { ListColor } from '../../preferences/domain/preferencesDomain'
+import { InviteIcon } from '../members/InviteIcon'
 
 /** Pencil icon shown in the bottom-right corner of each list card. */
 function EditIcon() {
@@ -57,13 +58,7 @@ const iconBgMap: Record<ListColor, string> = {
 /** Beyond this the circles would outgrow the tile; the rest is a count. */
 const VISIBLE_AVATARS = 3
 
-function PlusIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="text-teal size-3 fill-current">
-      <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-    </svg>
-  )
-}
+
 
 /**
  * Single shopping list card in the overview grid — shows emoji, name, item count, members.
@@ -141,7 +136,7 @@ export function ListSummaryCard({
             </span>
           )}
           <span className="border-border ml-1 flex size-6 items-center justify-center rounded-full border border-dashed">
-            <PlusIcon />
+            <InviteIcon className="text-teal size-3.5 fill-current" />
           </span>
         </button>
       </CardContent>

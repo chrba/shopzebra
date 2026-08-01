@@ -1,12 +1,5 @@
 import { memberAvatarColor, memberInitial } from '../domain/memberAvatar'
-
-function PlusIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="text-teal size-5 fill-current">
-      <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-    </svg>
-  )
-}
+import { InviteIcon } from './InviteIcon'
 
 type ShareWithRowProps = {
   /** Labels are resolved by the caller — see memberDisplayName. */
@@ -20,6 +13,9 @@ type ShareWithRowProps = {
 /**
  * The "Teilen mit" row from design/pure/new-list.html: one circle per
  * member, plus a circle that opens the invite screen.
+ *
+ * The signed-in user is left out — their own membership is a given, and an
+ * otherwise empty row reads as an invitation to share.
  *
  * The mockup lets you toggle avatars on and off, which presumes a pool of
  * people to pick from. There is none yet — these circles are the list's
@@ -49,7 +45,7 @@ export function ShareWithRow({ members, onInvite }: ShareWithRowProps) {
           aria-label="Mitglied einladen"
           onClick={onInvite}
         >
-          <PlusIcon />
+          <InviteIcon className="text-teal size-5 fill-current" />
         </button>
       </div>
     </div>
