@@ -18,6 +18,8 @@ type SummaryChipsProps = {
   readonly listCount: number
   readonly itemCount: number
   readonly memberCount: number
+  /** Opens the friends screen — the chip is the address book's entry point. */
+  readonly onMembersClick: () => void
 }
 
 /**
@@ -30,6 +32,7 @@ export function SummaryChips({
   listCount,
   itemCount,
   memberCount,
+  onMembersClick,
 }: SummaryChipsProps) {
   return (
     <div className="flex justify-center gap-2 px-5 pb-[18px]">
@@ -50,7 +53,7 @@ export function SummaryChips({
         className="cursor-pointer gap-1.5 px-3.5 py-[7px] text-xs font-semibold"
         asChild
       >
-        <button type="button">
+        <button type="button" onClick={onMembersClick}>
           <span className="text-teal font-bold">{memberCount}</span> Mitglieder
           <PlusIcon />
         </button>

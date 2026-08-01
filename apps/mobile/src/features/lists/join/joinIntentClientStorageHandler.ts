@@ -1,8 +1,14 @@
 import { removeItem, setItem } from '../../../app/clientStorage'
-import { joinIntentCleared, joinIntentStored } from './joinIntentSlice'
+import {
+  friendIntentCleared,
+  friendIntentStored,
+  joinIntentCleared,
+  joinIntentStored,
+} from './joinIntentSlice'
 
 /** Small value, so Preferences rather than the Filesystem — like deviceId. */
 export const JOIN_INTENT_KEY = 'shopzebra_join_intent'
+export const FRIEND_INTENT_KEY = 'shopzebra_friend_intent'
 
 /**
  * Persists the pending invite token. Called by clientStorageMiddleware after
@@ -20,5 +26,13 @@ export function joinIntentClientStorageHandler(action: {
   }
   if (joinIntentCleared.match(action)) {
     void removeItem(JOIN_INTENT_KEY)
+    return
+  }
+  if (friendIntentStored.match(action)) {
+    void setItem(FRIEND_INTENT_KEY, action.payload.token)
+    return
+  }
+  if (friendIntentCleared.match(action)) {
+    void removeItem(FRIEND_INTENT_KEY)
   }
 }

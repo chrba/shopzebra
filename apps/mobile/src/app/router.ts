@@ -20,19 +20,32 @@ import { getCurrentUser, fetchAuthSession } from 'aws-amplify/auth'
 import { store } from './store'
 import {
   listsLoaded,
+  memberLimitLoaded,
   ownerNamesLoaded,
   selectListById,
 } from '../features/lists/domain/listsSlice'
 import {
+  friendIntentRestored,
+  friendIntentStored,
   joinIntentCleared,
   joinIntentRestored,
   joinIntentStored,
+  selectPendingFriendToken,
   selectPendingJoinToken,
 } from '../features/lists/join/joinIntentSlice'
-import { JOIN_INTENT_KEY } from '../features/lists/join/joinIntentClientStorageHandler'
+import {
+  FRIEND_INTENT_KEY,
+  JOIN_INTENT_KEY,
+} from '../features/lists/join/joinIntentClientStorageHandler'
+import { friendsLoaded, friendsRestored } from '../features/friends/domain/friendsSlice'
+import { FRIENDS_STORAGE_KEY } from '../features/friends/domain/friendsClientStorageHandler'
+import { createFriendInvite, fetchFriends } from '../features/friends/friendCommands'
+import { FriendsPage } from '../features/friends/FriendsPage'
+import { FriendInvitePage } from '../features/friends/FriendInvitePage'
+import { AcceptFriendPage } from '../features/friends/AcceptFriendPage'
 import {
   fetchListInvite,
-  fetchOwnerNames,
+  fetchListProjection,
   joinListByToken,
 } from '../features/lists/members/memberCommands'
 import { MembersPage } from '../features/lists/members/MembersPage'
@@ -182,6 +195,26 @@ const rootRoute = createRootRoute({
     store.dispatch(
       joinIntentRestored({ token: await getItem(JOIN_INTENT_KEY) }),
     )
+    store.dispatch(
+      friendIntentRestored({ token: await getItem(FRIEND_INTENT_KEY) }),
+    )
+    const rawFriends = await getItem(FRIENDS_STORAGE_KEY)
+    if (rawFriends) {
+      try {
+        const parsed: unknown = JSON.parse(rawFriends)
+        if (Array.isArray(parsed)) {
+          store.dispatch(
+            friendsRestored({
+              friends: parsed as Parameters<
+                typeof friendsRestored
+              >[0]['friends'],
+            }),
+          )
+        }
+      } catch {
+        // ignore malformed data
+      }
+    }
     store.dispatch(appLoaded({ theme: 'dark', deviceId }))
 
     // 5. Local-first boot: the store above is hydrated from clientStorage
@@ -209,6 +242,14 @@ function joinTokenOf(pathname: string): string | null {
   return token === '' ? null : token
 }
 
+/** Token of a friendship invite route, or null for every other path. */
+function friendTokenOf(pathname: string): string | null {
+  const token = pathname.startsWith('/friend/')
+    ? pathname.slice('/friend/'.length)
+    : ''
+  return token === '' ? null : token
+}
+
 /**
  * Guards every protected route, and doubles as the single place where a
  * deferred join is resolved: whichever route the user lands on after
@@ -227,13 +268,28 @@ function requireAuth({
     // otherwise the token dies on the auth detour.
     const token = joinTokenOf(location.pathname)
     if (token) store.dispatch(joinIntentStored({ token }))
+    const friendToken = friendTokenOf(location.pathname)
+    if (friendToken) store.dispatch(friendIntentStored({ token: friendToken }))
     throw redirect({ to: '/signin' })
   }
 
-  const pendingToken = selectPendingJoinToken(state)
-  // Not on the join route itself, or the redirect would loop.
-  if (pendingToken && joinTokenOf(location.pathname) === null) {
-    throw redirect({ to: '/join/$token', params: { token: pendingToken } })
+  const onInviteRoute =
+    joinTokenOf(location.pathname) !== null ||
+    friendTokenOf(location.pathname) !== null
+  // Not on an invite route itself, or the redirect would loop. A pending
+  // list join outranks a pending friendship — it carries more intent.
+  if (!onInviteRoute) {
+    const pendingToken = selectPendingJoinToken(state)
+    if (pendingToken) {
+      throw redirect({ to: '/join/$token', params: { token: pendingToken } })
+    }
+    const pendingFriendToken = selectPendingFriendToken(state)
+    if (pendingFriendToken) {
+      throw redirect({
+        to: '/friend/$token',
+        params: { token: pendingFriendToken },
+      })
+    }
   }
 }
 
@@ -317,12 +373,24 @@ const listMembersRoute = createRoute({
   path: '/lists/$listId/members',
   beforeLoad: requireAuth,
   loader: async () => {
-    // The owner's name has no event to travel in, so it comes from the
-    // list projection. Failing to reach it costs a name, not the screen.
+    // Owner names and the member cap come from the list projection; the
+    // friends fill the one-tap picker. Failing either costs data, not the
+    // screen — the cached state stands in.
     try {
-      store.dispatch(ownerNamesLoaded({ ownerNames: await fetchOwnerNames() }))
+      const projection = await fetchListProjection()
+      store.dispatch(ownerNamesLoaded({ ownerNames: projection.ownerNames }))
+      if (projection.maxMembers !== null) {
+        store.dispatch(
+          memberLimitLoaded({ maxMembers: projection.maxMembers }),
+        )
+      }
     } catch (error: unknown) {
-      console.warn('reading owner names failed', error)
+      console.warn('reading the list projection failed', error)
+    }
+    try {
+      store.dispatch(friendsLoaded({ friends: await fetchFriends() }))
+    } catch (error: unknown) {
+      console.warn('reading friends failed', error)
     }
   },
   component: () => {
@@ -376,10 +444,58 @@ const joinRoute = createRoute({
       // The success path throws a redirect — never swallow it.
       if (isRedirect(error)) throw error
       store.dispatch(joinIntentCleared())
-      return { failed: true }
+      // 409 is the server's "this list is full" — worth its own message.
+      const message = error instanceof Error ? error.message : ''
+      return { reason: message.includes('409') ? 'full' : 'invalid' } as const
     }
   },
-  component: JoinListPage,
+  component: () => {
+    const data = joinRoute.useLoaderData()
+    return JoinListPage({ reason: data?.reason ?? 'invalid' })
+  },
+})
+
+const friendsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/friends',
+  beforeLoad: requireAuth,
+  loader: async () => {
+    // Refresh the address book; on failure the cached state stands.
+    try {
+      store.dispatch(friendsLoaded({ friends: await fetchFriends() }))
+    } catch (error: unknown) {
+      console.warn('reading friends failed', error)
+    }
+  },
+  component: FriendsPage,
+})
+
+const friendsInviteRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/friends/invite',
+  beforeLoad: requireAuth,
+  loader: async () => {
+    try {
+      return { invite: await createFriendInvite() }
+    } catch (error: unknown) {
+      console.warn('minting the friend invite failed', error)
+      return { invite: null }
+    }
+  },
+  component: () => {
+    const { invite } = friendsInviteRoute.useLoaderData()
+    return FriendInvitePage({ invite })
+  },
+})
+
+const acceptFriendRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/friend/$token',
+  beforeLoad: requireAuth,
+  component: () => {
+    const { token } = acceptFriendRoute.useParams()
+    return AcceptFriendPage({ token })
+  },
 })
 
 const profileRoute = createRoute({
@@ -402,6 +518,9 @@ const routeTree = rootRoute.addChildren([
   listMembersRoute,
   listInviteRoute,
   joinRoute,
+  friendsRoute,
+  friendsInviteRoute,
+  acceptFriendRoute,
   profileRoute,
 ])
 

@@ -3,6 +3,13 @@ import type { ShoppingList } from './listsDomain'
 
 type ListsState = {
   readonly lists: readonly ShoppingList[]
+  /**
+   * Member cap per list, delivered by GET /lists (maxMembers). Null until
+   * the first projection arrives — the server enforces the cap either way,
+   * this value only drives the "Liste ist voll" UI. Lives here and not in a
+   * constant so the client never holds its own copy of the number.
+   */
+  readonly maxMembers: number | null
 }
 
 // --- Slice ---
@@ -13,6 +20,7 @@ type ListsState = {
 
 const initialState: ListsState = {
   lists: [],
+  maxMembers: null,
 }
 
 const listsSlice = createSlice({
@@ -22,11 +30,12 @@ const listsSlice = createSlice({
   reducers: {
     // Local hydration from clientStorage — not a domain event.
     listsLoaded: (
-      _state: ListsState,
+      state: ListsState,
       action: PayloadAction<{
         readonly lists: readonly ShoppingList[]
       }>,
     ): ListsState => ({
+      ...state,
       // Dedup by id, first occurrence wins. This heals already-persisted
       // state that was damaged by a non-total fold before listCreated
       // guarded against re-applying an event for a list it already knows.
@@ -144,6 +153,16 @@ const listsSlice = createSlice({
       }),
     }),
 
+    // Local-only: the member cap from GET /lists. No listId at the payload
+    // root, so needsSync() keeps it out of the outbox.
+    memberLimitLoaded: (
+      state: ListsState,
+      action: PayloadAction<{ readonly maxMembers: number }>,
+    ): ListsState => ({
+      ...state,
+      maxMembers: action.payload.maxMembers,
+    }),
+
     // Local-only: owner names from GET /lists. Carries no listId at the
     // payload root, so needsSync() keeps it out of the outbox. The owner's
     // name has no event to travel in — listCreated holds the list's name,
@@ -177,6 +196,7 @@ export const {
   listMemberAdded,
   listMemberRemoved,
   ownerNamesLoaded,
+  memberLimitLoaded,
 } = listsSlice.actions
 export const listsReducer = listsSlice.reducer
 
@@ -191,6 +211,16 @@ export const selectListCount = (state: StateWithLists) =>
 
 export const selectListById = (state: StateWithLists, listId: string) =>
   state.lists.lists.find((list) => list.id === listId) ?? null
+
+export const selectMaxMembers = (state: StateWithLists) =>
+  state.lists.maxMembers
+
+/** True once the cap is known AND reached — unknown cap never blocks the UI. */
+export const selectListIsFull = (state: StateWithLists, listId: string) => {
+  const list = state.lists.lists.find((candidate) => candidate.id === listId)
+  const cap = state.lists.maxMembers
+  return list !== undefined && cap !== null && list.memberIds.length >= cap
+}
 
 /**
  * Members of a list in join order, owner first. `name` is null when nobody

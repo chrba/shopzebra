@@ -72,24 +72,65 @@ export async function removeMember(
   if (!response.ok) throw new Error(`DELETE ${path} → ${response.status}`)
 }
 
+export type ListProjection = {
+  readonly ownerNames: Readonly<Record<string, string>>
+  /** Member cap per list; null when the server did not send one. */
+  readonly maxMembers: number | null
+}
+
 /**
- * Owner display names keyed by list id. Read here rather than during
- * catch-up: the owner's name is only ever shown on the members screen, and
- * the sync cycle should not pay for it on every pull.
+ * The parts of GET /lists the members screens need: owner display names and
+ * the member cap. Read here rather than during catch-up — the sync cycle
+ * should not pay for them on every pull.
  */
-export async function fetchOwnerNames(
+export async function fetchListProjection(
   fetcher: Fetcher = authFetch,
-): Promise<Readonly<Record<string, string>>> {
+): Promise<ListProjection> {
   const response = await fetcher('/lists')
   if (!response.ok) throw new Error(`GET /lists → ${response.status}`)
 
   const body: unknown = await response.json()
-  const ownerNames = (body as { readonly ownerNames?: unknown }).ownerNames
-  if (ownerNames === null || typeof ownerNames !== 'object') return {}
+  const { ownerNames, maxMembers } = body as {
+    readonly ownerNames?: unknown
+    readonly maxMembers?: unknown
+  }
 
-  return Object.fromEntries(
-    Object.entries(ownerNames).filter(
-      (entry): entry is [string, string] => typeof entry[1] === 'string',
-    ),
-  )
+  const names =
+    ownerNames !== null && typeof ownerNames === 'object'
+      ? Object.fromEntries(
+          Object.entries(ownerNames).filter(
+            (entry): entry is [string, string] => typeof entry[1] === 'string',
+          ),
+        )
+      : {}
+
+  return {
+    ownerNames: names,
+    maxMembers: typeof maxMembers === 'number' ? maxMembers : null,
+  }
+}
+
+/** Owner display names keyed by list id — the projection's name half. */
+export async function fetchOwnerNames(
+  fetcher: Fetcher = authFetch,
+): Promise<Readonly<Record<string, string>>> {
+  return (await fetchListProjection(fetcher)).ownerNames
+}
+
+/**
+ * Puts a friend straight onto a list, no invite token — the server checks
+ * the address book and the member cap. A 409 means the list is full.
+ */
+export async function addMemberToList(
+  listId: string,
+  memberId: string,
+  meta: EventIdentity,
+  fetcher: Fetcher = authFetch,
+): Promise<void> {
+  const path = `/lists/${listId}/members`
+  const response = await fetcher(path, {
+    method: 'POST',
+    body: JSON.stringify({ payload: { memberId }, meta }),
+  })
+  if (!response.ok) throw new Error(`POST ${path} → ${response.status}`)
 }

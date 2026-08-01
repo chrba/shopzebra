@@ -5,6 +5,7 @@ import { selectInitialSyncDone } from '../../../app/appSlice'
 import { listDeleted, selectAllLists } from '../domain/listsSlice'
 import { memberAvatarColor, memberInitial } from '../domain/memberAvatar'
 import { memberDisplayName } from '../members/memberDisplayName'
+import { selectFriendCount } from '../../friends/domain/friendsSlice'
 import { selectAuthUser } from '../../auth/domain/authSlice'
 import { selectItemCountByListId } from '../../shopping/domain/shoppingSlice'
 import { selectAllListPreferences } from '../../preferences/domain/preferencesSlice'
@@ -12,7 +13,7 @@ import type { ListColor } from '../../preferences/domain/preferencesDomain'
 import { ListsHeader } from './ListsHeader'
 import { SummaryChips } from './SummaryChips'
 import { ListSummaryCard } from './ListSummaryCard'
-import { SwipeToDelete } from './SwipeToDelete'
+import { SwipeToDelete } from '../../../components/SwipeToDelete'
 import { ListCardSkeleton } from './ListsPageSkeleton'
 import { Card } from '@/components/ui/card'
 import {
@@ -133,6 +134,7 @@ export function ListsPage() {
   const itemCountByListId = useAppSelector(selectItemCountByListId)
   const initialSyncDone = useAppSelector(selectInitialSyncDone)
   const me = useAppSelector(selectAuthUser)
+  const friendCount = useAppSelector(selectFriendCount)
 
   const lists = shoppingLists.map((list) => {
     const prefs = preferences[list.id]
@@ -187,7 +189,12 @@ export function ListsPage() {
         onAdd={goToCreateList}
         onProfile={goToProfile}
       />
-      <SummaryChips listCount={lists.length} itemCount={0} memberCount={0} />
+      <SummaryChips
+        listCount={lists.length}
+        itemCount={0}
+        memberCount={friendCount}
+        onMembersClick={() => navigate({ to: '/friends' })}
+      />
       <div className="grid grid-cols-2 gap-3 px-5">
         {showSyncSkeleton &&
           [0, 1, 2, 3].map((index) => (

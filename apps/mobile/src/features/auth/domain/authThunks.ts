@@ -20,8 +20,10 @@ import type { AppDispatch } from '../../../app/store'
 import { removeItem } from '../../../app/clientStorage'
 import { startSync, stopSync } from '../../../app/sync/startSync'
 import { listsLoaded } from '../../lists/domain/listsSlice'
-import { joinIntentCleared } from '../../lists/join/joinIntentSlice'
-import { JOIN_INTENT_KEY } from '../../lists/join/joinIntentClientStorageHandler'
+import { friendIntentCleared, joinIntentCleared } from '../../lists/join/joinIntentSlice'
+import { FRIEND_INTENT_KEY, JOIN_INTENT_KEY } from '../../lists/join/joinIntentClientStorageHandler'
+import { FRIENDS_STORAGE_KEY } from '../../friends/domain/friendsClientStorageHandler'
+import { friendsLoaded } from '../../friends/domain/friendsSlice'
 import { shoppingLoaded } from '../../shopping/domain/shoppingSlice'
 import { SHOPPING_STORAGE_KEY } from '../../shopping/domain/shoppingClientStorageHandler'
 import { listPreferencesLoaded } from '../../preferences/domain/preferencesSlice'
@@ -191,12 +193,16 @@ export const performSignOut = () => async (dispatch: AppDispatch) => {
     await removeItem(PREFS_KEY)
     await removeItem(SHOPPING_STORAGE_KEY)
     await removeItem(JOIN_INTENT_KEY)
+    await removeItem(FRIEND_INTENT_KEY)
+    await removeItem(FRIENDS_STORAGE_KEY)
     dispatch(listsLoaded({ lists: [] }))
     dispatch(shoppingLoaded({ itemsByListId: {}, customVariantsByListId: {} }))
     dispatch(listPreferencesLoaded({}))
     // A pending invite belongs to the user who opened it, never to the
     // next one on a shared device.
     dispatch(joinIntentCleared())
+    dispatch(friendIntentCleared())
+    dispatch(friendsLoaded({ friends: [] }))
     dispatch(signedOut())
   }
 }
