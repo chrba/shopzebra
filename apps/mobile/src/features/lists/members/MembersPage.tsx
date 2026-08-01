@@ -11,6 +11,7 @@ import {
 import { memberAvatarColor, memberInitial } from '../domain/memberAvatar'
 import { removeMember, type ListInvite } from './memberCommands'
 import { QrCodeDummy } from './QrCodeDummy'
+import { memberDisplayName } from './memberDisplayName'
 import { Button } from '../../../components/ui/button'
 import {
   AlertDialog,
@@ -22,8 +23,6 @@ import {
   AlertDialogTitle,
 } from '../../../components/ui/alert-dialog'
 import { syncEngine } from '../../../app/sync/syncEngine'
-
-const NAME_FALLBACK = 'Mitglied'
 
 function BackIcon() {
   return (
@@ -121,12 +120,6 @@ export function MembersPage({ listId, invite }: MembersPageProps) {
     window.setTimeout(() => setToast(null), 2000)
   }
 
-  const displayNameOf = (member: (typeof members)[number]): string => {
-    if (member.name) return member.name
-    if (me && member.id === me.userId) return me.name || me.email
-    return NAME_FALLBACK
-  }
-
   const handleCopy = () => {
     void navigator.clipboard.writeText(inviteLink).then(() => {
       setCopied(true)
@@ -218,7 +211,7 @@ export function MembersPage({ listId, invite }: MembersPageProps) {
       {tab === 'members' ? (
         <div className="mx-5 flex flex-col gap-2.5">
           {members.map((member) => {
-            const name = displayNameOf(member)
+            const name = memberDisplayName(member, me)
             const isMe = me !== null && member.id === me.userId
             return (
               <div

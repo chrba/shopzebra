@@ -10,14 +10,9 @@ import {
   selectListPreferences,
 } from '../../preferences/domain/preferencesSlice'
 import { ListEditor } from './ListEditor'
-
-function ChevronIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="text-muted-foreground size-[18px] fill-current">
-      <path d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z" />
-    </svg>
-  )
-}
+import { ShareWithRow } from '../members/ShareWithRow'
+import { memberDisplayName } from '../members/memberDisplayName'
+import { selectAuthUser } from '../../auth/domain/authSlice'
 
 type EditListPageProps = {
   readonly listId: string
@@ -25,8 +20,8 @@ type EditListPageProps = {
 
 /**
  * Page for editing an existing shopping list: name and local preferences.
- * Members are not edited here — the row leads to the members screen,
- * where invites are minted and members removed (owner model).
+ * The "Teilen mit" row shows the current members; the plus circle leads
+ * to the members screen, where invites are minted and members removed.
  * @param props.listId ID of the shopping list to edit, from the route params.
  */
 export function EditListPage({ listId }: EditListPageProps) {
@@ -36,9 +31,8 @@ export function EditListPage({ listId }: EditListPageProps) {
   const preferences = useAppSelector((state) =>
     selectListPreferences(state, listId),
   )
-  const memberCount = useAppSelector(
-    (state) => selectListMembers(state, listId).length,
-  )
+  const members = useAppSelector((state) => selectListMembers(state, listId))
+  const me = useAppSelector(selectAuthUser)
 
   if (!list) {
     return (
@@ -58,21 +52,18 @@ export function EditListPage({ listId }: EditListPageProps) {
         color: preferences?.color ?? 'green',
       }}
       extraSection={
-        <button
-          className="bg-card mx-6 mb-4 flex items-center gap-3 rounded-2xl px-4 py-3.5 text-left active:opacity-70"
-          onClick={() =>
+        <ShareWithRow
+          members={members.map((member) => ({
+            id: member.id,
+            label: memberDisplayName(member, me),
+          }))}
+          onInvite={() =>
             void navigate({
               to: '/lists/$listId/members',
               params: { listId },
             })
           }
-        >
-          <span className="flex-1 text-[15px] font-semibold">Mitglieder</span>
-          <span className="text-muted-foreground text-[15px]">
-            {memberCount}
-          </span>
-          <ChevronIcon />
-        </button>
+        />
       }
       onSubmit={(result) => {
         dispatch(listRenamed({ listId, name: result.name }))
