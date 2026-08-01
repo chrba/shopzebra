@@ -36,6 +36,7 @@ import {
   joinListByToken,
 } from '../features/lists/members/memberCommands'
 import { MembersPage } from '../features/lists/members/MembersPage'
+import { InvitePage } from '../features/lists/members/InvitePage'
 import { JoinListPage } from '../features/lists/join/JoinListPage'
 import { syncEngine } from './sync/syncEngine'
 import { shoppingLoaded } from '../features/shopping/domain/shoppingSlice'
@@ -315,11 +316,7 @@ const listMembersRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/lists/$listId/members',
   beforeLoad: requireAuth,
-  loader: async ({ params }) => {
-    const state = store.getState()
-    const list = selectListById(state, params.listId)
-    const me = selectAuthUser(state)
-
+  loader: async () => {
     // The owner's name has no event to travel in, so it comes from the
     // list projection. Failing to reach it costs a name, not the screen.
     try {
@@ -327,9 +324,23 @@ const listMembersRoute = createRoute({
     } catch (error: unknown) {
       console.warn('reading owner names failed', error)
     }
+  },
+  component: () => {
+    const { listId } = listMembersRoute.useParams()
+    return MembersPage({ listId })
+  },
+})
 
-    // Only the owner may mint invites (events.md owner model), so only for
-    // them is there an invite tab to fill.
+const listInviteRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/lists/$listId/invite',
+  beforeLoad: requireAuth,
+  loader: async ({ params }) => {
+    const state = store.getState()
+    const list = selectListById(state, params.listId)
+    const me = selectAuthUser(state)
+
+    // Only the owner may mint invites (events.md owner model).
     if (!list || !me || list.ownerId !== me.userId) return { invite: null }
     try {
       return { invite: await fetchListInvite(params.listId) }
@@ -339,9 +350,9 @@ const listMembersRoute = createRoute({
     }
   },
   component: () => {
-    const { listId } = listMembersRoute.useParams()
-    const { invite } = listMembersRoute.useLoaderData()
-    return MembersPage({ listId, invite })
+    const { listId } = listInviteRoute.useParams()
+    const { invite } = listInviteRoute.useLoaderData()
+    return InvitePage({ listId, invite })
   },
 })
 
@@ -389,6 +400,7 @@ const routeTree = rootRoute.addChildren([
   shoppingListRoute,
   categoryRoute,
   listMembersRoute,
+  listInviteRoute,
   joinRoute,
   profileRoute,
 ])

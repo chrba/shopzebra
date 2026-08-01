@@ -53,10 +53,12 @@ export function EditListPage({ listId }: EditListPageProps) {
       }}
       extraSection={
         <ShareWithRow
-          members={members.map((member) => ({
-            id: member.id,
-            label: memberDisplayName(member, me),
-          }))}
+          members={members
+            .filter((member) => member.id !== me?.userId)
+            .map((member) => ({
+              id: member.id,
+              label: memberDisplayName(member, me),
+            }))}
           onInvite={() =>
             void navigate({
               to: '/lists/$listId/members',

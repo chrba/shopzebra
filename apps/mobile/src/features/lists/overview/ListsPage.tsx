@@ -142,7 +142,11 @@ export function ListsPage() {
       color: prefs?.color ?? defaultColor(list.id),
       emoji: prefs?.emoji ?? '\u{1F6D2}',
       itemCount: itemCountByListId[list.id] ?? 0,
-      members: list.memberIds.map((memberId) => ({
+      // Own membership is a given — the circles show who else is on the
+      // list, so an empty row plus the invite circle reads as "share this".
+      members: list.memberIds
+        .filter((memberId) => memberId !== me?.userId)
+        .map((memberId) => ({
         id: memberId,
         initial: memberInitial(
           memberDisplayName(
@@ -151,7 +155,7 @@ export function ListsPage() {
           ),
         ),
         color: memberAvatarColor(memberId),
-      })),
+        })),
     }
   })
 

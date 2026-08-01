@@ -12,6 +12,7 @@ function isFullscreen(pathname: string): boolean {
   return (
     FULLSCREEN_ROUTES.includes(pathname) ||
     pathname.endsWith('/members') ||
+    pathname.endsWith('/invite') ||
     pathname.startsWith('/join/')
   )
 }
