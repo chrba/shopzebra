@@ -163,6 +163,28 @@ impl MembershipStore for DynamoDbMembershipStore {
         Ok(())
     }
 
+    async fn members_of(&self, aggregate: &AggregateId) -> Result<Vec<UserId>, StoreError> {
+        // Only the MEMBER# rows: the OWNER marker names the same person
+        // again, and the INVITE row is no membership at all.
+        let result = self
+            .client
+            .query()
+            .table_name(&self.table_name)
+            .key_condition_expression("pk = :pk AND begins_with(sk, :prefix)")
+            .expression_attribute_values(":pk", AttributeValue::S(aggregate.partition_key()))
+            .expression_attribute_values(":prefix", AttributeValue::S(MEMBER_PREFIX.into()))
+            .send()
+            .await
+            .map_err(|error| StoreError(error.to_string()))?;
+
+        Ok(result
+            .items()
+            .iter()
+            .filter_map(|item| item.get("userId").and_then(|value| value.as_s().ok()))
+            .map(|user_id| UserId(user_id.clone()))
+            .collect())
+    }
+
     async fn aggregates_of(&self, user: &UserId) -> Result<Vec<AggregateId>, StoreError> {
         let result = self
             .client

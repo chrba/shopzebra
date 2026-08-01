@@ -4,6 +4,7 @@
 
 pub mod envelope;
 pub mod event;
+pub mod limits;
 pub mod membership;
 pub mod memory;
 pub mod ports;

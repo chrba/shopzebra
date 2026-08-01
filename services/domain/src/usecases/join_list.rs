@@ -2,7 +2,9 @@ use serde_json::json;
 use thiserror::Error;
 
 use crate::event::{NewEvent, UserId};
-use crate::ports::{InviteStore, MemberRole, Ports, StoreError, UserDirectory};
+use crate::limits::MAX_LIST_MEMBERS;
+use crate::ports::{FriendStore, InviteStore, MemberRole, Ports, StoreError, UserDirectory};
+use crate::usecases::friends::befriend;
 
 pub const LIST_MEMBER_ADDED: &str = "lists/listMemberAdded";
 
@@ -15,6 +17,9 @@ pub enum JoinListError {
     /// the caller must not be able to tell them apart.
     #[error("invalid or expired invite token")]
     InvalidToken,
+    /// The list already holds MAX_LIST_MEMBERS people.
+    #[error("this list is full")]
+    ListFull,
     #[error(transparent)]
     Store(#[from] StoreError),
 }
@@ -42,6 +47,7 @@ pub async fn join_list(
     ports: &Ports<'_>,
     invites: &dyn InviteStore,
     users: &dyn UserDirectory,
+    friends: &dyn FriendStore,
     caller: &UserId,
     request: JoinListRequest,
 ) -> Result<JoinedList, JoinListError> {
@@ -60,6 +66,11 @@ pub async fn join_list(
             list_id,
             already_member: true,
         });
+    }
+
+    let members = ports.membership.members_of(&aggregate).await?;
+    if members.len() >= MAX_LIST_MEMBERS {
+        return Err(JoinListError::ListFull);
     }
 
     let name = users
@@ -89,6 +100,19 @@ pub async fn join_list(
         .membership
         .add_member(&aggregate, caller, MemberRole::Member)
         .await?;
+
+    // Sharing something is how most friendships come about: the joiner and
+    // everyone already on the list end up in each other's address book.
+    // Best-effort, like the broadcast below: befriending is a side effect
+    // of joining, not its condition. Propagating a transient put failure
+    // here would 500 a join that already committed — and the retry's
+    // already-member early-return would then skip this loop forever,
+    // losing the friendships with no repair path. A silently missing
+    // friendship, by contrast, is curable via the friend invite link.
+    for member in &members {
+        let _ = befriend(friends, caller, member).await;
+    }
+
     let _ = ports.broadcast.publish(&aggregate.channel(), &stored).await;
 
     Ok(JoinedList {
@@ -102,8 +126,8 @@ mod tests {
     use super::*;
     use crate::event::AggregateId;
     use crate::memory::{
-        MemoryEventPublisher, MemoryEventStore, MemoryInviteStore, MemoryMembershipStore,
-        MemoryUserDirectory,
+        MemoryEventPublisher, MemoryEventStore, MemoryFriendStore, MemoryInviteStore,
+        MemoryMembershipStore, MemoryUserDirectory,
     };
     use crate::ports::{EventStore, MembershipStore, StoredInvite};
 
@@ -112,6 +136,7 @@ mod tests {
         membership: MemoryMembershipStore,
         publisher: MemoryEventPublisher,
         invites: MemoryInviteStore,
+        friends: MemoryFriendStore,
     }
 
     impl Fixture {
@@ -121,6 +146,7 @@ mod tests {
                 membership: MemoryMembershipStore::new(),
                 publisher: MemoryEventPublisher::new(),
                 invites: MemoryInviteStore::new(),
+                friends: MemoryFriendStore::new(),
             }
         }
 
@@ -170,6 +196,7 @@ mod tests {
             &fixture.ports(),
             &fixture.invites,
             &users,
+            &fixture.friends,
             &UserId("tom".into()),
             request("tok-1", 1_000),
         )
@@ -204,6 +231,7 @@ mod tests {
             &fixture.ports(),
             &fixture.invites,
             &users,
+            &fixture.friends,
             &UserId("tom".into()),
             request("tok-1", 1_000),
         )
@@ -235,6 +263,7 @@ mod tests {
             &fixture.ports(),
             &fixture.invites,
             &users,
+            &fixture.friends,
             &UserId("tom".into()),
             request("tok-1", 1_000),
         )
@@ -254,6 +283,7 @@ mod tests {
             &fixture.ports(),
             &fixture.invites,
             &users,
+            &fixture.friends,
             &UserId("tom".into()),
             request("nope", 1_000),
         )
@@ -271,6 +301,7 @@ mod tests {
             &fixture.ports(),
             &fixture.invites,
             &users,
+            &fixture.friends,
             &UserId("tom".into()),
             request("tok-1", 10_001),
         )
@@ -284,5 +315,72 @@ mod tests {
             .await
             .expect("readable");
         assert_eq!(role, None);
+    }
+
+    #[tokio::test]
+    async fn a_full_list_rejects_the_next_joiner() {
+        let fixture = Fixture::new().with_invite(10_000).await;
+        for index in 0..MAX_LIST_MEMBERS {
+            fixture
+                .membership
+                .add_member(
+                    &AggregateId::list("abc"),
+                    &UserId(format!("member-{index}")),
+                    MemberRole::Member,
+                )
+                .await
+                .expect("member");
+        }
+        let users = MemoryUserDirectory::new();
+
+        let result = join_list(
+            &fixture.ports(),
+            &fixture.invites,
+            &users,
+            &fixture.friends,
+            &UserId("tom".into()),
+            request("tok-1", 1_000),
+        )
+        .await;
+
+        assert!(matches!(result, Err(JoinListError::ListFull)));
+        assert!(fixture.log().await.is_empty());
+    }
+
+    #[tokio::test]
+    async fn joining_befriends_the_newcomer_with_everyone_already_there() {
+        let fixture = Fixture::new().with_invite(10_000).await;
+        fixture
+            .membership
+            .add_member(
+                &AggregateId::list("abc"),
+                &UserId("mama".into()),
+                MemberRole::Owner,
+            )
+            .await
+            .expect("owner");
+        let users = MemoryUserDirectory::new();
+
+        join_list(
+            &fixture.ports(),
+            &fixture.invites,
+            &users,
+            &fixture.friends,
+            &UserId("tom".into()),
+            request("tok-1", 1_000),
+        )
+        .await
+        .expect("joins");
+
+        assert!(fixture
+            .friends
+            .is_friend(&UserId("tom".into()), &UserId("mama".into()))
+            .await
+            .expect("readable"));
+        assert!(fixture
+            .friends
+            .is_friend(&UserId("mama".into()), &UserId("tom".into()))
+            .await
+            .expect("readable"));
     }
 }

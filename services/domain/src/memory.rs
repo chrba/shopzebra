@@ -9,8 +9,8 @@ use async_trait::async_trait;
 
 use crate::event::{AggregateId, NewEvent, Position, StoredEvent, UserId};
 use crate::ports::{
-    EventPublisher, EventStore, InviteStore, MemberRole, MembershipStore, StoreError, StoredInvite,
-    UserDirectory,
+    EventPublisher, EventStore, FriendInviteStore, FriendStore, InviteStore, MemberRole,
+    MembershipStore, StoreError, StoredFriendInvite, StoredInvite, UserDirectory,
 };
 
 // --- Event store ---
@@ -165,6 +165,15 @@ impl MembershipStore for MemoryMembershipStore {
         let mut roles = self.roles.lock().expect("membership lock");
         roles.remove(&(aggregate.partition_key(), user.0.clone()));
         Ok(())
+    }
+
+    async fn members_of(&self, aggregate: &AggregateId) -> Result<Vec<UserId>, StoreError> {
+        let roles = self.roles.lock().expect("membership lock");
+        Ok(roles
+            .keys()
+            .filter(|(partition, _)| partition == &aggregate.partition_key())
+            .map(|(_, user)| UserId(user.clone()))
+            .collect())
     }
 
     async fn aggregates_of(&self, user: &UserId) -> Result<Vec<AggregateId>, StoreError> {
@@ -346,5 +355,103 @@ mod invite_and_directory_tests {
                 .expect("readable"),
             None
         );
+    }
+}
+
+// --- Friendships ---
+
+#[derive(Default)]
+pub struct MemoryFriendStore {
+    /// (owner, friend) — one entry per direction, like the real store.
+    edges: Mutex<Vec<(String, String)>>,
+}
+
+impl MemoryFriendStore {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub async fn with_friendship(self, a: &str, b: &str) -> Self {
+        self.add_friend(&UserId(a.into()), &UserId(b.into()))
+            .await
+            .expect("in-memory add cannot fail");
+        self.add_friend(&UserId(b.into()), &UserId(a.into()))
+            .await
+            .expect("in-memory add cannot fail");
+        self
+    }
+}
+
+#[async_trait]
+impl FriendStore for MemoryFriendStore {
+    async fn friends_of(&self, user: &UserId) -> Result<Vec<UserId>, StoreError> {
+        let edges = self.edges.lock().expect("friends lock");
+        Ok(edges
+            .iter()
+            .filter(|(owner, _)| owner == &user.0)
+            .map(|(_, friend)| UserId(friend.clone()))
+            .collect())
+    }
+
+    async fn is_friend(&self, user: &UserId, other: &UserId) -> Result<bool, StoreError> {
+        let edges = self.edges.lock().expect("friends lock");
+        Ok(edges
+            .iter()
+            .any(|(owner, friend)| owner == &user.0 && friend == &other.0))
+    }
+
+    async fn add_friend(&self, user: &UserId, friend: &UserId) -> Result<(), StoreError> {
+        let mut edges = self.edges.lock().expect("friends lock");
+        let edge = (user.0.clone(), friend.0.clone());
+        if !edges.contains(&edge) {
+            edges.push(edge);
+        }
+        Ok(())
+    }
+
+    async fn remove_friend(&self, user: &UserId, friend: &UserId) -> Result<(), StoreError> {
+        let mut edges = self.edges.lock().expect("friends lock");
+        edges.retain(|(owner, other)| !(owner == &user.0 && other == &friend.0));
+        Ok(())
+    }
+}
+
+#[derive(Default)]
+pub struct MemoryFriendInviteStore {
+    invites: Mutex<Vec<StoredFriendInvite>>,
+}
+
+impl MemoryFriendInviteStore {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+#[async_trait]
+impl FriendInviteStore for MemoryFriendInviteStore {
+    async fn friend_invite_for(
+        &self,
+        user: &UserId,
+    ) -> Result<Option<StoredFriendInvite>, StoreError> {
+        let invites = self.invites.lock().expect("friend invites lock");
+        Ok(invites
+            .iter()
+            .find(|invite| invite.invited_by == *user)
+            .cloned())
+    }
+
+    async fn friend_invite_by_token(
+        &self,
+        token: &str,
+    ) -> Result<Option<StoredFriendInvite>, StoreError> {
+        let invites = self.invites.lock().expect("friend invites lock");
+        Ok(invites.iter().find(|invite| invite.token == token).cloned())
+    }
+
+    async fn put_friend_invite(&self, invite: &StoredFriendInvite) -> Result<(), StoreError> {
+        let mut invites = self.invites.lock().expect("friend invites lock");
+        invites.retain(|stored| stored.invited_by != invite.invited_by);
+        invites.push(invite.clone());
+        Ok(())
     }
 }

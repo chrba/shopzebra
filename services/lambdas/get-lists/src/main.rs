@@ -4,6 +4,7 @@ use adapters::{
 use aws_sdk_dynamodb::Client;
 use domain::event::UserId;
 use domain::ports::Ports;
+use domain::limits::MAX_LIST_MEMBERS;
 use domain::usecases::my_lists::my_lists_with_owners;
 use lambda_http::{run, service_fn, Body, Error, Request, Response};
 use lib::error::ApiError;
@@ -66,7 +67,16 @@ async fn handle(
                         .map(|name| (summary.list_id, json!(name)))
                 })
                 .collect();
-            lib::response::json(200, &json!({ "lists": list_ids, "ownerNames": owner_names }))
+            // maxMembers travels with the projection so the clients keep no
+            // second copy of the number — it lives once, in domain::limits.
+            lib::response::json(
+                200,
+                &json!({
+                    "lists": list_ids,
+                    "ownerNames": owner_names,
+                    "maxMembers": MAX_LIST_MEMBERS,
+                }),
+            )
         }
         Err(store_error) => {
             tracing::error!(error = %store_error, "get lists failed");

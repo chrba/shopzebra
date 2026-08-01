@@ -3,6 +3,23 @@
 version = 4
 
 [[package]]
+name = "accept-friend-invite"
+version = "0.1.0"
+dependencies = [
+ "adapters",
+ "aws-config",
+ "aws-sdk-cognitoidentityprovider",
+ "aws-sdk-dynamodb",
+ "domain",
+ "lambda_http",
+ "lib",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "adapters"
 version = "0.1.0"
 dependencies = [
@@ -13,6 +30,23 @@ dependencies = [
  "domain",
  "serde_json",
  "tokio",
+]
+
+[[package]]
+name = "add-member"
+version = "0.1.0"
+dependencies = [
+ "adapters",
+ "aws-config",
+ "aws-sdk-cognitoidentityprovider",
+ "aws-sdk-dynamodb",
+ "domain",
+ "lambda_http",
+ "lib",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -664,6 +698,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "create-friend-invite"
+version = "0.1.0"
+dependencies = [
+ "adapters",
+ "aws-config",
+ "aws-sdk-cognitoidentityprovider",
+ "aws-sdk-dynamodb",
+ "domain",
+ "lambda_http",
+ "lib",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "create-invite"
 version = "0.1.0"
 dependencies = [
@@ -964,6 +1016,23 @@ version = "0.1.0"
 dependencies = [
  "adapters",
  "aws-config",
+ "aws-sdk-dynamodb",
+ "domain",
+ "lambda_http",
+ "lib",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "get-friends"
+version = "0.1.0"
+dependencies = [
+ "adapters",
+ "aws-config",
+ "aws-sdk-cognitoidentityprovider",
  "aws-sdk-dynamodb",
  "domain",
  "lambda_http",
@@ -1852,6 +1921,23 @@ name = "regex-syntax"
 version = "0.8.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc897dd8d9e8bd1ed8cdad82b5966c3e0ecae09fb1907d58efaa013543185d0a"
+
+[[package]]
+name = "remove-friend"
+version = "0.1.0"
+dependencies = [
+ "adapters",
+ "aws-config",
+ "aws-sdk-cognitoidentityprovider",
+ "aws-sdk-dynamodb",
+ "domain",
+ "lambda_http",
+ "lib",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
 
 [[package]]
 name = "remove-member"

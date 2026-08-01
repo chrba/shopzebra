@@ -1,6 +1,6 @@
 use adapters::{
-    CognitoUserDirectory, DynamoDbEventStore, DynamoDbInviteStore, DynamoDbMembershipStore,
-    NoopEventPublisher,
+    CognitoUserDirectory, DynamoDbEventStore, DynamoDbFriendStore, DynamoDbInviteStore,
+    DynamoDbMembershipStore, NoopEventPublisher,
 };
 use aws_sdk_dynamodb::Client;
 use domain::event::UserId;
@@ -28,7 +28,8 @@ async fn main() -> Result<(), Error> {
     let membership_table = std::env::var("MEMBERSHIP_TABLE")?;
     let store = DynamoDbEventStore::new(client.clone(), std::env::var("EVENTS_TABLE")?);
     let membership = DynamoDbMembershipStore::new(client.clone(), membership_table.clone());
-    let invites = DynamoDbInviteStore::new(client, membership_table);
+    let invites = DynamoDbInviteStore::new(client.clone(), membership_table.clone());
+    let friends = DynamoDbFriendStore::new(client, membership_table);
     let users = CognitoUserDirectory::new(
         aws_sdk_cognitoidentityprovider::Client::new(&config),
         std::env::var("USER_POOL_ID")?,
@@ -43,8 +44,9 @@ async fn main() -> Result<(), Error> {
     let ports = &ports;
     let invites = &invites;
     let users = &users;
+    let friends = &friends;
     run(service_fn(move |http_request: Request| async move {
-        handle(ports, invites, users, http_request).await
+        handle(ports, invites, users, friends, http_request).await
     }))
     .await
 }
@@ -53,6 +55,7 @@ async fn handle(
     ports: &Ports<'_>,
     invites: &DynamoDbInviteStore,
     users: &CognitoUserDirectory,
+    friends: &DynamoDbFriendStore,
     http_request: Request,
 ) -> Result<Response<Body>, Error> {
     let caller = match lib::auth::extract_user_id(&http_request) {
@@ -65,10 +68,13 @@ async fn handle(
         Err(api_error) => return api_error.to_response(),
     };
 
-    match join_list(ports, invites, users, &caller, request).await {
+    match join_list(ports, invites, users, friends, &caller, request).await {
         // An already-joined caller gets the same 200: the join is
         // idempotent, and the client only needs to know where to navigate.
         Ok(joined) => lib::response::json(200, &json!({ "listId": joined.list_id })),
+        Err(JoinListError::ListFull) => {
+            ApiError::Conflict("this list is full".into()).to_response()
+        }
         Err(JoinListError::InvalidToken) => {
             ApiError::BadRequest("invalid or expired invite token".into()).to_response()
         }

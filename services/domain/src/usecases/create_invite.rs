@@ -1,12 +1,9 @@
 use thiserror::Error;
 
 use crate::event::{AggregateId, UserId};
+use crate::limits::INVITE_TTL_MS;
 use crate::membership::{check_can_invite, MembershipViolation};
 use crate::ports::{InviteStore, MembershipStore, StoreError, StoredInvite};
-
-/// Invite links stay valid for seven days — the wording the invite screen
-/// promises ("Link gültig für 7 Tage").
-pub const INVITE_TTL_MS: u64 = 7 * 24 * 60 * 60 * 1000;
 
 #[derive(Debug, Error)]
 pub enum CreateInviteError {

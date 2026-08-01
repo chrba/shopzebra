@@ -93,9 +93,39 @@ export class ShopZebraApiStack extends cdk.Stack {
       ...rustFunctionResources,
     })
 
+    const addMemberFunction = new RustFunction(this, 'AddMemberFunction', {
+      functionName: 'shopzebra-add-member',
+      manifestPath: path.join(SERVICES_DIR, 'lambdas', 'add-member'),
+      ...rustFunctionResources,
+    })
+
     const removeMemberFunction = new RustFunction(this, 'RemoveMemberFunction', {
       functionName: 'shopzebra-remove-member',
       manifestPath: path.join(SERVICES_DIR, 'lambdas', 'remove-member'),
+      ...rustFunctionResources,
+    })
+
+    const createFriendInviteFunction = new RustFunction(this, 'CreateFriendInviteFunction', {
+      functionName: 'shopzebra-create-friend-invite',
+      manifestPath: path.join(SERVICES_DIR, 'lambdas', 'create-friend-invite'),
+      ...rustFunctionResources,
+    })
+
+    const acceptFriendInviteFunction = new RustFunction(this, 'AcceptFriendInviteFunction', {
+      functionName: 'shopzebra-accept-friend-invite',
+      manifestPath: path.join(SERVICES_DIR, 'lambdas', 'accept-friend-invite'),
+      ...rustFunctionResources,
+    })
+
+    const getFriendsFunction = new RustFunction(this, 'GetFriendsFunction', {
+      functionName: 'shopzebra-get-friends',
+      manifestPath: path.join(SERVICES_DIR, 'lambdas', 'get-friends'),
+      ...rustFunctionResources,
+    })
+
+    const removeFriendFunction = new RustFunction(this, 'RemoveFriendFunction', {
+      functionName: 'shopzebra-remove-friend',
+      manifestPath: path.join(SERVICES_DIR, 'lambdas', 'remove-friend'),
       ...rustFunctionResources,
     })
 
@@ -113,6 +143,13 @@ export class ShopZebraApiStack extends cdk.Stack {
     membershipTable.grantReadWriteData(removeMemberFunction)
     eventsTable.grantReadWriteData(joinListFunction)
     eventsTable.grantReadWriteData(removeMemberFunction)
+    membershipTable.grantReadWriteData(addMemberFunction)
+    // The address book lives in the membership table under USER# keys.
+    membershipTable.grantReadWriteData(createFriendInviteFunction)
+    membershipTable.grantReadWriteData(acceptFriendInviteFunction)
+    membershipTable.grantReadWriteData(removeFriendFunction)
+    membershipTable.grantReadData(getFriendsFunction)
+    eventsTable.grantReadWriteData(addMemberFunction)
 
     // The joiner's and the owner's display names come from the user pool —
     // the access token carries only `sub`, so names have to be looked up.
@@ -124,6 +161,8 @@ export class ShopZebraApiStack extends cdk.Stack {
     })
     joinListFunction.addToRolePolicy(listUsersPolicy)
     getListsFunction.addToRolePolicy(listUsersPolicy)
+    addMemberFunction.addToRolePolicy(listUsersPolicy)
+    getFriendsFunction.addToRolePolicy(listUsersPolicy)
 
     const httpApi = new apigwv2.HttpApi(this, 'HttpApi', {
       apiName: 'shopzebra-api',
@@ -183,9 +222,44 @@ export class ShopZebraApiStack extends cdk.Stack {
     })
 
     httpApi.addRoutes({
+      path: '/lists/{listId}/members',
+      methods: [apigwv2.HttpMethod.POST],
+      integration: new apigwv2_integrations.HttpLambdaIntegration('AddMemberIntegration', addMemberFunction),
+      authorizer,
+    })
+
+    httpApi.addRoutes({
       path: '/lists/{listId}/members/{memberId}',
       methods: [apigwv2.HttpMethod.DELETE],
       integration: new apigwv2_integrations.HttpLambdaIntegration('RemoveMemberIntegration', removeMemberFunction),
+      authorizer,
+    })
+
+    httpApi.addRoutes({
+      path: '/friends/invites',
+      methods: [apigwv2.HttpMethod.POST],
+      integration: new apigwv2_integrations.HttpLambdaIntegration('CreateFriendInviteIntegration', createFriendInviteFunction),
+      authorizer,
+    })
+
+    httpApi.addRoutes({
+      path: '/friends/join',
+      methods: [apigwv2.HttpMethod.POST],
+      integration: new apigwv2_integrations.HttpLambdaIntegration('AcceptFriendInviteIntegration', acceptFriendInviteFunction),
+      authorizer,
+    })
+
+    httpApi.addRoutes({
+      path: '/friends',
+      methods: [apigwv2.HttpMethod.GET],
+      integration: new apigwv2_integrations.HttpLambdaIntegration('GetFriendsIntegration', getFriendsFunction),
+      authorizer,
+    })
+
+    httpApi.addRoutes({
+      path: '/friends/{friendId}',
+      methods: [apigwv2.HttpMethod.DELETE],
+      integration: new apigwv2_integrations.HttpLambdaIntegration('RemoveFriendIntegration', removeFriendFunction),
       authorizer,
     })
 

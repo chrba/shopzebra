@@ -75,6 +75,10 @@ pub trait MembershipStore: Send + Sync {
         user: &UserId,
     ) -> Result<(), StoreError>;
 
+    /// Everyone on this aggregate. Needed to enforce the member cap and to
+    /// befriend a joiner with the people already there.
+    async fn members_of(&self, aggregate: &AggregateId) -> Result<Vec<UserId>, StoreError>;
+
     /// All aggregates the user is a member of — the fan-out for the
     /// per-list cursor catch-up. Contract: **each aggregate exactly
     /// once**, regardless of how many rows the projection keeps per
@@ -129,4 +133,37 @@ pub trait InviteStore: Send + Sync {
 pub trait UserDirectory: Send + Sync {
     /// None when the user set no name yet; callers fall back.
     async fn display_name(&self, user: &UserId) -> Result<Option<String>, StoreError>;
+}
+
+/// A pending friendship invite. Unlike `StoredInvite` it has no aggregate —
+/// a friendship belongs to no list, which is exactly why it is a separate
+/// type instead of a widened one.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StoredFriendInvite {
+    pub token: String,
+    pub invited_by: UserId,
+    pub expires_at_ms: u64,
+}
+
+#[async_trait]
+pub trait FriendInviteStore: Send + Sync {
+    /// The inviter's current token, if any — a repeated create reuses it.
+    async fn friend_invite_for(&self, user: &UserId) -> Result<Option<StoredFriendInvite>, StoreError>;
+    async fn friend_invite_by_token(&self, token: &str) -> Result<Option<StoredFriendInvite>, StoreError>;
+    async fn put_friend_invite(&self, invite: &StoredFriendInvite) -> Result<(), StoreError>;
+}
+
+/// The address book. Deliberately NOT an event log: friendships are
+/// user-scoped, never conflict and nobody folds them.
+///
+/// Each direction is its own entry. Accepting writes both, removing deletes
+/// only the caller's own — an address book is personal, so one side tidying
+/// up must not change the other side's list.
+#[async_trait]
+pub trait FriendStore: Send + Sync {
+    async fn friends_of(&self, user: &UserId) -> Result<Vec<UserId>, StoreError>;
+    async fn is_friend(&self, user: &UserId, other: &UserId) -> Result<bool, StoreError>;
+    /// Writes one direction. Callers that mean "they became friends" call it twice.
+    async fn add_friend(&self, user: &UserId, friend: &UserId) -> Result<(), StoreError>;
+    async fn remove_friend(&self, user: &UserId, friend: &UserId) -> Result<(), StoreError>;
 }
