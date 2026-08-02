@@ -146,6 +146,13 @@ Ein Owner lädt per Link ein, der Eingeladene tritt bei, beide sehen einander mi
 
 ## 7. Offene Widersprüche und Folgefragen
 
+**Vorgemerkt für später: Ohne Konto starten.** Die App soll eines Tages ohne
+Registrierung nutzbar sein, inklusive Teilen, mit späterer Verknüpfung an ein
+Konto. Noch nicht entworfen, aber bei neuen Entscheidungen mitzudenken —
+Absicht und die Punkte, die man heute billig beachten kann, stehen in
+[accountless-first-planned.md](./accountless-first-planned.md).
+
+
 **A. Doppelt hinzugefügte Items** (offen, Produktentscheidung). `job-stories.md` §2 verlangt: *„When two family members add the same item at the same time, I want to see both entries and easily merge them."* Das Design macht das Gegenteil — deterministische `itemId`, die beiden Adds kollabieren automatisch, es gibt keine Merge-UI. Entweder ist die Job Story überholt, oder es fehlt ein UI-Element.
 
 **B. Familien- vs. Listen-Mitgliedschaft — entschieden (2026-07-25):** Es gibt **kein Familien-Konzept**. Eine Liste hat einen **Owner** (ihren Ersteller); nur er erzeugt Invites (Link/QR-Token), jedes Mitglied kann sich selbst entfernen. Membership existiert ausschließlich pro Liste, die Server-Projektion pro Aggregate. Eingearbeitet in `events.md`, `sync-engine.md` §6, `domain-model.md` §2/§8.

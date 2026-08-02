@@ -10,6 +10,7 @@ All code must follow the principles, decisions, and practices defined in the `ar
 - **Komponente, Hook, Slice oder Route implementieren** → lies `architecture/react-best-practices.md`
 - **Neues Feature oder View bauen** → lies `architecture/product-spec.md` für Wireframes und Feature-Details
 - **Ordner oder Package anlegen, Build-Fragen** → lies `architecture/project-structure.md` für Monorepo-Struktur
+- **Teilen von Listen, Rezepten, Wochenplänen** → lies `architecture/sharing-model.md` (ein Mechanismus für alle drei; ohne Konto starten ist vorgemerkt, siehe `accountless-first-planned.md`)
 - **Sync, Offline, Events, Backend-Endpunkte** → lies `architecture/sync-engine.md` + `architecture/conflict-resolution.md` und `services/events.md` für den Event-Katalog
 
 Die Kernregeln unten sind eine Kurzfassung — bei Zweifelsfällen immer das vollständige Dokument lesen.

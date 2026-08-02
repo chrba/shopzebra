@@ -108,7 +108,7 @@ Events:
 
 ### WeekPlan
 
-Wochenplan eines Users (nach Wegfall des Familien-Konzepts user-scoped; Teilen offen, siehe [status.md](./status.md) §7). Ordnet Rezepte Wochentagen zu.
+Wochenplan. **Seit 2026-08-02 teilbar wie eine Liste** — Besitzer ist der Ersteller, Mitglieder sehen und ändern (siehe [sharing-model.md](./sharing-model.md)). Die frühere Einordnung „user-scoped, Teilen offen" ist überholt. Ordnet Rezepte Wochentagen zu.
 
 ```
 Entity: WeekPlan { userId, week, year, slots[] }
