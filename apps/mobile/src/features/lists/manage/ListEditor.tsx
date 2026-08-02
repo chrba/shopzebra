@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import type { ListColor } from '../../preferences/domain/preferencesDomain'
+import type { AccentColor } from '../../preferences/domain/preferencesDomain'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
@@ -21,7 +21,7 @@ const EMOJIS = [
   '\u2708',
 ] as const
 
-const COLORS: readonly { readonly name: ListColor; readonly hex: string }[] = [
+const COLORS: readonly { readonly name: AccentColor; readonly hex: string }[] = [
   { name: 'green', hex: '#6BBF6B' },
   { name: 'blue', hex: '#5BA8D5' },
   { name: 'red', hex: '#E07B7B' },
@@ -29,7 +29,7 @@ const COLORS: readonly { readonly name: ListColor; readonly hex: string }[] = [
   { name: 'yellow', hex: '#E8C44A' },
 ]
 
-const COLOR_BG_MAP: Record<ListColor, string> = {
+const COLOR_BG_MAP: Record<AccentColor, string> = {
   green: 'bg-[rgba(107,191,107,0.12)]',
   blue: 'bg-[rgba(91,168,213,0.12)]',
   red: 'bg-[rgba(224,123,123,0.12)]',
@@ -65,7 +65,7 @@ export type ListEditorValues = {
   /** Pre-filled list name (empty for new lists). */
   readonly name: string
   /** Pre-selected color theme. */
-  readonly color: ListColor
+  readonly color: AccentColor
 }
 
 export type ListEditorResult = {
@@ -74,7 +74,7 @@ export type ListEditorResult = {
   /** Chosen emoji for the list icon. */
   readonly emoji: string
   /** Chosen color theme. */
-  readonly color: ListColor
+  readonly color: AccentColor
 }
 
 type ListEditorProps = {
@@ -106,7 +106,7 @@ export function ListEditor({
 
   const [emoji, setEmoji] = useState(initialValues.emoji)
   const [name, setName] = useState(initialValues.name)
-  const [color, setColor] = useState<ListColor>(initialValues.color)
+  const [color, setColor] = useState<AccentColor>(initialValues.color)
   const [error, setError] = useState('')
 
   const handleSubmit = () => {
@@ -207,7 +207,7 @@ export function ListEditor({
         <ToggleGroup
           type="single"
           value={color}
-          onValueChange={(v) => v && setColor(v as ListColor)}
+          onValueChange={(v) => v && setColor(v as AccentColor)}
           spacing={1}
           className="flex gap-3"
         >

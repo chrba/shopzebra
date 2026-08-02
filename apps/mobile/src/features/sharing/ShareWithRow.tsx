@@ -1,5 +1,5 @@
-import { memberAvatarColor, memberInitial } from '../domain/memberAvatar'
-import { InviteIcon } from '../../../components/InviteIcon'
+import { memberAvatarColor, memberInitial } from '../lists/domain/memberAvatar'
+import { InviteIcon } from '../../components/InviteIcon'
 
 type ShareWithRowProps = {
   /** Labels are resolved by the caller — see memberDisplayName. */

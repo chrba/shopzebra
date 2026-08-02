@@ -1,23 +1,17 @@
 import { useState } from 'react'
-import { useNavigate } from '@tanstack/react-router'
-import { store, useAppSelector } from '../../../app/store'
-import { selectDeviceId } from '../../../app/appSlice'
-import { selectAuthUser } from '../../auth/domain/authSlice'
-import {
-  selectListById,
-  selectListIsFull,
-  selectListMembers,
-  selectMaxMembers,
-} from '../domain/listsSlice'
-import { selectFriends } from '../../friends/domain/friendsSlice'
-import { memberAvatarColor, memberInitial } from '../domain/memberAvatar'
+import { store, useAppSelector } from '../../app/store'
+import { selectDeviceId } from '../../app/appSlice'
+import { selectAuthUser } from '../auth/domain/authSlice'
+import { selectFriends } from '../friends/domain/friendsSlice'
+import { memberAvatarColor, memberInitial } from '../lists/domain/memberAvatar'
 import { MEMBER_NAME_FALLBACK, memberDisplayName } from './memberDisplayName'
-import { addMemberToList, removeMember } from './memberCommands'
-import { useToast } from '../../../components/Toast'
-import { InviteIcon } from '../../../components/InviteIcon'
-import { PageHeader } from '../../../components/PageHeader'
-import { DangerConfirmDialog } from '../../../components/DangerConfirmDialog'
-import { syncEngine } from '../../../app/sync/syncEngine'
+import { addMember, removeMember } from './memberCommands'
+import type { Aggregate } from '../../app/sync/aggregate'
+import { useToast } from '../../components/Toast'
+import { InviteIcon } from '../../components/InviteIcon'
+import { PageHeader } from '../../components/PageHeader'
+import { DangerConfirmDialog } from '../../components/DangerConfirmDialog'
+import { syncEngine } from '../../app/sync/syncEngine'
 
 function RemoveIcon() {
   return (
@@ -118,24 +112,58 @@ function InviteCta({ onClick }: { readonly onClick: () => void }) {
   )
 }
 
-type MembersPageProps = {
-  readonly listId: string
+/** One person on the aggregate, as the screen needs them. */
+export type SharedMember = {
+  readonly id: string
+  readonly name: string | null
+  readonly isOwner: boolean
 }
 
 /**
- * Members of one list, always visible — the tab toggle from
- * design/pure/invite.html was dropped. Below them, the owner sees their
- * friends as one-tap candidates; inviting strangers lives on its own
- * screen, reached through the CTA card.
+ * The words that differ between a list and a recipe. Everything else about
+ * sharing is identical, so only the nouns travel as data.
  */
-export function MembersPage({ listId }: MembersPageProps) {
-  const navigate = useNavigate()
-  const list = useAppSelector((state) => selectListById(state, listId))
-  const members = useAppSelector((state) => selectListMembers(state, listId))
+export type SharingWording = {
+  /** Shown when the aggregate is gone, e.g. "Diese Liste gibt es nicht mehr." */
+  readonly missing: string
+  /** Shown when the cap is reached, e.g. "Liste ist voll". */
+  readonly full: string
+  /** What a removed member loses, e.g. "diese Einkaufsliste". */
+  readonly accessTo: string
+}
+
+type MembersPageProps = {
+  readonly aggregate: Aggregate
+  /** Who owns it, or null when it no longer exists on this device. */
+  readonly ownerId: string | null
+  readonly members: readonly SharedMember[]
+  readonly maxMembers: number | null
+  readonly wording: SharingWording
+  readonly onBack: () => void
+  readonly onInvite: () => void
+}
+
+/**
+ * Members of one shared thing — a list or a recipe — always visible; the
+ * tab toggle from design/pure/invite.html was dropped. Below them, the
+ * owner sees their friends as one-tap candidates; inviting strangers lives
+ * on its own screen, reached through the CTA card.
+ *
+ * The screen knows nothing about which kind it is showing: the route hands
+ * it the aggregate, its members and the few words that differ.
+ */
+export function MembersPage({
+  aggregate,
+  ownerId,
+  members,
+  maxMembers,
+  wording,
+  onBack,
+  onInvite,
+}: MembersPageProps) {
   const me = useAppSelector(selectAuthUser)
   const friends = useAppSelector(selectFriends)
-  const maxMembers = useAppSelector(selectMaxMembers)
-  const isFull = useAppSelector((state) => selectListIsFull(state, listId))
+  const isFull = maxMembers !== null && members.length >= maxMembers
   const toast = useToast()
   const [addingId, setAddingId] = useState<string | null>(null)
   const [pendingRemoval, setPendingRemoval] = useState<{
@@ -143,7 +171,7 @@ export function MembersPage({ listId }: MembersPageProps) {
     readonly name: string
   } | null>(null)
 
-  const isOwner = me !== null && list?.ownerId === me.userId
+  const isOwner = me !== null && ownerId === me.userId
 
   // Friends who are not on this list yet — the one-tap candidates.
   const candidates = friends.filter(
@@ -152,12 +180,12 @@ export function MembersPage({ listId }: MembersPageProps) {
 
   const handleAddFriend = (friendId: string, name: string) => {
     setAddingId(friendId)
-    void addMemberToList(listId, friendId, {
+    void addMember(aggregate, friendId, {
       eventId: crypto.randomUUID(),
       deviceId: selectDeviceId(store.getState()),
     })
       .then(async () => {
-        // The server wrote listMemberAdded; the fold arrives with the pull.
+        // The server wrote the member event; the fold arrives with the pull.
         await syncEngine.requestSync()
         toast.show(`${name} hinzugefügt`)
       })
@@ -165,7 +193,7 @@ export function MembersPage({ listId }: MembersPageProps) {
         console.warn('adding the friend failed', error)
         toast.show(
           String(error).includes('409')
-            ? 'Die Liste ist voll'
+            ? wording.full
             : 'Hinzufügen fehlgeschlagen',
         )
       })
@@ -177,12 +205,12 @@ export function MembersPage({ listId }: MembersPageProps) {
     setPendingRemoval(null)
     if (!target) return
 
-    void removeMember(listId, target.id, {
+    void removeMember(aggregate, target.id, {
       eventId: crypto.randomUUID(),
       deviceId: selectDeviceId(store.getState()),
     })
       .then(async () => {
-        // The server writes listMemberRemoved; the fold arrives with the
+        // The server writes the member-removed event; the fold arrives with the
         // next pull, so the card disappears once sync confirms it.
         await syncEngine.requestSync()
         toast.show(`${target.name} wurde entfernt`)
@@ -193,12 +221,10 @@ export function MembersPage({ listId }: MembersPageProps) {
       })
   }
 
-  if (!list) {
+  if (ownerId === null) {
     return (
       <div className="flex min-h-screen items-center justify-center px-8 text-center">
-        <p className="text-muted-foreground text-[15px]">
-          Diese Liste gibt es nicht mehr.
-        </p>
+        <p className="text-muted-foreground text-[15px]">{wording.missing}</p>
       </div>
     )
   }
@@ -208,7 +234,7 @@ export function MembersPage({ listId }: MembersPageProps) {
       <PageHeader
         title="Mitglieder"
         backLabel="Zurück"
-        onBack={() => void navigate({ to: '/lists' })}
+        onBack={onBack}
       />
 
       <div className="mx-5 flex flex-col gap-2.5">
@@ -253,23 +279,19 @@ export function MembersPage({ listId }: MembersPageProps) {
 
         {isFull && (
           <div className="text-muted-foreground mt-3 text-center text-[13px] font-medium">
-            Liste ist voll ({members.length} von {maxMembers})
+            {wording.full} ({members.length} von {maxMembers})
           </div>
         )}
 
         {isOwner && !isFull && (
-          <InviteCta
-            onClick={() =>
-              void navigate({ to: '/lists/$listId/invite', params: { listId } })
-            }
-          />
+          <InviteCta onClick={onInvite} />
         )}
       </div>
 
       <DangerConfirmDialog
         open={pendingRemoval !== null}
         title={`${pendingRemoval?.name} entfernen?`}
-        message={`${pendingRemoval?.name} hat dann keinen Zugriff mehr auf diese Einkaufsliste.`}
+        message={`${pendingRemoval?.name} hat dann keinen Zugriff mehr auf ${wording.accessTo}.`}
         confirmLabel="Entfernen"
         onConfirm={handleConfirmRemoval}
         onCancel={() => setPendingRemoval(null)}

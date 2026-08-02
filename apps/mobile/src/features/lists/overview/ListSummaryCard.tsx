@@ -5,7 +5,7 @@ import {
   CardDescription,
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import type { ListColor } from '../../preferences/domain/preferencesDomain'
+import type { AccentColor } from '../../preferences/domain/preferencesDomain'
 import { InviteIcon } from '../../../components/InviteIcon'
 
 /** Pencil icon shown in the bottom-right corner of each list card. */
@@ -27,7 +27,7 @@ export type ListSummaryViewModel = {
   /** Display name of the shopping list. */
   readonly name: string
   /** Color theme used for the icon background glow. */
-  readonly color: ListColor
+  readonly color: AccentColor
   /** Emoji shown as the list icon. */
   readonly emoji: string
   /** Number of items on this list. */
@@ -47,7 +47,7 @@ type ListSummaryCardProps = {
   readonly onManageMembers: () => void
 }
 
-const iconBgMap: Record<ListColor, string> = {
+const iconBgMap: Record<AccentColor, string> = {
   green: 'bg-green-500/15 shadow-[0_0_20px_rgba(107,191,107,0.4)]',
   blue: 'bg-blue-500/15 shadow-[0_0_20px_rgba(91,168,213,0.4)]',
   red: 'bg-red-500/15 shadow-[0_0_20px_rgba(224,123,123,0.4)]',

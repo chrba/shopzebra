@@ -4,12 +4,12 @@ import { useAppDispatch, useAppSelector } from '../../../app/store'
 import { selectInitialSyncDone } from '../../../app/appSlice'
 import { listDeleted, selectAllLists } from '../domain/listsSlice'
 import { memberAvatarColor, memberInitial } from '../domain/memberAvatar'
-import { memberDisplayName } from '../members/memberDisplayName'
+import { memberDisplayName } from '../../sharing/memberDisplayName'
 import { selectFriendCount } from '../../friends/domain/friendsSlice'
 import { selectAuthUser } from '../../auth/domain/authSlice'
 import { selectItemCountByListId } from '../../shopping/domain/shoppingSlice'
 import { selectAllListPreferences } from '../../preferences/domain/preferencesSlice'
-import type { ListColor } from '../../preferences/domain/preferencesDomain'
+import type { AccentColor } from '../../preferences/domain/preferencesDomain'
 import { ListsHeader } from './ListsHeader'
 import { SummaryChips } from './SummaryChips'
 import { ListSummaryCard } from './ListSummaryCard'
@@ -20,7 +20,7 @@ import { Card } from '@/components/ui/card'
 
 // --- Helpers ---
 
-const COLORS: readonly ListColor[] = [
+const COLORS: readonly AccentColor[] = [
   'green',
   'blue',
   'red',
@@ -39,7 +39,7 @@ function hashOf(id: string): number {
 // Deterministic defaults derived from the id — no stored state, no null checks
 // (architecture/domain-model.md §3). Member display names arrive later via
 // server-written listMemberAdded events; until then the id provides the letter.
-function defaultColor(id: string): ListColor {
+function defaultColor(id: string): AccentColor {
   return COLORS[hashOf(id) % COLORS.length] ?? 'green'
 }
 

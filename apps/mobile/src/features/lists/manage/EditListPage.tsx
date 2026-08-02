@@ -10,8 +10,8 @@ import {
   selectListPreferences,
 } from '../../preferences/domain/preferencesSlice'
 import { ListEditor } from './ListEditor'
-import { ShareWithRow } from '../members/ShareWithRow'
-import { memberDisplayName } from '../members/memberDisplayName'
+import { ShareWithRow } from '../../sharing/ShareWithRow'
+import { memberDisplayName } from '../../sharing/memberDisplayName'
 import { selectAuthUser } from '../../auth/domain/authSlice'
 
 type EditListPageProps = {

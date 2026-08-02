@@ -1,4 +1,4 @@
-import type { AuthUser } from '../../auth/domain/authSlice'
+import type { AuthUser } from '../auth/domain/authSlice'
 
 /** Shown when nobody ever supplied a name — see events.md on enrichment. */
 export const MEMBER_NAME_FALLBACK = 'Mitglied'
