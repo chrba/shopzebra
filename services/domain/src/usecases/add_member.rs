@@ -1,12 +1,11 @@
-use serde_json::json;
 use thiserror::Error;
 
 use crate::event::{AggregateId, NewEvent, UserId};
-use crate::membership::{check_can_invite, MembershipViolation};
+use crate::membership::{check_can_invite, member_added_payload, MembershipViolation};
 use crate::limits::MAX_LIST_MEMBERS;
 use crate::ports::{FriendStore, MemberRole, Ports, StoreError, UserDirectory};
 use crate::usecases::friends::befriend;
-use crate::usecases::join_list::{LIST_MEMBER_ADDED, UNKNOWN_MEMBER_NAME};
+use crate::usecases::join_aggregate::UNKNOWN_MEMBER_NAME;
 
 #[derive(Debug, Error)]
 pub enum AddMemberError {
@@ -25,7 +24,7 @@ pub enum AddMemberError {
 
 #[derive(Debug)]
 pub struct AddMemberRequest {
-    pub list_id: String,
+    pub aggregate: AggregateId,
     pub member_id: UserId,
     pub event_id: String,
     pub device_id: String,
@@ -41,7 +40,7 @@ pub async fn add_member(
     caller: &UserId,
     request: AddMemberRequest,
 ) -> Result<(), AddMemberError> {
-    let aggregate = AggregateId::list(request.list_id);
+    let aggregate = request.aggregate;
     let role = ports.membership.role_of(&aggregate, caller).await?;
     check_can_invite(role)?;
 
@@ -75,12 +74,8 @@ pub async fn add_member(
         .append(
             &aggregate,
             NewEvent {
-                event_type: LIST_MEMBER_ADDED.into(),
-                payload: json!({
-                    "listId": aggregate.id,
-                    "memberId": request.member_id.0,
-                    "name": name,
-                }),
+                event_type: aggregate.member_added_event().into(),
+                payload: member_added_payload(&aggregate, &request.member_id, &name),
                 event_id: request.event_id,
                 device_id: request.device_id,
                 user_id: caller.clone(),
@@ -117,6 +112,8 @@ mod tests {
         MemoryUserDirectory,
     };
     use crate::ports::{EventStore, MembershipStore};
+    use crate::usecases::join_aggregate::LIST_MEMBER_ADDED;
+    use serde_json::json;
 
     struct Fixture {
         store: MemoryEventStore,
@@ -136,8 +133,17 @@ mod tests {
         }
 
         async fn with(self, list: &str, user: &str, role: MemberRole) -> Self {
+            self.with_aggregate(&AggregateId::list(list), user, role).await
+        }
+
+        async fn with_aggregate(
+            self,
+            aggregate: &AggregateId,
+            user: &str,
+            role: MemberRole,
+        ) -> Self {
             self.membership
-                .add_member(&AggregateId::list(list), &UserId(user.into()), role)
+                .add_member(aggregate, &UserId(user.into()), role)
                 .await
                 .expect("member");
             self
@@ -173,7 +179,7 @@ mod tests {
 
     fn request(list_id: &str, member_id: &str) -> AddMemberRequest {
         AddMemberRequest {
-            list_id: list_id.into(),
+            aggregate: AggregateId::list(list_id),
             member_id: UserId(member_id.into()),
             event_id: "evt-1".into(),
             device_id: "device-1".into(),
@@ -335,6 +341,43 @@ mod tests {
         .expect("idempotent");
 
         assert!(fixture.log("new-list").await.is_empty());
+    }
+
+    #[tokio::test]
+    async fn adding_someone_to_a_recipe_writes_the_recipe_member_event() {
+        let fixture = Fixture::new()
+            .with_aggregate(&AggregateId::recipe("bolo"), "mama", MemberRole::Owner)
+            .await
+            .befriended("mama", "tom")
+            .await;
+        let users = MemoryUserDirectory::new().with_name("tom", "Tom");
+
+        add_member(
+            &fixture.ports(),
+            &users,
+            &fixture.friends,
+            &UserId("mama".into()),
+            AddMemberRequest {
+                aggregate: AggregateId::recipe("bolo"),
+                member_id: UserId("tom".into()),
+                event_id: "evt-1".into(),
+                device_id: "device-1".into(),
+            },
+        )
+        .await
+        .expect("a recipe is shared like a list");
+
+        let log = fixture
+            .store
+            .events_since(&AggregateId::recipe("bolo"), None)
+            .await
+            .expect("readable");
+        assert_eq!(log.len(), 1);
+        assert_eq!(log[0].event_type, "recipes/recipeMemberAdded");
+        assert_eq!(
+            log[0].payload,
+            json!({ "recipeId": "bolo", "memberId": "tom", "name": "Tom" })
+        );
     }
 
     #[tokio::test]

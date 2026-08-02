@@ -6,13 +6,16 @@ use aws_sdk_dynamodb::Client;
 use domain::event::UserId;
 use domain::ports::Ports;
 use domain::usecases::add_member::{add_member, AddMemberError, AddMemberRequest};
-use lambda_http::{run, service_fn, Body, Error, Request, RequestExt, Response};
+use domain::event::AggregateId;
+use lambda_http::{run, service_fn, Body, Error, Request, Response};
+use lib::aggregate_route::aggregate_from_path;
 use lib::error::ApiError;
 use lib::wire;
 
-// POST /lists/{listId}/members — class-2 command: the owner adds somebody
-// they already share a list with, skipping the invite token. Everyone else
-// still goes through POST /lists/join.
+// POST /lists/{listId}/members and POST /recipes/{recipeId}/members —
+// class-2 command: the owner adds somebody they already share something
+// with, skipping the invite token. Everyone else still goes through
+// POST /lists/join.
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt()
@@ -58,15 +61,12 @@ async fn handle(
         Err(api_error) => return api_error.to_response(),
     };
 
-    let Some(list_id) = http_request
-        .path_parameters()
-        .first("listId")
-        .map(String::from)
-    else {
-        return ApiError::BadRequest("listId is required".into()).to_response();
+    let aggregate = match aggregate_from_path(&http_request) {
+        Ok(aggregate) => aggregate,
+        Err(api_error) => return api_error.to_response(),
     };
 
-    let request = match parse_request(list_id, http_request.body().as_ref()) {
+    let request = match parse_request(aggregate, http_request.body().as_ref()) {
         Ok(request) => request,
         Err(api_error) => return api_error.to_response(),
     };
@@ -90,7 +90,7 @@ async fn handle(
     }
 }
 
-fn parse_request(list_id: String, body: &[u8]) -> Result<AddMemberRequest, ApiError> {
+fn parse_request(aggregate: AggregateId, body: &[u8]) -> Result<AddMemberRequest, ApiError> {
     let action = wire::parse_action(body)?;
     let payload = wire::required_payload(&action)?;
     let member_id = payload
@@ -100,7 +100,7 @@ fn parse_request(list_id: String, body: &[u8]) -> Result<AddMemberRequest, ApiEr
         .to_string();
 
     Ok(AddMemberRequest {
-        list_id,
+        aggregate,
         member_id: UserId(member_id),
         event_id: wire::required_meta_field(&action, "eventId")?,
         device_id: wire::required_meta_field(&action, "deviceId")?,

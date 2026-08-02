@@ -2,14 +2,16 @@ use adapters::{DynamoDbInviteStore, DynamoDbMembershipStore};
 use aws_sdk_dynamodb::Client;
 use domain::event::UserId;
 use domain::usecases::create_invite::{create_invite, CreateInviteError, CreateInviteRequest};
-use lambda_http::{run, service_fn, Body, Error, Request, RequestExt, Response};
+use lambda_http::{run, service_fn, Body, Error, Request, Response};
+use lib::aggregate_route::aggregate_from_path;
 use lib::error::ApiError;
 use serde_json::json;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-// POST /lists/{listId}/invites — class-2 command: only the owner mints an
-// invite token. Repeated calls hand out the active token unchanged, so the
-// link and QR on the invite screen stay stable across visits.
+// POST /lists/{listId}/invites and POST /recipes/{recipeId}/invites —
+// class-2 command: only the owner mints an invite token. Repeated calls hand
+// out the active token unchanged, so the link and QR on the invite screen
+// stay stable across visits.
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt()
@@ -42,16 +44,13 @@ async fn handle(
         Err(api_error) => return api_error.to_response(),
     };
 
-    let Some(list_id) = http_request
-        .path_parameters()
-        .first("listId")
-        .map(String::from)
-    else {
-        return ApiError::BadRequest("listId is required".into()).to_response();
+    let aggregate = match aggregate_from_path(&http_request) {
+        Ok(aggregate) => aggregate,
+        Err(api_error) => return api_error.to_response(),
     };
 
     let request = CreateInviteRequest {
-        list_id,
+        aggregate,
         fresh_token: uuid::Uuid::new_v4().simple().to_string(),
         now_ms: now_ms(),
     };

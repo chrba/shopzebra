@@ -1,11 +1,10 @@
-use serde_json::json;
 use thiserror::Error;
 
 use crate::event::{AggregateId, NewEvent, UserId};
-use crate::membership::{check_can_remove, MembershipViolation};
+use crate::membership::{check_can_remove, member_removed_payload, MembershipViolation};
 use crate::ports::{Ports, StoreError};
 
-pub const LIST_MEMBER_REMOVED: &str = "lists/listMemberRemoved";
+pub use crate::event::LIST_MEMBER_REMOVED;
 
 #[derive(Debug, Error)]
 pub enum RemoveMemberError {
@@ -21,7 +20,7 @@ pub enum RemoveMemberError {
 
 #[derive(Debug)]
 pub struct RemoveMemberRequest {
-    pub list_id: String,
+    pub aggregate: AggregateId,
     pub member_id: UserId,
     pub event_id: String,
     pub device_id: String,
@@ -29,14 +28,14 @@ pub struct RemoveMemberRequest {
 
 /// Class 2: the server owns the membership projection. The owner removes
 /// anyone, a member only themselves (`events.md` owner model). Event first,
-/// membership second — same ordering as `join_list`, so a failed second
+/// membership second — same ordering as `join_aggregate`, so a failed second
 /// step is safe to retry.
 pub async fn remove_member(
     ports: &Ports<'_>,
     caller: &UserId,
     request: RemoveMemberRequest,
 ) -> Result<(), RemoveMemberError> {
-    let aggregate = AggregateId::list(request.list_id);
+    let aggregate = request.aggregate;
     let caller_role = ports.membership.role_of(&aggregate, caller).await?;
     check_can_remove(caller_role, *caller == request.member_id)?;
 
@@ -54,11 +53,8 @@ pub async fn remove_member(
         .append(
             &aggregate,
             NewEvent {
-                event_type: LIST_MEMBER_REMOVED.into(),
-                payload: json!({
-                    "listId": aggregate.id,
-                    "memberId": request.member_id.0,
-                }),
+                event_type: aggregate.member_removed_event().into(),
+                payload: member_removed_payload(&aggregate, &request.member_id),
                 event_id: request.event_id,
                 device_id: request.device_id,
                 user_id: caller.clone(),
@@ -80,6 +76,7 @@ mod tests {
     use super::*;
     use crate::memory::{MemoryEventPublisher, MemoryEventStore, MemoryMembershipStore};
     use crate::ports::{EventStore, MemberRole, MembershipStore};
+    use serde_json::json;
 
     struct Fixture {
         store: MemoryEventStore,
@@ -129,7 +126,7 @@ mod tests {
 
     fn request(member_id: &str) -> RemoveMemberRequest {
         RemoveMemberRequest {
-            list_id: "abc".into(),
+            aggregate: AggregateId::list("abc"),
             member_id: UserId(member_id.into()),
             event_id: "evt-1".into(),
             device_id: "device-1".into(),
@@ -156,6 +153,42 @@ mod tests {
             json!({ "listId": "abc", "memberId": "tom" })
         );
         assert_eq!(fixture.role_of("tom").await, None);
+    }
+
+    #[tokio::test]
+    async fn leaving_a_recipe_writes_the_recipe_member_event() {
+        let fixture = Fixture::new();
+        let recipe = AggregateId::recipe("bolo");
+        fixture
+            .membership
+            .add_member(&recipe, &UserId("tom".into()), MemberRole::Member)
+            .await
+            .expect("member");
+
+        remove_member(
+            &fixture.ports(),
+            &UserId("tom".into()),
+            RemoveMemberRequest {
+                aggregate: recipe.clone(),
+                member_id: UserId("tom".into()),
+                event_id: "evt-1".into(),
+                device_id: "device-1".into(),
+            },
+        )
+        .await
+        .expect("leaving a recipe works like leaving a list");
+
+        let log = fixture
+            .store
+            .events_since(&recipe, None)
+            .await
+            .expect("readable");
+        assert_eq!(log.len(), 1);
+        assert_eq!(log[0].event_type, "recipes/recipeMemberRemoved");
+        assert_eq!(
+            log[0].payload,
+            json!({ "recipeId": "bolo", "memberId": "tom" })
+        );
     }
 
     #[tokio::test]

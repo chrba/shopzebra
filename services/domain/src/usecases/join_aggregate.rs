@@ -1,23 +1,23 @@
-use serde_json::json;
 use thiserror::Error;
 
-use crate::event::{NewEvent, UserId};
+use crate::event::{AggregateId, NewEvent, UserId};
 use crate::limits::MAX_LIST_MEMBERS;
+use crate::membership::member_added_payload;
 use crate::ports::{FriendStore, InviteStore, MemberRole, Ports, StoreError, UserDirectory};
 use crate::usecases::friends::befriend;
 
-pub const LIST_MEMBER_ADDED: &str = "lists/listMemberAdded";
+pub use crate::event::LIST_MEMBER_ADDED;
 
 /// Shown when the identity provider knows no display name for the joiner.
 pub const UNKNOWN_MEMBER_NAME: &str = "Mitglied";
 
 #[derive(Debug, Error)]
-pub enum JoinListError {
+pub enum JoinAggregateError {
     /// Unknown and expired tokens collapse into one error on purpose —
     /// the caller must not be able to tell them apart.
     #[error("invalid or expired invite token")]
     InvalidToken,
-    /// The list already holds MAX_LIST_MEMBERS people.
+    /// The aggregate already holds MAX_LIST_MEMBERS people.
     #[error("this list is full")]
     ListFull,
     #[error(transparent)]
@@ -25,7 +25,7 @@ pub enum JoinListError {
 }
 
 #[derive(Debug)]
-pub struct JoinListRequest {
+pub struct JoinAggregateRequest {
     pub token: String,
     pub event_id: String,
     pub device_id: String,
@@ -33,44 +33,47 @@ pub struct JoinListRequest {
 }
 
 #[derive(Debug)]
-pub struct JoinedList {
-    pub list_id: String,
+pub struct JoinedAggregate {
+    /// Which aggregate was joined — the token decides, not the route, so
+    /// the caller learns from here whether to open a list or a recipe.
+    pub aggregate: AggregateId,
     pub already_member: bool,
 }
 
 /// Class 2: the server verifies the token, enriches the display name from
-/// the identity provider and writes `listMemberAdded` itself — the type is
-/// not client-appendable (the envelope allowlist rejects it on the generic
-/// path). Event first, membership second: if the membership write fails the
-/// joiner retries and the append dedups on `event_id`.
-pub async fn join_list(
+/// the identity provider and writes the member-added event itself — the type
+/// is not client-appendable (the envelope allowlist rejects it on the generic
+/// path). Which aggregate is joined comes from the token, so one endpoint
+/// serves lists, recipes and plans alike. Event first, membership second: if
+/// the membership write fails the joiner retries and the append dedups on
+/// `event_id`.
+pub async fn join_aggregate(
     ports: &Ports<'_>,
     invites: &dyn InviteStore,
     users: &dyn UserDirectory,
     friends: &dyn FriendStore,
     caller: &UserId,
-    request: JoinListRequest,
-) -> Result<JoinedList, JoinListError> {
+    request: JoinAggregateRequest,
+) -> Result<JoinedAggregate, JoinAggregateError> {
     let invite = invites
         .invite_by_token(&request.token)
         .await?
-        .ok_or(JoinListError::InvalidToken)?;
+        .ok_or(JoinAggregateError::InvalidToken)?;
     if invite.expires_at_ms <= request.now_ms {
-        return Err(JoinListError::InvalidToken);
+        return Err(JoinAggregateError::InvalidToken);
     }
     let aggregate = invite.aggregate;
-    let list_id = aggregate.id.clone();
 
     if ports.membership.role_of(&aggregate, caller).await?.is_some() {
-        return Ok(JoinedList {
-            list_id,
+        return Ok(JoinedAggregate {
+            aggregate,
             already_member: true,
         });
     }
 
     let members = ports.membership.members_of(&aggregate).await?;
     if members.len() >= MAX_LIST_MEMBERS {
-        return Err(JoinListError::ListFull);
+        return Err(JoinAggregateError::ListFull);
     }
 
     let name = users
@@ -83,12 +86,8 @@ pub async fn join_list(
         .append(
             &aggregate,
             NewEvent {
-                event_type: LIST_MEMBER_ADDED.into(),
-                payload: json!({
-                    "listId": list_id,
-                    "memberId": caller.0,
-                    "name": name,
-                }),
+                event_type: aggregate.member_added_event().into(),
+                payload: member_added_payload(&aggregate, caller, &name),
                 event_id: request.event_id,
                 device_id: request.device_id,
                 user_id: caller.clone(),
@@ -115,8 +114,8 @@ pub async fn join_list(
 
     let _ = ports.broadcast.publish(&aggregate.channel(), &stored).await;
 
-    Ok(JoinedList {
-        list_id,
+    Ok(JoinedAggregate {
+        aggregate,
         already_member: false,
     })
 }
@@ -130,6 +129,7 @@ mod tests {
         MemoryMembershipStore, MemoryUserDirectory,
     };
     use crate::ports::{EventStore, MembershipStore, StoredInvite};
+    use serde_json::json;
 
     struct Fixture {
         store: MemoryEventStore,
@@ -151,10 +151,15 @@ mod tests {
         }
 
         async fn with_invite(self, expires_at_ms: u64) -> Self {
+            self.with_invite_to(AggregateId::list("abc"), expires_at_ms)
+                .await
+        }
+
+        async fn with_invite_to(self, aggregate: AggregateId, expires_at_ms: u64) -> Self {
             self.invites
                 .put_invite(&StoredInvite {
                     token: "tok-1".into(),
-                    aggregate: AggregateId::list("abc"),
+                    aggregate,
                     expires_at_ms,
                 })
                 .await
@@ -178,8 +183,8 @@ mod tests {
         }
     }
 
-    fn request(token: &str, now_ms: u64) -> JoinListRequest {
-        JoinListRequest {
+    fn request(token: &str, now_ms: u64) -> JoinAggregateRequest {
+        JoinAggregateRequest {
             token: token.into(),
             event_id: "evt-1".into(),
             device_id: "device-1".into(),
@@ -192,7 +197,7 @@ mod tests {
         let fixture = Fixture::new().with_invite(10_000).await;
         let users = MemoryUserDirectory::new().with_name("tom", "Tom");
 
-        let joined = join_list(
+        let joined = join_aggregate(
             &fixture.ports(),
             &fixture.invites,
             &users,
@@ -203,7 +208,7 @@ mod tests {
         .await
         .expect("join succeeds");
 
-        assert_eq!(joined.list_id, "abc");
+        assert_eq!(joined.aggregate, AggregateId::list("abc"));
         assert!(!joined.already_member);
 
         let log = fixture.log().await;
@@ -227,7 +232,7 @@ mod tests {
         let fixture = Fixture::new().with_invite(10_000).await;
         let users = MemoryUserDirectory::new();
 
-        join_list(
+        join_aggregate(
             &fixture.ports(),
             &fixture.invites,
             &users,
@@ -259,7 +264,7 @@ mod tests {
             .expect("member");
         let users = MemoryUserDirectory::new();
 
-        let joined = join_list(
+        let joined = join_aggregate(
             &fixture.ports(),
             &fixture.invites,
             &users,
@@ -279,7 +284,7 @@ mod tests {
         let fixture = Fixture::new();
         let users = MemoryUserDirectory::new();
 
-        let result = join_list(
+        let result = join_aggregate(
             &fixture.ports(),
             &fixture.invites,
             &users,
@@ -289,7 +294,7 @@ mod tests {
         )
         .await;
 
-        assert!(matches!(result, Err(JoinListError::InvalidToken)));
+        assert!(matches!(result, Err(JoinAggregateError::InvalidToken)));
     }
 
     #[tokio::test]
@@ -297,7 +302,7 @@ mod tests {
         let fixture = Fixture::new().with_invite(10_000).await;
         let users = MemoryUserDirectory::new();
 
-        let result = join_list(
+        let result = join_aggregate(
             &fixture.ports(),
             &fixture.invites,
             &users,
@@ -307,7 +312,7 @@ mod tests {
         )
         .await;
 
-        assert!(matches!(result, Err(JoinListError::InvalidToken)));
+        assert!(matches!(result, Err(JoinAggregateError::InvalidToken)));
         assert!(fixture.log().await.is_empty());
         let role = fixture
             .membership
@@ -333,7 +338,7 @@ mod tests {
         }
         let users = MemoryUserDirectory::new();
 
-        let result = join_list(
+        let result = join_aggregate(
             &fixture.ports(),
             &fixture.invites,
             &users,
@@ -343,8 +348,48 @@ mod tests {
         )
         .await;
 
-        assert!(matches!(result, Err(JoinListError::ListFull)));
+        assert!(matches!(result, Err(JoinAggregateError::ListFull)));
         assert!(fixture.log().await.is_empty());
+    }
+
+    #[tokio::test]
+    async fn joining_a_recipe_writes_the_recipe_member_event_not_the_list_one() {
+        let fixture = Fixture::new()
+            .with_invite_to(AggregateId::recipe("bolo"), 10_000)
+            .await;
+        let users = MemoryUserDirectory::new().with_name("tom", "Tom");
+
+        let joined = join_aggregate(
+            &fixture.ports(),
+            &fixture.invites,
+            &users,
+            &fixture.friends,
+            &UserId("tom".into()),
+            request("tok-1", 1_000),
+        )
+        .await
+        .expect("a recipe is joined like a list");
+
+        assert_eq!(joined.aggregate, AggregateId::recipe("bolo"));
+
+        let log = fixture
+            .store
+            .events_since(&AggregateId::recipe("bolo"), None)
+            .await
+            .expect("readable");
+        assert_eq!(log.len(), 1);
+        assert_eq!(log[0].event_type, "recipes/recipeMemberAdded");
+        assert_eq!(
+            log[0].payload,
+            json!({ "recipeId": "bolo", "memberId": "tom", "name": "Tom" })
+        );
+
+        let role = fixture
+            .membership
+            .role_of(&AggregateId::recipe("bolo"), &UserId("tom".into()))
+            .await
+            .expect("readable");
+        assert_eq!(role, Some(MemberRole::Member));
     }
 
     #[tokio::test]
@@ -361,7 +406,7 @@ mod tests {
             .expect("owner");
         let users = MemoryUserDirectory::new();
 
-        join_list(
+        join_aggregate(
             &fixture.ports(),
             &fixture.invites,
             &users,

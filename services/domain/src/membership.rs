@@ -1,5 +1,7 @@
+use serde_json::{Map, Value};
 use thiserror::Error;
 
+use crate::event::{AggregateId, UserId};
 use crate::ports::MemberRole;
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -48,9 +50,52 @@ pub fn check_can_remove(
     }
 }
 
+/// Payload of a member-joined event. Every aggregate names itself under its
+/// own key (`listId`, `recipeId`, …) so the client folds it into the slice
+/// that owns the aggregate.
+pub fn member_added_payload(aggregate: &AggregateId, member: &UserId, name: &str) -> Value {
+    let mut payload = identity_of(aggregate, member);
+    payload.insert("name".into(), Value::String(name.into()));
+    Value::Object(payload)
+}
+
+/// Payload of a member-left event — the same identity, without the name:
+/// whoever folds it already knows the member.
+pub fn member_removed_payload(aggregate: &AggregateId, member: &UserId) -> Value {
+    Value::Object(identity_of(aggregate, member))
+}
+
+fn identity_of(aggregate: &AggregateId, member: &UserId) -> Map<String, Value> {
+    let mut identity = Map::new();
+    identity.insert(
+        aggregate.payload_id_field().into(),
+        Value::String(aggregate.id.clone()),
+    );
+    identity.insert("memberId".into(), Value::String(member.0.clone()));
+    identity
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_member_event_names_its_aggregate_under_the_key_of_its_kind() {
+        let tom = UserId("tom".into());
+
+        assert_eq!(
+            member_added_payload(&AggregateId::list("abc"), &tom, "Tom"),
+            serde_json::json!({ "listId": "abc", "memberId": "tom", "name": "Tom" })
+        );
+        assert_eq!(
+            member_added_payload(&AggregateId::recipe("r1"), &tom, "Tom"),
+            serde_json::json!({ "recipeId": "r1", "memberId": "tom", "name": "Tom" })
+        );
+        assert_eq!(
+            member_removed_payload(&AggregateId::recipe("r1"), &tom),
+            serde_json::json!({ "recipeId": "r1", "memberId": "tom" })
+        );
+    }
 
     #[test]
     fn members_and_owners_may_append_strangers_may_not() {

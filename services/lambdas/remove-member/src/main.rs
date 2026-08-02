@@ -4,12 +4,14 @@ use domain::event::UserId;
 use domain::ports::Ports;
 use domain::usecases::remove_member::{remove_member, RemoveMemberError, RemoveMemberRequest};
 use lambda_http::{run, service_fn, Body, Error, Request, RequestExt, Response};
+use lib::aggregate_route::aggregate_from_path;
 use lib::error::ApiError;
 use lib::wire;
 
-// DELETE /lists/{listId}/members/{memberId} — class-2 command: the server
-// owns the membership projection. The owner removes anyone, a member only
-// themselves; the server writes lists/listMemberRemoved itself.
+// DELETE /lists/{listId}/members/{memberId} and the recipe route beside it —
+// class-2 command: the server owns the membership projection. The owner
+// removes anyone, a member only themselves; the server writes the
+// member-removed event of that aggregate kind itself.
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt()
@@ -42,12 +44,16 @@ async fn handle(ports: &Ports<'_>, http_request: Request) -> Result<Response<Bod
         Err(api_error) => return api_error.to_response(),
     };
 
-    let parameters = http_request.path_parameters();
-    let (Some(list_id), Some(member_id)) = (
-        parameters.first("listId").map(String::from),
-        parameters.first("memberId").map(String::from),
-    ) else {
-        return ApiError::BadRequest("listId and memberId are required".into()).to_response();
+    let aggregate = match aggregate_from_path(&http_request) {
+        Ok(aggregate) => aggregate,
+        Err(api_error) => return api_error.to_response(),
+    };
+    let Some(member_id) = http_request
+        .path_parameters()
+        .first("memberId")
+        .map(String::from)
+    else {
+        return ApiError::BadRequest("memberId is required".into()).to_response();
     };
 
     // The body carries only the event identity — who is removed is in the
@@ -61,7 +67,7 @@ async fn handle(ports: &Ports<'_>, http_request: Request) -> Result<Response<Bod
         wire::required_meta_field(&action, "deviceId"),
     ) {
         (Ok(event_id), Ok(device_id)) => RemoveMemberRequest {
-            list_id,
+            aggregate,
             member_id: UserId(member_id),
             event_id,
             device_id,

@@ -15,7 +15,7 @@ pub enum CreateInviteError {
 
 #[derive(Debug)]
 pub struct CreateInviteRequest {
-    pub list_id: String,
+    pub aggregate: AggregateId,
     /// Minted by the lambda, so the domain stays deterministic and
     /// replayable in tests.
     pub fresh_token: String,
@@ -23,7 +23,7 @@ pub struct CreateInviteRequest {
 }
 
 /// Class 2: only the owner mints invite tokens (`events.md` owner model).
-/// One active token per list — a repeated create hands out the existing
+/// One active token per aggregate — a repeated create hands out the existing
 /// one while it is valid, so link and QR stay stable across visits.
 pub async fn create_invite(
     membership: &dyn MembershipStore,
@@ -31,7 +31,7 @@ pub async fn create_invite(
     caller: &UserId,
     request: CreateInviteRequest,
 ) -> Result<StoredInvite, CreateInviteError> {
-    let aggregate = AggregateId::list(request.list_id);
+    let aggregate = request.aggregate;
     let role = membership.role_of(&aggregate, caller).await?;
     check_can_invite(role)?;
 
@@ -69,7 +69,7 @@ mod tests {
 
     fn request(token: &str, now_ms: u64) -> CreateInviteRequest {
         CreateInviteRequest {
-            list_id: "abc".into(),
+            aggregate: AggregateId::list("abc"),
             fresh_token: token.into(),
             now_ms,
         }
