@@ -63,6 +63,12 @@ export class ShopZebraApiStack extends cdk.Stack {
       ...rustFunctionResources,
     })
 
+    const createRecipeFunction = new RustFunction(this, 'CreateRecipeFunction', {
+      functionName: 'shopzebra-create-recipe',
+      manifestPath: path.join(SERVICES_DIR, 'lambdas', 'create-recipe'),
+      ...rustFunctionResources,
+    })
+
     const appendEventFunction = new RustFunction(this, 'AppendEventFunction', {
       functionName: 'shopzebra-append-event',
       manifestPath: path.join(SERVICES_DIR, 'lambdas', 'append-event'),
@@ -130,6 +136,8 @@ export class ShopZebraApiStack extends cdk.Stack {
     })
 
     eventsTable.grantReadWriteData(createListFunction)
+    eventsTable.grantReadWriteData(createRecipeFunction)
+    membershipTable.grantReadWriteData(createRecipeFunction)
     eventsTable.grantReadWriteData(appendEventFunction)
     eventsTable.grantReadData(getEventsFunction)
     membershipTable.grantReadWriteData(createListFunction)
@@ -232,6 +240,61 @@ export class ShopZebraApiStack extends cdk.Stack {
       path: '/lists/{listId}/members/{memberId}',
       methods: [apigwv2.HttpMethod.DELETE],
       integration: new apigwv2_integrations.HttpLambdaIntegration('RemoveMemberIntegration', removeMemberFunction),
+      authorizer,
+    })
+
+    // Sharing is one mechanism for every aggregate (sharing-model.md): the
+    // recipe routes reach the very same lambdas, which read the kind from
+    // the path. Joining needs no recipe route — the token says what is
+    // being joined.
+    httpApi.addRoutes({
+      path: '/recipes',
+      methods: [apigwv2.HttpMethod.POST],
+      integration: new apigwv2_integrations.HttpLambdaIntegration('CreateRecipeIntegration', createRecipeFunction),
+      authorizer,
+    })
+
+    httpApi.addRoutes({
+      path: '/recipes',
+      methods: [apigwv2.HttpMethod.GET],
+      integration: new apigwv2_integrations.HttpLambdaIntegration('GetRecipesIntegration', getListsFunction),
+      authorizer,
+    })
+
+    // The generic class-1 path, now for recipes too — same lambdas, they
+    // read kind and id from the route.
+    httpApi.addRoutes({
+      path: '/recipes/{recipeId}/events',
+      methods: [apigwv2.HttpMethod.POST],
+      integration: new apigwv2_integrations.HttpLambdaIntegration('AppendRecipeEventIntegration', appendEventFunction),
+      authorizer,
+    })
+
+    httpApi.addRoutes({
+      path: '/recipes/{recipeId}/events',
+      methods: [apigwv2.HttpMethod.GET],
+      integration: new apigwv2_integrations.HttpLambdaIntegration('GetRecipeEventsIntegration', getEventsFunction),
+      authorizer,
+    })
+
+    httpApi.addRoutes({
+      path: '/recipes/{recipeId}/invites',
+      methods: [apigwv2.HttpMethod.POST],
+      integration: new apigwv2_integrations.HttpLambdaIntegration('CreateRecipeInviteIntegration', createInviteFunction),
+      authorizer,
+    })
+
+    httpApi.addRoutes({
+      path: '/recipes/{recipeId}/members',
+      methods: [apigwv2.HttpMethod.POST],
+      integration: new apigwv2_integrations.HttpLambdaIntegration('AddRecipeMemberIntegration', addMemberFunction),
+      authorizer,
+    })
+
+    httpApi.addRoutes({
+      path: '/recipes/{recipeId}/members/{memberId}',
+      methods: [apigwv2.HttpMethod.DELETE],
+      integration: new apigwv2_integrations.HttpLambdaIntegration('RemoveRecipeMemberIntegration', removeMemberFunction),
       authorizer,
     })
 
