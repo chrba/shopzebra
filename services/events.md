@@ -194,7 +194,15 @@ Nachrichten und Reaktionen leben auf dem **ShoppingList-Aggregate** (Feed pro Li
 
 Aggregate-ID: `RECIPE#{recipeId}`
 
-`recipeCreated`, `recipeUpdated`, `recipeDeleted` sind **Klasse 1**.
+`recipeUpdated` und `recipeDeleted` sind **Klasse 1**. `recipeCreated` ist —
+wie `listCreated` — ein Hybrid: es steht in der Klasse-1-Allowlist (damit
+Envelope und Schema es prüfen), wird aber über den **Klasse-2-Command**
+`POST /recipes` erzeugt, weil es die Autorisierungswurzel des Rezepts setzt.
+Der Server claimt die Ownership atomar und schreibt das Event selbst.
+
+`recipeMemberAdded` und `recipeMemberRemoved` sind **Klasse 2**: Sie werden
+ausschließlich vom Server geschrieben (Join, Add-Member, Remove-Member) und
+am generischen Append-Pfad abgelehnt — exakt wie ihre Listen-Pendants.
 
 Der geplante **Rezept-Import per URL** ist dagegen **Klasse 2**: Der Server holt eine vom Nutzer gelieferte URL: das ist ausgehender Traffic aus dem Lambda auf ein beliebiges Ziel (SSRF-Fläche) und gehört serverseitig eingehegt — Allowlist bzw. Blocken interner Adressbereiche, Timeout, Größenlimit. Ergebnis ist ein serverseitig geschriebenes `recipeCreated`.
 
@@ -203,12 +211,14 @@ Der geplante **Rezept-Import per URL** ist dagegen **Klasse 2**: Der Server holt
 { "type": "recipes/recipeCreated", "payload": {
     "recipeId": "uuid",
     "name": "Spaghetti Bolognese",
+    "createdBy": "user-uuid",
     "portions": 4,
+    "durationMinutes": 30,
     "ingredients": [
         { "name": "Spaghetti", "quantity": "500", "unit": "g" },
         { "name": "Hackfleisch", "quantity": "400", "unit": "g" }
     ],
-    "instructions": "..."
+    "steps": ["Wasser aufsetzen", "Sauce köcheln"]
 }}
 ```
 
@@ -217,7 +227,24 @@ Der geplante **Rezept-Import per URL** ist dagegen **Klasse 2**: Der Server holt
 { "type": "recipes/recipeUpdated", "payload": {
     "recipeId": "uuid",
     "name": "Spaghetti Bolognese",
-    "portions": 6
+    "portions": 6,
+    "durationMinutes": 30,
+    "ingredients": [{ "name": "Spaghetti", "quantity": "750", "unit": "g" }],
+    "steps": ["Wasser aufsetzen"]
+}}
+```
+
+Das Formular speichert als **eine** Absicht, deshalb trägt `recipeUpdated`
+alle editierbaren Felder. Die Mitgliedschaft ist davon ausgenommen — sie
+reist in eigenen Events und wird nie überschrieben.
+
+### recipeMemberAdded / recipeMemberRemoved
+```json
+{ "type": "recipes/recipeMemberAdded", "payload": {
+    "recipeId": "uuid", "memberId": "user-uuid", "name": "Tom"
+}}
+{ "type": "recipes/recipeMemberRemoved", "payload": {
+    "recipeId": "uuid", "memberId": "user-uuid"
 }}
 ```
 
@@ -322,7 +349,13 @@ PUT   /lists/{id}/snapshot      Snapshot hochladen
 GET   /lists                    Aggregate-IDs des Aufrufers (Membership-Projektion) — Bootstrap + Reconnect-Fanout
 ```
 
-Analog für `/recipes/{id}/events` und `/plans/{id}/events`. **Ein Lambda bedient alle Event-Typen** — es deserialisiert das Payload nicht.
+`/recipes/{id}/events` ist gebaut und liegt auf **denselben** Lambdas; sie
+lesen Kind und Id aus dem Pfad. `/plans/{id}/events` folgt mit dem Wochenplan.
+**Ein Lambda bedient alle Event-Typen** — es deserialisiert das Payload nicht.
+
+**Beitritt für alle Aggregate:** `POST /lists/join` bleibt die einzige
+Join-Route. Welches Aggregat beigetreten wird, steht im Token, nicht im Pfad;
+die Antwort sagt es dem Client: `{ "aggregate": { "kind": "recipe", "id": "…" }, "alreadyMember": false }`.
 
 ### Klasse 2 — Commands mit Fachlogik
 
@@ -331,7 +364,12 @@ POST    /lists                              → prüft createdBy = Aufrufer, cla
 POST    /lists/{id}/invites                 → Owner-only: erzeugt Invite-Token (Link/QR), widerrufbar
 POST    /lists/join                         → Token prüfen, schreibt listMemberAdded
 DELETE  /lists/{id}/members/{memberId}      → Owner (jeden) oder Mitglied (sich selbst), schreibt listMemberRemoved
-POST    /recipes/import                     → URL holen, parsen, schreibt recipeCreated
+POST    /recipes                            → prüft createdBy = Aufrufer, claimt Ownership, schreibt recipeCreated
+GET     /recipes                            → Rezept-IDs des Aufrufers (+ ownerNames, maxMembers)
+POST    /recipes/{id}/invites               → Owner-only: Invite-Token für ein Rezept
+POST    /recipes/{id}/members               → Owner fügt jemanden aus dem Adressbuch hinzu
+DELETE  /recipes/{id}/members/{memberId}    → Owner (jeden) oder Mitglied (sich selbst)
+POST    /recipes/import                     → URL holen, parsen, schreibt recipeCreated (noch nicht gebaut)
 ```
 
 **Invite-Links auf Mobile:** Der Invite-Link muss als **Android App Link** (`assetlinks.json`) bzw. **iOS Universal Link** (AASA) registriert sein, damit „Link öffnen" in die App führt (Capacitor App-Plugin, `appUrlOpen`). Fallback für Nutzer ohne App: Web-Landing-Page mit Store-Verweis. App Links sind noch **nicht** eingerichtet — der Link funktioniert derzeit nur im Browser/WebView derselben Origin.

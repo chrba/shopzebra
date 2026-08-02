@@ -1,6 +1,6 @@
 # Implementierungs-Stand — ShopZebra
 
-**Stand: 2026-07-28** · Branch `feat/implement-backend`
+**Stand: 2026-08-02** · Branch `feat/implement-backend`
 
 Alle anderen Dokumente in `architecture/` und `services/events.md` beschreiben den **Zielzustand**. Dieses Dokument beschreibt, was davon heute existiert. Wer den Code bewertet, plant oder erweitert, liest es zuerst — sonst bewertet er eine App, die es so noch nicht gibt.
 
@@ -16,12 +16,14 @@ Alle anderen Dokumente in `architecture/` und `services/events.md` beschreiben d
 | Listen-Übersicht + Verwaltung | ✅ funktionsfähig, lokal |
 | Lokale Persistenz | ✅ funktionsfähig |
 | **Einkaufsliste (Hauptscreen)** | ✅ funktionsfähig, lokal (Katalog + Suche + Varianten-Sheet) |
-| Wochenplan, Rezepte, Aktivität, Family | ❌ existiert nicht |
-| Backend-API | ✅ 7 Endpunkte (Create, Append, Get-Events, Get-Lists, Create-Invite, Join, Remove-Member) inkl. CDK; die ersten vier **deployed und live verifiziert (2026-07-29)**, die drei Membership-Commands (2026-07-31) sind gebaut und `cdk synth`-verifiziert, aber noch nicht deployed; AppSync fehlt |
+| **Rezepte** | ✅ funktionsfähig, **live verifiziert (2026-08-02)** — Sammlung, Anlegen/Bearbeiten, Detail mit Portions-Umrechnung, Teilen wie eine Liste |
+| Adressbuch (Freunde) | ✅ funktionsfähig (2026-08-01) — Freundes-Invite, Annahme, Liste, Entfernen; Beitritt befreundet automatisch |
+| Wochenplan, Aktivität, Family | ❌ existiert nicht |
+| Backend-API | ✅ 13 Lambdas / 20 Routen, **alle deployed und live verifiziert (2026-08-02)**: Create-List, Create-Recipe, Append, Get-Events, Get-Lists, Get-Recipes, Create-Invite, Join, Add-Member, Remove-Member, 4× Friends. Sharing- und Event-Routen bedienen Listen **und** Rezepte auf denselben Lambdas; AppSync fehlt weiterhin |
 | Sync zum Server | ✅ **Stufe 1 (Outbox, Cursor, Retry)** live verifiziert + **Stufe 2 (`withSync`-Rebase)** implementiert (2026-07-29, **nur unit-getestet, nicht live verifiziert**) |
 | Offline-Queue | ✅ persistente Outbox mit Retry/Backoff (Retry-Pfad nur unit-getestet, nicht live) |
 | Echtzeit (AppSync) | ❌ existiert nicht |
-| Tests | 🟡 Frontend: 79 Tests (Slices + Sync-Engine inkl. 12 withSync-Verhaltens-Tests); Backend: 20 Domain-Tests |
+| Tests | 🟡 Frontend: 163 Tests; Backend: 93 Tests (81 Domain, 12 Adapter); Infrastruktur: 46 |
 
 ---
 
@@ -45,6 +47,8 @@ Bewusst noch offen gegenüber den Prototypen: Emoji-Picker im Sheet (braucht `pr
 
 **Infrastruktur** — `app/store.ts` mit den Slices `app`, `auth`, `lists`; Middleware-Pipeline `eventIdMiddleware → themeMiddleware → clientStorageMiddleware → syncMiddleware`. Eigenes `createSlice` ohne Immer. `clientStorage` als plattform-agnostischer Wrapper. Theme-Handling.
 
+**Sync-Fan-out über alle Aggregat-Typen (2026-08-02):** `aggregate.ts` ist weiterhin die einzige Stelle mit Aggregat-Wissen, kennt jetzt aber `Aggregate = { kind, id }`. `catchUp` iteriert über alles, was der Nutzer sehen darf; `fetchAggregates()` ruft `GET /lists` **und** `GET /recipes` (eine unerreichbare Kollektion wird geloggt und übersprungen, sie blockiert die andere nicht). Cursor-Schlüssel sind kind-qualifiziert (`"list:abc"`), damit zwei Kinds mit derselben Id nie einen Cursor teilen.
+
 **Sync-Engine Stufe 1** — `app/sync/` (2026-07-29, Plan `.claude/plans/2026-07-29-sync-engine-stufe-1-outbox-cursor.md`; Struktur + Doku: `app/sync/README.md`). Ordnerstruktur „zwei Pfade, eine Brücke" (2026-07-29): `send/` (`toOutboxEntry`, `drainOutbox` — ein Queue-Durchlauf mit Ergebnis-Report, endgültiger 4xx-Drop; Backoff 1s→30s lebt seit dem Sync-Zyklus-Refactoring in der Engine, `sendEntry`) und `receive/` (`catchUp` mit `?since=<cursor>` statt Wipe-and-Refold, `fetchEvents`, `toLocalAction`); auf Root-Ebene das Gemeinsame: `outbox.ts` (die Brücke — FIFO-Queue + Cursor pro Aggregate + eventId-Dedup in einem Blob `shopzebra_sync`, Rollen-Interfaces `SendQueue`/`ReceiveLedger`), `aggregate.ts` (Aggregate-Naht: `aggregateIdOf`, `eventsPathFor` — einzige Stelle mit Aggregate-Wissen), `wire.ts` (`ownerId ↔ createdBy`-Paar), `transport.ts` (`Transport`-Interface + `httpTransport`), `syncEngine.ts` (Konstruktor nimmt Storage+Transport, `start(dispatch)` nur Lifecycle) + `startSync.ts` (StrictMode-Guard, Reconnect-Trigger via `@capacitor/network` + `@capacitor/app`). Outbox-Einträge sind einheitlich `{ path, wire }` — Routing zur Enqueue-Zeit. Policy: `synced: true` am Slice; einzige Klasse-2-Ausnahme `listCreated` → `POST /lists`. `syncMiddleware` ist nur noch Enqueue-Effect; die Per-Feature-Handler (`listsSyncHandler`, `shoppingSyncHandler`) und `serverBootstrap.ts` sind gelöscht. **Boot ist local-first:** Storage-Hydration rendert sofort, Catch-up läuft im Hintergrund; `initialSyncDone` (appSlice) steuert Skeleton-Karten auf frischen Geräten. Die Demo-`DEFAULT_LISTS` sind entfernt.
 
 **Live verifiziert (2026-07-29, Chrome gegen deployte API):** Outbox-POST → 201, Event landet im DynamoDB-Log, Cursor-Catch-up mit `?since`, eventId-Dedup (kein Doppel-Fold nach Reload), Duplikat-Healing bei der Hydration. **Nicht live verifiziert:** Offline-Retry/Backoff (nur Unit-Tests), Reconnect-Trigger nativ (Capacitor-Plugins deklarieren Peer-Core ≥8, App pinnt Core ^7 — vor Native-Builds auflösen).
@@ -55,9 +59,13 @@ Bewusst noch offen gegenüber den Prototypen: Emoji-Picker im Sheet (braucht `pr
 
 **Routen:** `/signin`, `/signup`, `/forgot-password`, `/lists`, `/lists/new`, `/lists/$listId`, `/lists/$listId/edit`, `/lists/$listId/category/$categoryId`, `/profile`.
 
+**Rezepte** — `features/recipes/` (`domain`/`overview`/`manage`/`detail`/`members`), Routen `/recipes`, `/recipes/new`, `/recipes/$recipeId`, `/recipes/$recipeId/edit`, `/recipes/$recipeId/members`, `/recipes/$recipeId/invite`. Eigenes Aggregat (`RECIPE#{id}`), `synced: true`; Anlegen ist ein Klasse-2-Command über die Outbox (`POST /recipes`), alles Weitere Klasse-1-Events. Sammlung als Kachel-Grid mit Suche und Swipe-to-Delete, Editor mit Icon-Sheet (Suche + Kategorien), Detail mit Portions-Stepper (reine Anzeige, skaliert nicht-numerische Mengen unverändert durch). Emoji/Farbe sind Local Preferences (`recipePrefs`). Design: `design/pure/recipe-workflow/{recipes,recipe,new-recipe}.html`.
+
+**Teilen ist ein Mechanismus** — `features/sharing/` (2026-08-02): `MembersPage`/`InvitePage` sind aggregat-generisch (nehmen `Aggregate` + Wording als Props), `memberCommands` bauen ihre Pfade aus dem Kind. Listen und Rezepte verdrahten dieselben Screens über dünne Wrapper (`ListMembersPage`, `RecipeMembersPage`, …). Der Wochenplan hängt sich später genauso an.
+
 ### Nicht gebaut
 
-- `features/recipes/`, `features/meal-plan/`, `features/activity/`
+- `features/meal-plan/`, `features/activity/`
 
 ### Bekannte Provisorien
 
@@ -158,7 +166,7 @@ Absicht und die Punkte, die man heute billig beachten kann, stehen in
 **B. Familien- vs. Listen-Mitgliedschaft — entschieden (2026-07-25):** Es gibt **kein Familien-Konzept**. Eine Liste hat einen **Owner** (ihren Ersteller); nur er erzeugt Invites (Link/QR-Token), jedes Mitglied kann sich selbst entfernen. Membership existiert ausschließlich pro Liste, die Server-Projektion pro Aggregate. Eingearbeitet in `events.md`, `sync-engine.md` §6, `domain-model.md` §2/§8.
 
 **Folgefragen aus B (offen):**
-- **Wochenplan & Rezepte** sind jetzt user-scoped — sollen sie teilbar werden, und wenn ja, über welchen Mechanismus?
+- ~~**Wochenplan & Rezepte** sind jetzt user-scoped — sollen sie teilbar werden?~~ ✅ **beantwortet 2026-08-02** ([sharing-model.md](./sharing-model.md)): Liste, Rezept und Wochenplan werden exakt gleich geteilt. Für Rezepte umgesetzt, der Wochenplan hängt sich an dieselben Bausteine.
 - **Ernährungspräferenzen** lebten auf dem gestrichenen Family-Aggregate — wohin damit (User-Aggregate, Local Preference, streichen)?
 - **`product-spec.md` und `CLAUDE.md`** sprechen noch durchgängig von „Familie" (Family Feed, Familien-Settings, Vision) — Produkt-Texte müssen nachgezogen werden.
 

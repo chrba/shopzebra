@@ -94,17 +94,27 @@ emoji = emojiOverrides[item.parentId ?? item.id] ?? PRODUCT_CATALOG[item.parentI
 
 ### Recipe
 
-Ein Rezept mit Zutaten. Zutaten existieren nicht ohne Rezept.
+Ein Rezept mit Zutaten. Zutaten existieren nicht ohne Rezept. **Seit
+2026-08-02 teilbar wie eine Liste** — Besitzer ist der Ersteller, Mitglieder
+sehen und ändern (siehe [sharing-model.md](./sharing-model.md)).
 
 ```
-Entity: Recipe     { id, name, portions, instructions }
+Entity: Recipe     { id, name, ownerId, memberIds, portions,
+                     durationMinutes?, ingredients[], steps[] }
 Entity: Ingredient { name, quantity, unit }
 
 Events:
-  recipeCreated        { recipeId, name, portions, ingredients[], instructions }
-  recipeUpdated        { recipeId, ... }
+  recipeCreated        { recipeId, name, createdBy, portions,
+                         durationMinutes?, ingredients[], steps[] }
+  recipeUpdated        { recipeId, name, portions, durationMinutes?,
+                         ingredients[], steps[] }
   recipeDeleted        { recipeId }
+  recipeMemberAdded    { recipeId, memberId, name }     ← nur der Server
+  recipeMemberRemoved  { recipeId, memberId }           ← nur der Server
 ```
+
+**Emoji und Farbe sind Local Preferences**, genau wie bei Listen — sie
+gehören zum Gerät, nicht zum geteilten Rezept.
 
 ### WeekPlan
 
@@ -280,9 +290,13 @@ type ListItem = {
 type Recipe = {
   readonly id: string
   readonly name: string
+  readonly ownerId: string
+  readonly memberIds: readonly string[]
+  readonly memberNames?: Readonly<Record<string, string>>
   readonly portions: number
+  readonly durationMinutes?: number
   readonly ingredients: readonly Ingredient[]
-  readonly instructions: string
+  readonly steps: readonly string[]
 }
 type Ingredient = {
   readonly name: string
