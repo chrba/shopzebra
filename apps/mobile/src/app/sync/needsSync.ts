@@ -3,7 +3,7 @@
 // truth — the two must never disagree.
 
 import { belongsToSyncedSlice, type PayloadAction } from '../createSlice'
-import { aggregateIdOf } from './aggregate'
+import { aggregateOf } from './aggregate'
 
 /**
  * True for local domain events that must reach the server log. Excludes
@@ -13,5 +13,5 @@ import { aggregateIdOf } from './aggregate'
  */
 export function needsSync(action: PayloadAction<unknown>): boolean {
   if (!action.meta || action.meta.remote) return false
-  return belongsToSyncedSlice(action.type) && aggregateIdOf(action) !== null
+  return belongsToSyncedSlice(action.type) && aggregateOf(action) !== null
 }

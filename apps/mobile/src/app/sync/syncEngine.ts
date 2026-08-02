@@ -137,7 +137,7 @@ export class SyncEngine {
     await catchUp({
       ledger: outbox,
       dispatch,
-      fetchListIds: this.transport.fetchListIds,
+      fetchAggregates: this.transport.fetchAggregates,
       fetchEventsSince: this.transport.fetchEventsSince,
     })
   }

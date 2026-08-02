@@ -69,7 +69,7 @@ Outside this folder, but part of the mechanism:
 - **`app/syncMiddleware.ts`** — a single effect: every dispatched action is offered to `syncEngine.record()`. No per-feature handlers, no `if` chains.
 - **`app/eventIdMiddleware.ts`** — stamps `eventId` + `deviceId` **before** the reducer. Actions with `meta.remote` keep their identity (otherwise dedup and ack matching would break).
 - **`app/createSlice.ts`** — `synced: true` on a slice registers the slice name; `belongsToSyncedSlice()` feeds the shared `needsSync()` predicate.
-- **Class-2 events** (`lists/listMemberAdded`, `lists/listMemberRemoved`) — written by the server, never dispatched locally. They arrive **only** through catch-up and never travel the outbox. The commands that cause them (`POST /lists/join`, `DELETE /lists/{listId}/members/{memberId}`) are direct fetches, because their answer is needed *before* anything can be shown or dispatched.
+- **Class-2 events** (`lists/listMemberAdded`, `lists/listMemberRemoved`, and their `recipes/…` counterparts) — written by the server, never dispatched locally. They arrive **only** through catch-up and never travel the outbox. The commands that cause them (`POST /lists/join`, `DELETE /lists/{listId}/members/{memberId}`) are direct fetches, because their answer is needed *before* anything can be shown or dispatched.
 - **`features/*/domain/*ClientStorageHandler.ts`** (lists, shopping) — persist the **confirmed** tree on every `eventsConfirmed`. Optimistic events are not persisted there; they survive restarts via the outbox queue + `pendingRestored`.
 
 ```mermaid
@@ -97,7 +97,7 @@ flowchart LR
 5. `toOutboxEntry()` decides **the routing at enqueue time as well** — every entry is uniformly `{ path, wire }`:
    - `meta.remote` set → came from the server, do **not** send it back (`null`).
    - `listCreated` → **class-2 command**: `{ path: '/lists', wire }` with the `ownerId → createdBy` translation into wire format. The server validates and writes the event itself.
-   - Slice is `synced` and the action has an aggregate (`aggregateIdOf`) → `{ path: eventsPathFor(id), wire: action }`.
+   - Slice is `synced` and the action names an aggregate (`aggregateOf` — `listId`, `recipeId`, …) → `{ path: eventsPathFor(aggregate), wire: action }`.
    - Otherwise (e.g. `preferences/*`, hydration actions without an aggregate id) → no sync (`null`).
 6. The outbox appends the entry and persists; `requestSync()` is kicked — the engine runs one push-then-pull cycle.
 7. Inside the cycle, `drainOutbox()` POSTs head-by-head via `sendEntry()`. Response classification:
@@ -156,10 +156,10 @@ sequenceDiagram
     participant S as Store (withSync)
 
     T->>CU: catchUp()
-    CU->>B: GET /lists
-    B-->>CU: list ids (membership projection)
-    loop per list
-        CU->>B: GET /lists/{id}/events?since=<cursor>
+    CU->>B: GET /lists and GET /recipes
+    B-->>CU: ids per kind (membership projection)
+    loop per aggregate, whatever its kind
+        CU->>B: GET /{collection}/{id}/events?since=<cursor>
         B-->>CU: events (wire format, with meta.position)
         CU-->>CU: sort by position
         CU->>S: dispatch(eventsConfirmed(batch)) — own + foreign events
@@ -183,8 +183,10 @@ Durable sync state is split by ownership:
 ```jsonc
 // shopzebra_sync (Outbox blob)
 {
-  "queue":               [ /* OutboxEntry[]: { path, wire } — unacked sends */ ],
-  "cursorByAggregateId": { "list-abc": "0000000042" }   // last confirmed position per aggregate
+  "queue":              [ /* OutboxEntry[]: { path, wire } — unacked sends */ ],
+  // last confirmed position per aggregate, keyed "<kind>:<id>" — two kinds
+  // may hand out the same id and must never share a cursor
+  "cursorByAggregate":  { "list:abc": "0000000042", "recipe:bolo": "0000000007" }
 }
 // shopzebra_lists / shopzebra_shopping (storage handlers)
 //   → the CONFIRMED tree, written on every eventsConfirmed

@@ -4,6 +4,7 @@
 // apart across restarts.
 
 import type { PayloadAction } from '../createSlice'
+import { cursorKeyOf, type Aggregate } from './aggregate'
 
 /**
  * One queued send: target path + wire payload. Routing happens at enqueue
@@ -25,9 +26,9 @@ export interface SendQueue {
 /** The receive path's view of the bridge (receive/catchUp.ts). */
 export interface ReceiveLedger {
   /** Last confirmed position of an aggregate, or null before the first catch-up. Goes into `?since=` when fetching the delta. */
-  cursorFor(aggregateId: string): string | null
+  cursorFor(aggregate: Aggregate): string | null
   /** Moves the cursor after a confirmed batch was dispatched — never before, or events would be skipped forever. Resolves when persisted. */
-  advanceCursor(aggregateId: string, position: string): Promise<void>
+  advanceCursor(aggregate: Aggregate, position: string): Promise<void>
 }
 
 export type SyncStorage = {
@@ -42,14 +43,15 @@ export function eventIdOf(entry: OutboxEntry): string {
 
 type OutboxState = {
   readonly queue: readonly OutboxEntry[]
-  readonly cursorByAggregateId: { readonly [aggregateId: string]: string }
+  /** Keyed by cursorKeyOf(aggregate) — kind and id, never id alone. */
+  readonly cursorByAggregate: { readonly [cursorKey: string]: string }
 }
 
 export const SYNC_STORAGE_KEY = 'shopzebra_sync'
 
 const EMPTY: OutboxState = {
   queue: [],
-  cursorByAggregateId: {},
+  cursorByAggregate: {},
 }
 
 function isOutboxEntry(candidate: unknown): candidate is OutboxEntry {
@@ -77,10 +79,10 @@ function parseOutboxState(raw: string | null): OutboxState {
       queue: Array.isArray(candidate.queue)
         ? candidate.queue.filter(isOutboxEntry)
         : [],
-      cursorByAggregateId:
-        candidate.cursorByAggregateId !== null &&
-        typeof candidate.cursorByAggregateId === 'object'
-          ? candidate.cursorByAggregateId
+      cursorByAggregate:
+        candidate.cursorByAggregate !== null &&
+        typeof candidate.cursorByAggregate === 'object'
+          ? candidate.cursorByAggregate
           : {},
     }
   } catch {
@@ -140,8 +142,8 @@ export class Outbox implements SendQueue, ReceiveLedger {
   }
 
   /** Last folded position of an aggregate. Called by catch-up (`?since=`). */
-  cursorFor(aggregateId: string): string | null {
-    return this.state.cursorByAggregateId[aggregateId] ?? null
+  cursorFor(aggregate: Aggregate): string | null {
+    return this.state.cursorByAggregate[cursorKeyOf(aggregate)] ?? null
   }
 
   /**
@@ -149,12 +151,12 @@ export class Outbox implements SendQueue, ReceiveLedger {
    * called on ack: foreign events may sit between the cursor and the
    * acked position — they still have to be fetched.
    */
-  advanceCursor(aggregateId: string, position: string): Promise<void> {
+  advanceCursor(aggregate: Aggregate, position: string): Promise<void> {
     return this.commit({
       ...this.state,
-      cursorByAggregateId: {
-        ...this.state.cursorByAggregateId,
-        [aggregateId]: position,
+      cursorByAggregate: {
+        ...this.state.cursorByAggregate,
+        [cursorKeyOf(aggregate)]: position,
       },
     })
   }

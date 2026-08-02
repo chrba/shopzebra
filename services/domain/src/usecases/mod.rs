@@ -5,5 +5,5 @@ pub mod create_list;
 pub mod friends;
 pub mod get_events;
 pub mod join_aggregate;
-pub mod my_lists;
+pub mod my_aggregates;
 pub mod remove_member;

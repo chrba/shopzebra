@@ -33,12 +33,12 @@ async function settle(): Promise<void> {
   }
 }
 
-// Each fetchListIds call marks the pull step of one sync cycle.
+// Each fetchAggregates call marks the pull step of one sync cycle.
 function countingTransport(): Transport & { pulls: () => number } {
   let pulls = 0
   return {
     sendEntry: () => Promise.resolve<SendResult>({ outcome: 'confirmed' }),
-    fetchListIds: () => {
+    fetchAggregates: () => {
       pulls += 1
       return Promise.resolve([])
     },
@@ -77,7 +77,7 @@ describe('SyncEngine sync cycle', () => {
         order.push(`push:${entry.wire.meta?.eventId ?? ''}`)
         return Promise.resolve<SendResult>({ outcome: 'confirmed' })
       },
-      fetchListIds: () => {
+      fetchAggregates: () => {
         order.push('pull')
         return Promise.resolve([])
       },
@@ -100,7 +100,7 @@ describe('SyncEngine sync cycle', () => {
         sent.push(entry.wire.meta?.eventId ?? '')
         return Promise.resolve<SendResult>({ outcome: 'confirmed' })
       },
-      fetchListIds: () => {
+      fetchAggregates: () => {
         pulls += 1
         if (pulls === 2) {
           // Hold the second cycle's pull open to provoke overlap.
@@ -145,7 +145,7 @@ describe('SyncEngine retry backoff', () => {
           attempts < 3 ? { outcome: 'retry' } : { outcome: 'confirmed' },
         )
       },
-      fetchListIds: () => Promise.resolve([]),
+      fetchAggregates: () => Promise.resolve([]),
       fetchEventsSince: () => Promise.resolve([]),
     })
     await engine.start(() => undefined)
@@ -169,7 +169,7 @@ describe('SyncEngine retry backoff', () => {
         attempts += 1
         return Promise.resolve<SendResult>({ outcome: 'retry' })
       },
-      fetchListIds: () => Promise.resolve([]),
+      fetchAggregates: () => Promise.resolve([]),
       fetchEventsSince: () => Promise.resolve([]),
     })
     await engine.start(() => undefined)

@@ -202,20 +202,21 @@ impl MembershipStore for DynamoDbMembershipStore {
             .iter()
             .filter_map(|item| item.get("pk").and_then(|value| value.as_s().ok()))
             .map(String::as_str);
-        Ok(distinct_lists(partition_keys))
+        Ok(distinct_aggregates(partition_keys))
     }
 }
 
-/// Maps index rows to list ids, each list exactly once. The index may
-/// hold several rows per (list, user) — historically the owner claim
-/// marker carried a `userId` attribute and showed up next to the
-/// membership row, duplicating every owned list in the response.
-fn distinct_lists<'a>(partition_keys: impl Iterator<Item = &'a str>) -> Vec<AggregateId> {
+/// Maps index rows to aggregates, each exactly once and carrying its kind —
+/// a user's recipes and plans reach the catch-up the same way their lists
+/// do. The index may hold several rows per (aggregate, user): historically
+/// the owner claim marker carried a `userId` attribute and showed up next
+/// to the membership row, duplicating every owned aggregate. Rows that are
+/// not an aggregate log at all (address book, invites) drop out.
+fn distinct_aggregates<'a>(partition_keys: impl Iterator<Item = &'a str>) -> Vec<AggregateId> {
     let mut seen = std::collections::HashSet::new();
     partition_keys
-        .filter_map(|partition| partition.strip_prefix("LIST#"))
-        .filter(|list_id| seen.insert(list_id.to_string()))
-        .map(AggregateId::list)
+        .filter_map(AggregateId::from_partition_key)
+        .filter(|aggregate| seen.insert(aggregate.partition_key()))
         .collect()
 }
 
@@ -224,21 +225,49 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_list_appears_once_even_when_the_index_holds_owner_and_member_rows() {
+    fn an_aggregate_appears_once_even_when_the_index_holds_owner_and_member_rows() {
         let index_rows = ["LIST#abc", "LIST#abc", "LIST#def"];
 
-        let lists = distinct_lists(index_rows.into_iter());
+        let aggregates = distinct_aggregates(index_rows.into_iter());
 
-        let ids: Vec<_> = lists.into_iter().map(|aggregate| aggregate.id).collect();
+        let ids: Vec<_> = aggregates
+            .into_iter()
+            .map(|aggregate| aggregate.id)
+            .collect();
         assert_eq!(ids, vec!["abc".to_string(), "def".to_string()]);
     }
 
     #[test]
-    fn non_list_rows_are_ignored() {
-        let index_rows = ["LIST#abc", "RECIPE#r1"];
+    fn every_kind_the_user_belongs_to_comes_back_with_its_kind() {
+        let index_rows = ["LIST#abc", "RECIPE#r1", "PLAN#p1"];
 
-        let lists = distinct_lists(index_rows.into_iter());
+        let aggregates = distinct_aggregates(index_rows.into_iter());
 
-        assert_eq!(lists.len(), 1);
+        assert_eq!(
+            aggregates,
+            vec![
+                AggregateId::list("abc"),
+                AggregateId::recipe("r1"),
+                AggregateId::plan("p1"),
+            ]
+        );
+    }
+
+    #[test]
+    fn rows_that_are_not_an_aggregate_log_are_ignored() {
+        let index_rows = ["LIST#abc", "USER#mama", "FRIENDTOKEN#tok"];
+
+        let aggregates = distinct_aggregates(index_rows.into_iter());
+
+        assert_eq!(aggregates, vec![AggregateId::list("abc")]);
+    }
+
+    #[test]
+    fn the_same_id_under_two_kinds_stays_two_aggregates() {
+        let index_rows = ["LIST#same", "RECIPE#same"];
+
+        let aggregates = distinct_aggregates(index_rows.into_iter());
+
+        assert_eq!(aggregates.len(), 2);
     }
 }

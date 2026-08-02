@@ -35,7 +35,7 @@ describe('SyncEngine.stop', () => {
         sent.push(entry)
         return Promise.resolve<SendResult>({ outcome: 'confirmed' })
       },
-      fetchListIds: () => Promise.resolve([]),
+      fetchAggregates: () => Promise.resolve([]),
       fetchEventsSince: () => Promise.resolve([]),
     }
     const engine = new SyncEngine(memoryStorage(), transport)
@@ -53,12 +53,12 @@ describe('SyncEngine.stop', () => {
   })
 
   it('makes refresh() a no-op after stop', async () => {
-    const fetchListIdsCalls: true[] = []
+    const fetchAggregatesCalls: true[] = []
     const fetchEventsSinceCalls: true[] = []
     const engine = new SyncEngine(memoryStorage(), {
       sendEntry: () => Promise.resolve<SendResult>({ outcome: 'confirmed' }),
-      fetchListIds: () => {
-        fetchListIdsCalls.push(true)
+      fetchAggregates: () => {
+        fetchAggregatesCalls.push(true)
         return Promise.resolve([])
       },
       fetchEventsSince: () => {
@@ -71,13 +71,13 @@ describe('SyncEngine.stop', () => {
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     engine.stop()
-    fetchListIdsCalls.length = 0
+    fetchAggregatesCalls.length = 0
     fetchEventsSinceCalls.length = 0
 
     engine.refresh()
     await new Promise((resolve) => setTimeout(resolve, 0))
 
-    expect(fetchListIdsCalls).toHaveLength(0)
+    expect(fetchAggregatesCalls).toHaveLength(0)
     expect(fetchEventsSinceCalls).toHaveLength(0)
   })
 })

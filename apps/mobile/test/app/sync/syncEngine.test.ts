@@ -25,7 +25,7 @@ function recordingTransport(sent: OutboxEntry[]): Transport {
       sent.push(entry)
       return Promise.resolve<SendResult>({ outcome: 'confirmed' })
     },
-    fetchListIds: () => Promise.resolve([]),
+    fetchAggregates: () => Promise.resolve([]),
     fetchEventsSince: () => Promise.resolve([]),
   }
 }

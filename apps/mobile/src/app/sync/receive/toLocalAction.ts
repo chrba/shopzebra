@@ -2,8 +2,7 @@
 // local action.
 
 import type { PayloadAction } from '../../createSlice'
-import { listCreated } from '../../../features/lists/domain/listsSlice'
-import { createdByToOwnerId } from '../wire'
+import { domainPayloadOf } from '../wire'
 import type { WireEvent } from './fetchEvents'
 
 /**
@@ -11,9 +10,9 @@ import type { WireEvent } from './fetchEvents'
  * syncMiddleware won't re-send it, eventIdMiddleware keeps its identity.
  */
 export function toLocalAction(event: WireEvent): PayloadAction<unknown> {
-  const payload =
-    event.type === listCreated.type
-      ? createdByToOwnerId(event.payload)
-      : event.payload
-  return { type: event.type, payload, meta: { ...event.meta, remote: true } }
+  return {
+    type: event.type,
+    payload: domainPayloadOf(event.type, event.payload),
+    meta: { ...event.meta, remote: true },
+  }
 }

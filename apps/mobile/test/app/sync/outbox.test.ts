@@ -6,6 +6,7 @@ import {
   type OutboxEntry,
   type SyncStorage,
 } from '@/app/sync/outbox'
+import type { Aggregate } from '@/app/sync/aggregate'
 
 function memoryStorage(
   initial?: string,
@@ -65,10 +66,21 @@ describe('Outbox', () => {
   })
 
   it('advanceCursor sets the cursor per aggregate', async () => {
+    const list: Aggregate = { kind: 'list', id: 'list-1' }
     const outbox = await Outbox.load(memoryStorage())
-    expect(outbox.cursorFor('list-1')).toBeNull()
-    await outbox.advanceCursor('list-1', '00000000000000000042')
-    expect(outbox.cursorFor('list-1')).toBe('00000000000000000042')
+    expect(outbox.cursorFor(list)).toBeNull()
+    await outbox.advanceCursor(list, '00000000000000000042')
+    expect(outbox.cursorFor(list)).toBe('00000000000000000042')
+  })
+
+  it('keeps the cursors of two kinds apart even when they share an id', async () => {
+    const outbox = await Outbox.load(memoryStorage())
+    const list: Aggregate = { kind: 'list', id: 'same' }
+    const recipe: Aggregate = { kind: 'recipe', id: 'same' }
+
+    await outbox.advanceCursor(list, '00000000000000000042')
+
+    expect(outbox.cursorFor(recipe)).toBeNull()
   })
 
   it('falls back to empty state on corrupted storage', async () => {

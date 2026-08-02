@@ -1,7 +1,14 @@
 // HTTP edge of the receive path: enumerate aggregates, pull event deltas.
 
 import { authFetch, type Fetcher } from '../../authFetch'
-import { eventsPathFor } from '../aggregate'
+import {
+  collectionKeyOf,
+  collectionPathFor,
+  eventsPathFor,
+  SYNCED_KINDS,
+  type Aggregate,
+  type AggregateKind,
+} from '../aggregate'
 
 /** Server event in wire format — same shape as a Redux action. */
 export type WireEvent = {
@@ -30,19 +37,42 @@ function isWireEvent(candidate: unknown): candidate is WireEvent {
   )
 }
 
-/**
- * Aggregates the caller may sync (server membership projection).
- * Called at the start of every catch-up.
- */
-export async function fetchListIds(
-  fetcher: Fetcher = authFetch,
-): Promise<readonly string[]> {
-  const response = await fetcher('/lists')
-  if (!response.ok) throw new Error(`GET /lists → ${response.status}`)
+/** The aggregates of one kind the caller may sync (membership projection). */
+async function fetchAggregatesOfKind(
+  kind: AggregateKind,
+  fetcher: Fetcher,
+): Promise<readonly Aggregate[]> {
+  const path = collectionPathFor(kind)
+  const response = await fetcher(path)
+  if (!response.ok) throw new Error(`GET ${path} → ${response.status}`)
   const body: unknown = await response.json()
-  const lists = (body as { readonly lists?: unknown }).lists
-  if (!Array.isArray(lists)) throw new Error('lists response is not a list')
-  return lists.filter((id): id is string => typeof id === 'string')
+  const ids = (body as Readonly<Record<string, unknown>>)[collectionKeyOf(kind)]
+  if (!Array.isArray(ids)) throw new Error(`${path} response is not a list`)
+  return ids
+    .filter((id): id is string => typeof id === 'string')
+    .map((id) => ({ kind, id }))
+}
+
+/**
+ * Everything the caller may sync, across all kinds. Called at the start of
+ * every catch-up. One unreachable collection is reported and skipped rather
+ * than failing the whole cycle — the same isolation the per-aggregate pull
+ * uses, so a broken recipes endpoint never stops lists from syncing.
+ */
+export async function fetchAggregates(
+  fetcher: Fetcher = authFetch,
+): Promise<readonly Aggregate[]> {
+  const perKind = await Promise.all(
+    SYNCED_KINDS.map(async (kind) => {
+      try {
+        return await fetchAggregatesOfKind(kind, fetcher)
+      } catch (error: unknown) {
+        console.warn(`sync: listing ${kind} aggregates failed`, error)
+        return []
+      }
+    }),
+  )
+  return perKind.flat()
 }
 
 /**
@@ -50,15 +80,14 @@ export async function fetchListIds(
  * during catch-up. Malformed events are dropped, never folded.
  */
 export async function fetchEventsSince(
-  aggregateId: string,
+  aggregate: Aggregate,
   since: string | null,
   fetcher: Fetcher = authFetch,
 ): Promise<readonly WireEvent[]> {
+  const path = eventsPathFor(aggregate)
   const query = since ? `?since=${since}` : ''
-  const response = await fetcher(`${eventsPathFor(aggregateId)}${query}`)
-  if (!response.ok) {
-    throw new Error(`GET ${eventsPathFor(aggregateId)} → ${response.status}`)
-  }
+  const response = await fetcher(`${path}${query}`)
+  if (!response.ok) throw new Error(`GET ${path} → ${response.status}`)
   const body: unknown = await response.json()
   const events = (body as { readonly events?: unknown }).events
   if (!Array.isArray(events)) throw new Error('events response is not a list')

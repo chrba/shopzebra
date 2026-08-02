@@ -4,6 +4,9 @@ import { Outbox, type SyncStorage } from '@/app/sync/outbox'
 import { isEventsConfirmed, type ConfirmedEvent } from '@/app/sync/withSync'
 import type { WireEvent } from '@/app/sync/receive/fetchEvents'
 import { catchUp } from '@/app/sync/receive/catchUp'
+import type { Aggregate } from '@/app/sync/aggregate'
+
+const list1: Aggregate = { kind: 'list', id: 'l1' }
 
 function memoryStorage(): SyncStorage {
   const data = new Map<string, string>()
@@ -39,7 +42,7 @@ describe('catchUp', () => {
     await catchUp({
       ledger: outbox,
       dispatch: (action) => dispatched.push(action),
-      fetchListIds: () => Promise.resolve(['l1']),
+      fetchAggregates: () => Promise.resolve([list1]),
       fetchEventsSince: () =>
         Promise.resolve([
           wireEvent('f2', '00000000000000000002'),
@@ -50,7 +53,7 @@ describe('catchUp', () => {
     const events = confirmedEventsOf(dispatched)
     expect(events.map((event) => event.meta.eventId)).toEqual(['f1', 'f2'])
     expect(events.every((event) => event.meta.remote)).toBe(true)
-    expect(outbox.cursorFor('l1')).toBe('00000000000000000002')
+    expect(outbox.cursorFor(list1)).toBe('00000000000000000002')
   })
 
   it('includes own events in the batch — the reducer confirms them, not this file', async () => {
@@ -59,7 +62,7 @@ describe('catchUp', () => {
     await catchUp({
       ledger: outbox,
       dispatch: (action) => dispatched.push(action),
-      fetchListIds: () => Promise.resolve(['l1']),
+      fetchAggregates: () => Promise.resolve([list1]),
       fetchEventsSince: () =>
         Promise.resolve([
           {
@@ -79,23 +82,40 @@ describe('catchUp', () => {
       'mine',
       'theirs',
     ])
-    expect(outbox.cursorFor('l1')).toBe('00000000000000000002')
+    expect(outbox.cursorFor(list1)).toBe('00000000000000000002')
   })
 
-  it('passes the stored cursor to the fetcher and isolates per-list failures', async () => {
+  it('passes the stored cursor to the fetcher and isolates per-aggregate failures', async () => {
     const outbox = await Outbox.load(memoryStorage())
-    await outbox.advanceCursor('l1', '00000000000000000005')
+    await outbox.advanceCursor(list1, '00000000000000000005')
     const asked: (string | null)[] = []
     await catchUp({
       ledger: outbox,
       dispatch: () => undefined,
-      fetchListIds: () => Promise.resolve(['broken', 'l1']),
-      fetchEventsSince: (listId, since) => {
-        if (listId === 'broken') return Promise.reject(new Error('boom'))
+      fetchAggregates: () =>
+        Promise.resolve([{ kind: 'list', id: 'broken' } as const, list1]),
+      fetchEventsSince: (aggregate, since) => {
+        if (aggregate.id === 'broken') return Promise.reject(new Error('boom'))
         asked.push(since)
         return Promise.resolve([])
       },
     })
     expect(asked).toEqual(['00000000000000000005'])
+  })
+
+  it('pulls a recipe from its own log, not from the list routes', async () => {
+    const outbox = await Outbox.load(memoryStorage())
+    const recipe: Aggregate = { kind: 'recipe', id: 'bolo' }
+    const pulled: Aggregate[] = []
+    await catchUp({
+      ledger: outbox,
+      dispatch: () => undefined,
+      fetchAggregates: () => Promise.resolve([list1, recipe]),
+      fetchEventsSince: (aggregate) => {
+        pulled.push(aggregate)
+        return Promise.resolve([])
+      },
+    })
+    expect(pulled).toEqual([list1, recipe])
   })
 })

@@ -181,7 +181,7 @@ impl MembershipStore for MemoryMembershipStore {
         let aggregates = roles
             .keys()
             .filter(|(_, member)| member == &user.0)
-            .filter_map(|(partition, _)| partition.strip_prefix("LIST#").map(AggregateId::list))
+            .filter_map(|(partition, _)| AggregateId::from_partition_key(partition))
             .collect();
         Ok(aggregates)
     }
