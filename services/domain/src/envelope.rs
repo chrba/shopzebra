@@ -58,7 +58,7 @@ fn allow(
 /// a new event type is a schema file plus this registration, and the
 /// files can later move to a registry without changing the validator.
 static ALLOWLIST: LazyLock<HashMap<&'static str, EventTypeSpec>> = LazyLock::new(|| {
-    use AggregateKind::List;
+    use AggregateKind::{List, Recipe};
     let mut specs = HashMap::new();
     allow(&mut specs, "lists/listCreated", List, "listId", include_str!("../schemas/lists.listCreated.json"));
     allow(&mut specs, "lists/listRenamed", List, "listId", include_str!("../schemas/lists.listRenamed.json"));
@@ -73,7 +73,10 @@ static ALLOWLIST: LazyLock<HashMap<&'static str, EventTypeSpec>> = LazyLock::new
     allow(&mut specs, "shopping/itemNoteUpdated", List, "listId", include_str!("../schemas/shopping.itemNoteUpdated.json"));
     allow(&mut specs, "shopping/customVariantAdded", List, "listId", include_str!("../schemas/shopping.customVariantAdded.json"));
     allow(&mut specs, "mealPlan/ingredientsCheckedOut", List, "listId", include_str!("../schemas/mealPlan.ingredientsCheckedOut.json"));
-    // Recipe and Plan aggregate schemas follow with their features.
+    allow(&mut specs, "recipes/recipeCreated", Recipe, "recipeId", include_str!("../schemas/recipes.recipeCreated.json"));
+    allow(&mut specs, "recipes/recipeUpdated", Recipe, "recipeId", include_str!("../schemas/recipes.recipeUpdated.json"));
+    allow(&mut specs, "recipes/recipeDeleted", Recipe, "recipeId", include_str!("../schemas/recipes.recipeDeleted.json"));
+    // Plan aggregate schemas follow with their feature.
     specs
 });
 
@@ -189,5 +192,100 @@ mod tests {
         let result = validate_envelope(&groceries(), "lists/listRenamed", payload);
 
         assert_eq!(result.unwrap_err(), EnvelopeError::PayloadTooLarge);
+    }
+}
+
+#[cfg(test)]
+mod recipe_tests {
+    use super::*;
+    use serde_json::json;
+
+    fn bolognese() -> AggregateId {
+        AggregateId::recipe("bolo")
+    }
+
+    fn well_formed() -> serde_json::Value {
+        json!({
+            "recipeId": "bolo",
+            "name": "Spaghetti Bolognese",
+            "createdBy": "user-1",
+            "portions": 4,
+            "durationMinutes": 30,
+            "ingredients": [{ "name": "Spaghetti", "quantity": "500", "unit": "g" }],
+            "steps": ["Wasser aufsetzen", "Sauce köcheln"]
+        })
+    }
+
+    #[test]
+    fn accepts_a_well_formed_recipe() {
+        let result = validate_envelope(&bolognese(), "recipes/recipeCreated", well_formed());
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn a_recipe_event_is_rejected_on_a_list_aggregate() {
+        let result =
+            validate_envelope(&AggregateId::list("abc"), "recipes/recipeCreated", well_formed());
+
+        assert_eq!(
+            result.unwrap_err(),
+            EnvelopeError::WrongAggregateKind("recipes/recipeCreated".into())
+        );
+    }
+
+    #[test]
+    fn a_recipe_without_a_name_is_rejected() {
+        let mut payload = well_formed();
+        payload.as_object_mut().expect("object").remove("name");
+
+        let result = validate_envelope(&bolognese(), "recipes/recipeCreated", payload);
+
+        assert!(matches!(result.unwrap_err(), EnvelopeError::SchemaViolation(_)));
+    }
+
+    #[test]
+    fn a_recipe_without_a_creator_is_rejected() {
+        let mut payload = well_formed();
+        payload.as_object_mut().expect("object").remove("createdBy");
+
+        let result = validate_envelope(&bolognese(), "recipes/recipeCreated", payload);
+
+        assert!(matches!(result.unwrap_err(), EnvelopeError::SchemaViolation(_)));
+    }
+
+    #[test]
+    fn a_recipe_may_leave_out_its_duration() {
+        let mut payload = well_formed();
+        payload
+            .as_object_mut()
+            .expect("object")
+            .remove("durationMinutes");
+
+        let result = validate_envelope(&bolognese(), "recipes/recipeCreated", payload);
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn a_payload_naming_another_recipe_is_rejected() {
+        let mut payload = well_formed();
+        payload.as_object_mut().expect("object")["recipeId"] = json!("somebody-elses-recipe");
+
+        let result = validate_envelope(&bolognese(), "recipes/recipeCreated", payload);
+
+        assert_eq!(result.unwrap_err(), EnvelopeError::AggregateIdMismatch);
+    }
+
+    #[test]
+    fn the_member_events_of_a_recipe_stay_off_the_generic_path() {
+        let payload = json!({ "recipeId": "bolo", "memberId": "attacker", "name": "Eve" });
+
+        let result = validate_envelope(&bolognese(), "recipes/recipeMemberAdded", payload);
+
+        assert_eq!(
+            result.unwrap_err(),
+            EnvelopeError::UnknownEventType("recipes/recipeMemberAdded".into())
+        );
     }
 }

@@ -1,0 +1,28 @@
+{
+  "type": "object",
+  "required": ["recipeId", "name", "portions", "ingredients", "steps"],
+  "properties": {
+    "recipeId": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "portions": { "type": "integer", "minimum": 1, "maximum": 100 },
+    "durationMinutes": { "type": "integer", "minimum": 1, "maximum": 10000 },
+    "ingredients": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "required": ["name", "quantity", "unit"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "quantity": { "type": "string", "maxLength": 20 },
+          "unit": { "type": "string", "maxLength": 20 }
+        }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "maxItems": 100,
+      "items": { "type": "string", "minLength": 1, "maxLength": 2000 }
+    }
+  }
+}

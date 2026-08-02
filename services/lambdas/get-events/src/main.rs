@@ -1,13 +1,15 @@
 use adapters::{DynamoDbEventStore, DynamoDbMembershipStore, NoopEventPublisher};
 use aws_sdk_dynamodb::Client;
-use domain::event::{AggregateId, Position, UserId};
+use domain::event::{Position, UserId};
 use domain::ports::Ports;
 use domain::usecases::get_events::{get_events, GetEventsError};
 use lambda_http::{run, service_fn, Body, Error, Request, RequestExt, Response};
+use lib::aggregate_route::aggregate_from_path;
 use lib::error::ApiError;
 use serde_json::json;
 
-// GET /lists/{listId}/events?since=<position> — the cursor catch-up:
+// GET /<collection>/{id}/events?since=<position> — the cursor catch-up,
+// for every aggregate kind:
 // any member reads everything after the position it already holds.
 // Without ?since the whole log is returned (bootstrap of a new device).
 #[tokio::main]
@@ -38,10 +40,10 @@ async fn handle(ports: &Ports<'_>, http_request: Request) -> Result<Response<Bod
         Err(api_error) => return api_error.to_response(),
     };
 
-    let Some(list_id) = http_request.path_parameters().first("listId").map(str::to_string) else {
-        return ApiError::BadRequest("listId path parameter is required".into()).to_response();
+    let aggregate = match aggregate_from_path(&http_request) {
+        Ok(aggregate) => aggregate,
+        Err(api_error) => return api_error.to_response(),
     };
-    let aggregate = AggregateId::list(list_id);
 
     let after = match parse_since(&http_request) {
         Ok(after) => after,

@@ -749,6 +749,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "create-recipe"
+version = "0.1.0"
+dependencies = [
+ "adapters",
+ "aws-config",
+ "aws-sdk-dynamodb",
+ "domain",
+ "lambda_http",
+ "lib",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "crypto-common"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1602,6 +1618,7 @@ checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 name = "lib"
 version = "0.1.0"
 dependencies = [
+ "domain",
  "lambda_http",
  "lambda_runtime",
  "serde",

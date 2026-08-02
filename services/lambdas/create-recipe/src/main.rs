@@ -1,18 +1,16 @@
 use adapters::{DynamoDbEventStore, DynamoDbMembershipStore, NoopEventPublisher};
 use aws_sdk_dynamodb::Client;
 use domain::event::UserId;
-use domain::usecases::append_event::{append_event, AppendEventError, AppendEventRequest};
-use lambda_http::{run, service_fn, Body, Error, Request, Response};
 use domain::ports::Ports;
-use lib::aggregate_route::aggregate_from_path;
+use domain::usecases::create_recipe::{create_recipe, CreateRecipeError, CreateRecipeRequest};
+use lambda_http::{run, service_fn, Body, Error, Request, Response};
 use lib::error::ApiError;
 use lib::wire;
 use serde_json::json;
 
-// POST /lists/{listId}/events and the recipe route beside it — the
-// generic class-1 append path: any
-// member may send allowlisted, schema-valid events; the server assigns
-// the ULID and never interprets the payload.
+// POST /recipes — class-2 command: recipeCreated bootstraps the
+// authorization root, the server claims ownership for the caller and writes
+// the event. Everything after that is a plain class-1 append.
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt()
@@ -41,38 +39,35 @@ async fn handle(ports: &Ports<'_>, http_request: Request) -> Result<Response<Bod
         Err(api_error) => return api_error.to_response(),
     };
 
-    let aggregate = match aggregate_from_path(&http_request) {
-        Ok(aggregate) => aggregate,
-        Err(api_error) => return api_error.to_response(),
-    };
-
     let request = match parse_request(http_request.body().as_ref()) {
         Ok(request) => request,
         Err(api_error) => return api_error.to_response(),
     };
 
-    match append_event(ports, &caller, &aggregate, request).await {
+    match create_recipe(ports, &caller, request).await {
         Ok(stored) => lib::response::json(
             201,
             &json!({ "position": stored.position.to_string(), "eventId": stored.event_id }),
         ),
-        Err(AppendEventError::Forbidden(violation)) => {
-            ApiError::Forbidden(violation.to_string()).to_response()
-        }
-        Err(AppendEventError::InvalidEnvelope(violation)) => {
+        Err(CreateRecipeError::InvalidEnvelope(violation)) => {
             ApiError::ValidationFailed(violation.to_string()).to_response()
         }
-        Err(AppendEventError::Store(store_error)) => {
-            tracing::error!(error = %store_error, "append failed");
+        Err(CreateRecipeError::CreatorMustBeCaller) => {
+            ApiError::Forbidden("createdBy must be the authenticated caller".into()).to_response()
+        }
+        Err(CreateRecipeError::AlreadyExists) => {
+            ApiError::Conflict("a recipe with this id already exists".into()).to_response()
+        }
+        Err(CreateRecipeError::Store(store_error)) => {
+            tracing::error!(error = %store_error, "create recipe failed");
             ApiError::Internal.to_response()
         }
     }
 }
 
-fn parse_request(body: &[u8]) -> Result<AppendEventRequest, ApiError> {
+fn parse_request(body: &[u8]) -> Result<CreateRecipeRequest, ApiError> {
     let action = wire::parse_action(body)?;
-    Ok(AppendEventRequest {
-        event_type: wire::required_type(&action)?,
+    Ok(CreateRecipeRequest {
         payload: wire::required_payload(&action)?,
         event_id: wire::required_meta_field(&action, "eventId")?,
         device_id: wire::required_meta_field(&action, "deviceId")?,
