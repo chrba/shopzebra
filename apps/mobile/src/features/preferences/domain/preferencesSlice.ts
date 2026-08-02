@@ -1,13 +1,16 @@
 import { createSlice, type PayloadAction } from '../../../app/createSlice'
 import { listDeleted } from '../../lists/domain/listsSlice'
-import type { ListPreferences } from './preferencesDomain'
+import { recipeDeleted } from '../../recipes/domain/recipesSlice'
+import type { ListPreferences, RecipePreferences } from './preferencesDomain'
 
 type PreferencesState = {
   readonly listPrefs: { readonly [listId: string]: ListPreferences }
+  readonly recipePrefs: { readonly [recipeId: string]: RecipePreferences }
 }
 
 const initialState: PreferencesState = {
   listPrefs: {},
+  recipePrefs: {},
 }
 
 const preferencesSlice = createSlice({
@@ -15,9 +18,10 @@ const preferencesSlice = createSlice({
   initialState,
   reducers: {
     listPreferencesLoaded: (
-      _state: PreferencesState,
+      state: PreferencesState,
       action: PayloadAction<{ readonly [listId: string]: ListPreferences }>,
     ): PreferencesState => ({
+      ...state,
       listPrefs: action.payload,
     }),
 
@@ -32,6 +36,30 @@ const preferencesSlice = createSlice({
       listPrefs: {
         ...state.listPrefs,
         [action.payload.listId]: action.payload.preferences,
+      },
+    }),
+
+    recipePreferencesLoaded: (
+      state: PreferencesState,
+      action: PayloadAction<{
+        readonly [recipeId: string]: RecipePreferences
+      }>,
+    ): PreferencesState => ({
+      ...state,
+      recipePrefs: action.payload,
+    }),
+
+    recipePreferencesSet: (
+      state: PreferencesState,
+      action: PayloadAction<{
+        readonly recipeId: string
+        readonly preferences: RecipePreferences
+      }>,
+    ): PreferencesState => ({
+      ...state,
+      recipePrefs: {
+        ...state.recipePrefs,
+        [action.payload.recipeId]: action.payload.preferences,
       },
     }),
   },
@@ -51,13 +79,32 @@ const preferencesSlice = createSlice({
         ),
       }),
     },
+    {
+      // Preferences of a deleted recipe are orphans — clean them up.
+      creator: recipeDeleted,
+      reducer: (
+        state: PreferencesState,
+        action: PayloadAction<{ readonly recipeId: string }>,
+      ): PreferencesState => ({
+        ...state,
+        recipePrefs: Object.fromEntries(
+          Object.entries(state.recipePrefs).filter(
+            ([recipeId]) => recipeId !== action.payload.recipeId,
+          ),
+        ),
+      }),
+    },
   ],
 })
 
 // --- Actions ---
 
-export const { listPreferencesLoaded, listPreferencesSet } =
-  preferencesSlice.actions
+export const {
+  listPreferencesLoaded,
+  listPreferencesSet,
+  recipePreferencesLoaded,
+  recipePreferencesSet,
+} = preferencesSlice.actions
 export const preferencesReducer = preferencesSlice.reducer
 
 // --- Selectors ---
@@ -71,3 +118,11 @@ export const selectListPreferences = (
   state: StateWithPreferences,
   listId: string,
 ) => state.preferences.listPrefs[listId] ?? null
+
+export const selectAllRecipePreferences = (state: StateWithPreferences) =>
+  state.preferences.recipePrefs
+
+export const selectRecipePreferences = (
+  state: StateWithPreferences,
+  recipeId: string,
+) => state.preferences.recipePrefs[recipeId] ?? null

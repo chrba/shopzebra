@@ -3,6 +3,7 @@
 
 import type { PayloadAction } from '../../createSlice'
 import { listCreated } from '../../../features/lists/domain/listsSlice'
+import { recipeCreated } from '../../../features/recipes/domain/recipesSlice'
 import { aggregateOf, eventsPathFor } from '../aggregate'
 import { needsSync } from '../needsSync'
 import { ownerIdToCreatedBy } from '../wire'
@@ -19,14 +20,25 @@ export function toOutboxEntry(
   const meta = action.meta
   if (!meta || !needsSync(action)) return null
 
-  // Class-2 command (sync-engine.md §6): the server validates, claims
-  // ownership and writes the event itself. It still travels the outbox,
+  // Class-2 commands (sync-engine.md §6): the server validates, claims
+  // ownership and writes the event itself. They still travel the outbox,
   // so creating something works offline like everything else.
   if (listCreated.match(action)) {
     return {
       path: '/lists',
       wire: {
         type: listCreated.type,
+        payload: ownerIdToCreatedBy(action.payload),
+        meta,
+      },
+    }
+  }
+
+  if (recipeCreated.match(action)) {
+    return {
+      path: '/recipes',
+      wire: {
+        type: recipeCreated.type,
         payload: ownerIdToCreatedBy(action.payload),
         meta,
       },

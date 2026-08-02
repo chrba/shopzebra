@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { toOutboxEntry } from '@/app/sync/send/toOutboxEntry'
 import { itemAdded } from '@/features/shopping/domain/shoppingSlice'
 import { listCreated } from '@/features/lists/domain/listsSlice'
+import {
+  recipeCreated,
+  recipeUpdated,
+} from '@/features/recipes/domain/recipesSlice'
 
 const meta = { eventId: 'e1', deviceId: 'device-1' }
 
@@ -37,6 +41,55 @@ describe('toOutboxEntry', () => {
         meta,
       },
     })
+  })
+
+  it('maps recipeCreated to the recipe command endpoint with createdBy', () => {
+    const action = {
+      ...recipeCreated({
+        recipeId: 'bolo',
+        name: 'Bolognese',
+        ownerId: 'user-1',
+        portions: 4,
+        ingredients: [],
+        steps: [],
+      }),
+      meta,
+    }
+
+    const entry = toOutboxEntry(action)
+
+    expect(entry).toEqual({
+      path: '/recipes',
+      wire: {
+        type: 'recipes/recipeCreated',
+        payload: {
+          recipeId: 'bolo',
+          name: 'Bolognese',
+          createdBy: 'user-1',
+          portions: 4,
+          ingredients: [],
+          steps: [],
+        },
+        meta,
+      },
+    })
+  })
+
+  it('maps a later recipe edit to the recipe log, not the list log', () => {
+    const action = {
+      ...recipeUpdated({
+        recipeId: 'bolo',
+        name: 'Bolognese XL',
+        portions: 8,
+        ingredients: [],
+        steps: [],
+      }),
+      meta,
+    }
+
+    const entry = toOutboxEntry(action)
+
+    expect(entry).toEqual({ path: '/recipes/bolo/events', wire: action })
   })
 
   it('ignores remote actions, unsynced slices and payloads without listId', () => {

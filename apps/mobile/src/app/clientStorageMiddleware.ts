@@ -10,6 +10,7 @@ import type { Middleware } from '@reduxjs/toolkit'
 import { listsClientStorageHandler } from '../features/lists/domain/listsClientStorageHandler'
 import { joinIntentClientStorageHandler } from '../features/lists/join/joinIntentClientStorageHandler'
 import { friendsClientStorageHandler } from '../features/friends/domain/friendsClientStorageHandler'
+import { recipesClientStorageHandler } from '../features/recipes/domain/recipesClientStorageHandler'
 import { shoppingClientStorageHandler } from '../features/shopping/domain/shoppingClientStorageHandler'
 import { preferencesClientStorageHandler } from '../features/preferences/domain/preferencesClientStorageHandler'
 
@@ -22,6 +23,7 @@ const handlers: readonly ClientStorageHandler[] = [
   listsClientStorageHandler,
   joinIntentClientStorageHandler,
   friendsClientStorageHandler,
+  recipesClientStorageHandler,
   shoppingClientStorageHandler,
   preferencesClientStorageHandler,
 ]

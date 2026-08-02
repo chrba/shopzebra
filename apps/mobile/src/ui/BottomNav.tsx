@@ -1,23 +1,31 @@
+import { useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
+/** The four tabs of the app shell. */
+export type NavTab = 'listen' | 'planen' | 'rezepte' | 'aktivitaet'
+
 type BottomNavProps = {
-  readonly activeTab: 'listen' | 'planen' | 'rezepte' | 'aktivitaet'
+  readonly activeTab: NavTab
   readonly activityBadgeCount?: number
 }
 
 function NavButton({
   active,
   label,
+  onSelect,
   children,
 }: {
   readonly active: boolean
   readonly label: string
+  /** Left out for tabs whose screen does not exist yet — they stay inert. */
+  readonly onSelect?: () => void
   readonly children: React.ReactNode
 }) {
   return (
     <Button
       variant="ghost"
+      onClick={onSelect}
       className={`relative flex h-auto min-w-14 flex-col items-center gap-[5px] px-0 py-0 text-[10px] font-semibold [&_svg]:size-6 [&_svg]:fill-current ${active ? 'text-teal hover:text-teal' : 'text-muted-foreground'}`}
     >
       {active && (
@@ -30,9 +38,15 @@ function NavButton({
 }
 
 export function BottomNav({ activeTab, activityBadgeCount }: BottomNavProps) {
+  const navigate = useNavigate()
+
   return (
     <nav className="sticky bottom-0 z-100 flex items-start justify-around border-t border-zinc-800 bg-zinc-950/90 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+12px)] backdrop-blur-lg">
-      <NavButton active={activeTab === 'listen'} label="Listen">
+      <NavButton
+        active={activeTab === 'listen'}
+        label="Listen"
+        onSelect={() => void navigate({ to: '/lists' })}
+      >
         <svg viewBox="0 0 24 24">
           <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z" />
         </svg>
@@ -44,7 +58,11 @@ export function BottomNav({ activeTab, activityBadgeCount }: BottomNavProps) {
         </svg>
       </NavButton>
 
-      <NavButton active={activeTab === 'rezepte'} label="Rezepte">
+      <NavButton
+        active={activeTab === 'rezepte'}
+        label="Rezepte"
+        onSelect={() => void navigate({ to: '/recipes' })}
+      >
         <svg viewBox="0 0 24 24">
           <path d="M8.1 13.34l2.83-2.83L3.91 3.5a4.008 4.008 0 000 5.66l4.19 4.18zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3.7 19.87l1.41 1.41L12 14.41l6.88 6.88 1.41-1.41L13.41 13l1.47-1.47z" />
         </svg>

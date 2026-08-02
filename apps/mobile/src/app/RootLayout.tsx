@@ -3,9 +3,15 @@
 // like sign-in, sign-up and list creation.
 
 import { Outlet, useRouterState } from '@tanstack/react-router'
-import { BottomNav } from '../ui/BottomNav'
+import { BottomNav, type NavTab } from '../ui/BottomNav'
 
-const FULLSCREEN_ROUTES = ['/lists/new', '/signin', '/signup', '/forgot-password']
+const FULLSCREEN_ROUTES = [
+  '/lists/new',
+  '/recipes/new',
+  '/signin',
+  '/signup',
+  '/forgot-password',
+]
 
 /** Screens that own the whole viewport — no bottom nav underneath. */
 function isFullscreen(pathname: string): boolean {
@@ -13,10 +19,16 @@ function isFullscreen(pathname: string): boolean {
     FULLSCREEN_ROUTES.includes(pathname) ||
     pathname.endsWith('/members') ||
     pathname.endsWith('/invite') ||
+    pathname.endsWith('/edit') ||
     pathname === '/friends' ||
     pathname.startsWith('/friend/') ||
     pathname.startsWith('/join/')
   )
+}
+
+/** Which tab the current route belongs to. */
+function tabOf(pathname: string): NavTab {
+  return pathname.startsWith('/recipes') ? 'rezepte' : 'listen'
 }
 
 export function RootLayout() {
@@ -26,7 +38,7 @@ export function RootLayout() {
   return (
     <>
       <Outlet />
-      {showNav && <BottomNav activeTab="listen" />}
+      {showNav && <BottomNav activeTab={tabOf(pathname)} />}
     </>
   )
 }

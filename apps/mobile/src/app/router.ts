@@ -44,17 +44,35 @@ import { FriendsPage } from '../features/friends/FriendsPage'
 import { FriendInvitePage } from '../features/friends/FriendInvitePage'
 import { AcceptFriendPage } from '../features/friends/AcceptFriendPage'
 import {
-  fetchListInvite,
-  fetchListProjection,
-  joinListByToken,
-} from '../features/lists/members/memberCommands'
-import { MembersPage } from '../features/lists/members/MembersPage'
-import { InvitePage } from '../features/lists/members/InvitePage'
+  fetchInvite,
+  fetchSharingProjection,
+  joinByToken,
+} from '../features/sharing/memberCommands'
+import { ListMembersPage } from '../features/lists/members/ListMembersPage'
+import { ListInvitePage } from '../features/lists/members/ListInvitePage'
+import { RecipeMembersPage } from '../features/recipes/members/RecipeMembersPage'
+import { RecipeInvitePage } from '../features/recipes/members/RecipeInvitePage'
 import { JoinListPage } from '../features/lists/join/JoinListPage'
 import { syncEngine } from './sync/syncEngine'
 import { shoppingLoaded } from '../features/shopping/domain/shoppingSlice'
 import { SHOPPING_STORAGE_KEY } from '../features/shopping/domain/shoppingClientStorageHandler'
-import { listPreferencesLoaded } from '../features/preferences/domain/preferencesSlice'
+import {
+  listPreferencesLoaded,
+  recipePreferencesLoaded,
+} from '../features/preferences/domain/preferencesSlice'
+import type { RecipePreferences } from '../features/preferences/domain/preferencesDomain'
+import {
+  recipeOwnerNamesLoaded,
+  recipesLoaded,
+  selectRecipeById,
+} from '../features/recipes/domain/recipesSlice'
+import { RecipesPage } from '../features/recipes/overview/RecipesPage'
+import { CreateRecipePage } from '../features/recipes/manage/CreateRecipePage'
+import { EditRecipePage } from '../features/recipes/manage/EditRecipePage'
+import { RecipeDetailPage } from '../features/recipes/detail/RecipeDetailPage'
+import { RECIPES_KEY } from '../features/recipes/domain/recipesClientStorageHandler'
+import { RECIPE_PREFS_KEY } from '../features/preferences/domain/preferencesClientStorageHandler'
+import type { Recipe } from '../features/recipes/domain/recipesDomain'
 import {
   sessionRestored,
   sessionNotFound,
@@ -82,6 +100,33 @@ import { ProfilePage } from '../features/auth/profile/ProfilePage'
 const DEVICE_ID_KEY = 'shopzebra_device_id'
 const LISTS_KEY = 'shopzebra_lists'
 const PREFS_KEY = 'shopzebra_list_preferences'
+
+/** Parsed JSON from client storage, or null when absent or damaged. */
+async function storedJson(key: string): Promise<unknown> {
+  const raw = await getItem(key)
+  if (!raw) return null
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+
+/** The confirmed recipes this device last saw. Empty on a fresh install. */
+async function storedRecipes(): Promise<readonly Recipe[]> {
+  const parsed = await storedJson(RECIPES_KEY)
+  return Array.isArray(parsed) ? (parsed as readonly Recipe[]) : []
+}
+
+/** Emoji and colour per recipe — per-device, never synced. */
+async function storedRecipePreferences(): Promise<{
+  readonly [recipeId: string]: RecipePreferences
+}> {
+  const parsed = await storedJson(RECIPE_PREFS_KEY)
+  return parsed !== null && typeof parsed === 'object'
+    ? (parsed as { readonly [recipeId: string]: RecipePreferences })
+    : {}
+}
 
 const rootRoute = createRootRoute({
   component: RootLayout,
@@ -190,6 +235,10 @@ const rootRoute = createRootRoute({
     store.dispatch(listsLoaded({ lists }))
 
     store.dispatch(listPreferencesLoaded(preferences))
+
+    // Recipes hydrate the same way lists do — local-first, then catch-up.
+    store.dispatch(recipesLoaded({ recipes: await storedRecipes() }))
+    store.dispatch(recipePreferencesLoaded(await storedRecipePreferences()))
     // A pending invite has to survive an app kill — the invitee leaves for
     // the mail app to fetch the confirmation code.
     store.dispatch(
@@ -377,7 +426,7 @@ const listMembersRoute = createRoute({
     // friends fill the one-tap picker. Failing either costs data, not the
     // screen — the cached state stands in.
     try {
-      const projection = await fetchListProjection()
+      const projection = await fetchSharingProjection('list')
       store.dispatch(ownerNamesLoaded({ ownerNames: projection.ownerNames }))
       if (projection.maxMembers !== null) {
         store.dispatch(
@@ -395,7 +444,7 @@ const listMembersRoute = createRoute({
   },
   component: () => {
     const { listId } = listMembersRoute.useParams()
-    return MembersPage({ listId })
+    return ListMembersPage({ listId })
   },
 })
 
@@ -411,7 +460,7 @@ const listInviteRoute = createRoute({
     // Only the owner may mint invites (events.md owner model).
     if (!list || !me || list.ownerId !== me.userId) return { invite: null }
     try {
-      return { invite: await fetchListInvite(params.listId) }
+      return { invite: await fetchInvite({ kind: 'list', id: params.listId }) }
     } catch (error: unknown) {
       console.warn('reading the list invite failed', error)
       return { invite: null }
@@ -420,7 +469,7 @@ const listInviteRoute = createRoute({
   component: () => {
     const { listId } = listInviteRoute.useParams()
     const { invite } = listInviteRoute.useLoaderData()
-    return InvitePage({ listId, invite })
+    return ListInvitePage({ listId, invite })
   },
 })
 
@@ -430,16 +479,16 @@ const joinRoute = createRoute({
   beforeLoad: requireAuth,
   loader: async ({ params }) => {
     try {
-      const { listId } = await joinListByToken(params.token, {
+      const joined = await joinByToken(params.token, {
         eventId: crypto.randomUUID(),
         deviceId: selectDeviceId(store.getState()),
       })
       // Cleared on success and on failure alike — a token left behind
       // would fire again on every later sign-in.
       store.dispatch(joinIntentCleared())
-      // Pull the new list and its log before navigating into it.
+      // Pull the new aggregate and its log before navigating into it.
       await syncEngine.requestSync()
-      throw redirect({ to: '/lists/$listId', params: { listId } })
+      throw redirect({ to: '/lists/$listId', params: { listId: joined.id } })
     } catch (error: unknown) {
       // The success path throws a redirect — never swallow it.
       if (isRedirect(error)) throw error
@@ -498,6 +547,98 @@ const acceptFriendRoute = createRoute({
   },
 })
 
+const recipesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/recipes',
+  beforeLoad: requireAuth,
+  component: RecipesPage,
+})
+
+const createRecipeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/recipes/new',
+  beforeLoad: requireAuth,
+  component: CreateRecipePage,
+})
+
+const editRecipeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/recipes/$recipeId/edit',
+  beforeLoad: requireAuth,
+  component: () => {
+    const { recipeId } = editRecipeRoute.useParams()
+    return EditRecipePage({ recipeId })
+  },
+})
+
+const recipeDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/recipes/$recipeId',
+  beforeLoad: requireAuth,
+  component: () => {
+    const { recipeId } = recipeDetailRoute.useParams()
+    return RecipeDetailPage({ recipeId })
+  },
+})
+
+const recipeMembersRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/recipes/$recipeId/members',
+  beforeLoad: requireAuth,
+  loader: async () => {
+    // Same two reads as for a list: the projection carries owner names and
+    // the member cap, the friends fill the one-tap picker. Failing either
+    // costs data, not the screen.
+    try {
+      const projection = await fetchSharingProjection('recipe')
+      store.dispatch(
+        recipeOwnerNamesLoaded({ ownerNames: projection.ownerNames }),
+      )
+      if (projection.maxMembers !== null) {
+        store.dispatch(memberLimitLoaded({ maxMembers: projection.maxMembers }))
+      }
+    } catch (error: unknown) {
+      console.warn('reading the recipe projection failed', error)
+    }
+    try {
+      store.dispatch(friendsLoaded({ friends: await fetchFriends() }))
+    } catch (error: unknown) {
+      console.warn('reading friends failed', error)
+    }
+  },
+  component: () => {
+    const { recipeId } = recipeMembersRoute.useParams()
+    return RecipeMembersPage({ recipeId })
+  },
+})
+
+const recipeInviteRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/recipes/$recipeId/invite',
+  beforeLoad: requireAuth,
+  loader: async ({ params }) => {
+    const state = store.getState()
+    const recipe = selectRecipeById(state, params.recipeId)
+    const me = selectAuthUser(state)
+
+    // Only the owner may mint invites (events.md owner model).
+    if (!recipe || !me || recipe.ownerId !== me.userId) return { invite: null }
+    try {
+      return {
+        invite: await fetchInvite({ kind: 'recipe', id: params.recipeId }),
+      }
+    } catch (error: unknown) {
+      console.warn('reading the recipe invite failed', error)
+      return { invite: null }
+    }
+  },
+  component: () => {
+    const { recipeId } = recipeInviteRoute.useParams()
+    const { invite } = recipeInviteRoute.useLoaderData()
+    return RecipeInvitePage({ recipeId, invite })
+  },
+})
+
 const profileRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/profile',
@@ -521,6 +662,12 @@ const routeTree = rootRoute.addChildren([
   friendsRoute,
   friendsInviteRoute,
   acceptFriendRoute,
+  recipesRoute,
+  createRecipeRoute,
+  editRecipeRoute,
+  recipeDetailRoute,
+  recipeMembersRoute,
+  recipeInviteRoute,
   profileRoute,
 ])
 

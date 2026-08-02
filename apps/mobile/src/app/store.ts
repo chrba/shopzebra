@@ -12,6 +12,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { listsReducer } from '../features/lists/domain/listsSlice'
 import { joinIntentReducer } from '../features/lists/join/joinIntentSlice'
 import { friendsReducer } from '../features/friends/domain/friendsSlice'
+import { recipesReducer } from '../features/recipes/domain/recipesSlice'
 import { shoppingReducer } from '../features/shopping/domain/shoppingSlice'
 import { preferencesReducer } from '../features/preferences/domain/preferencesSlice'
 import { authReducer } from '../features/auth/domain/authSlice'
@@ -30,6 +31,7 @@ const featureReducer = combineReducers({
   lists: listsReducer,
   joinIntent: joinIntentReducer,
   friends: friendsReducer,
+  recipes: recipesReducer,
   shopping: shoppingReducer,
   preferences: preferencesReducer,
 })

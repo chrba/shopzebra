@@ -5,9 +5,10 @@
 
 import type { PayloadAction } from '../createSlice'
 import { listCreated } from '../../features/lists/domain/listsSlice'
+import { recipeCreated } from '../../features/recipes/domain/recipesSlice'
 
 /** The events that name their creator differently on the wire. */
-const CREATION_EVENTS: readonly string[] = [listCreated.type]
+const CREATION_EVENTS: readonly string[] = [listCreated.type, recipeCreated.type]
 
 function namesTheCreator(type: string): boolean {
   return CREATION_EVENTS.includes(type)

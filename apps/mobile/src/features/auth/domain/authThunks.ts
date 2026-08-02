@@ -26,7 +26,13 @@ import { FRIENDS_STORAGE_KEY } from '../../friends/domain/friendsClientStorageHa
 import { friendsLoaded } from '../../friends/domain/friendsSlice'
 import { shoppingLoaded } from '../../shopping/domain/shoppingSlice'
 import { SHOPPING_STORAGE_KEY } from '../../shopping/domain/shoppingClientStorageHandler'
-import { listPreferencesLoaded } from '../../preferences/domain/preferencesSlice'
+import {
+  listPreferencesLoaded,
+  recipePreferencesLoaded,
+} from '../../preferences/domain/preferencesSlice'
+import { RECIPE_PREFS_KEY } from '../../preferences/domain/preferencesClientStorageHandler'
+import { recipesLoaded } from '../../recipes/domain/recipesSlice'
+import { RECIPES_KEY } from '../../recipes/domain/recipesClientStorageHandler'
 import {
   signInSucceeded,
   displayNameChanged,
@@ -195,7 +201,11 @@ export const performSignOut = () => async (dispatch: AppDispatch) => {
     await removeItem(JOIN_INTENT_KEY)
     await removeItem(FRIEND_INTENT_KEY)
     await removeItem(FRIENDS_STORAGE_KEY)
+    await removeItem(RECIPES_KEY)
+    await removeItem(RECIPE_PREFS_KEY)
     dispatch(listsLoaded({ lists: [] }))
+    dispatch(recipesLoaded({ recipes: [] }))
+    dispatch(recipePreferencesLoaded({}))
     dispatch(shoppingLoaded({ itemsByListId: {}, customVariantsByListId: {} }))
     dispatch(listPreferencesLoaded({}))
     // A pending invite belongs to the user who opened it, never to the
