@@ -29,23 +29,23 @@ impl DynamoDbFriendStore {
     }
 }
 
-fn user_partition_key(user: &UserId) -> String {
-    format!("{USER_PK_PREFIX}{}", user.0)
+fn user_partition_key(user_id: &UserId) -> String {
+    format!("{USER_PK_PREFIX}{}", user_id.0)
 }
 
-fn friend_sort_key(friend: &UserId) -> String {
-    format!("{FRIEND_PREFIX}{}", friend.0)
+fn friend_sort_key(friend_id: &UserId) -> String {
+    format!("{FRIEND_PREFIX}{}", friend_id.0)
 }
 
 #[async_trait]
 impl FriendStore for DynamoDbFriendStore {
-    async fn friends_of(&self, user: &UserId) -> Result<Vec<UserId>, StoreError> {
+    async fn friends_of(&self, user_id: &UserId) -> Result<Vec<UserId>, StoreError> {
         let result = self
             .client
             .query()
             .table_name(&self.table_name)
             .key_condition_expression("pk = :pk AND begins_with(sk, :prefix)")
-            .expression_attribute_values(":pk", AttributeValue::S(user_partition_key(user)))
+            .expression_attribute_values(":pk", AttributeValue::S(user_partition_key(user_id)))
             .expression_attribute_values(":prefix", AttributeValue::S(FRIEND_PREFIX.into()))
             .send()
             .await
@@ -56,41 +56,41 @@ impl FriendStore for DynamoDbFriendStore {
             .iter()
             .filter_map(|item| item.get("sk").and_then(|value| value.as_s().ok()))
             .filter_map(|sort_key| sort_key.strip_prefix(FRIEND_PREFIX))
-            .map(|friend| UserId(friend.to_string()))
+            .map(|friend_id| UserId(friend_id.to_string()))
             .collect())
     }
 
-    async fn is_friend(&self, user: &UserId, other: &UserId) -> Result<bool, StoreError> {
+    async fn is_friend(&self, user_id: &UserId, other_id: &UserId) -> Result<bool, StoreError> {
         let item = self
             .client
             .get_item()
             .table_name(&self.table_name)
-            .key("pk", AttributeValue::S(user_partition_key(user)))
-            .key("sk", AttributeValue::S(friend_sort_key(other)))
+            .key("pk", AttributeValue::S(user_partition_key(user_id)))
+            .key("sk", AttributeValue::S(friend_sort_key(other_id)))
             .send()
             .await
             .map_err(|error| StoreError(error.to_string()))?;
         Ok(item.item.is_some())
     }
 
-    async fn add_friend(&self, user: &UserId, friend: &UserId) -> Result<(), StoreError> {
+    async fn add_friend(&self, user_id: &UserId, friend_id: &UserId) -> Result<(), StoreError> {
         self.client
             .put_item()
             .table_name(&self.table_name)
-            .item("pk", AttributeValue::S(user_partition_key(user)))
-            .item("sk", AttributeValue::S(friend_sort_key(friend)))
+            .item("pk", AttributeValue::S(user_partition_key(user_id)))
+            .item("sk", AttributeValue::S(friend_sort_key(friend_id)))
             .send()
             .await
             .map_err(|error| StoreError(error.to_string()))?;
         Ok(())
     }
 
-    async fn remove_friend(&self, user: &UserId, friend: &UserId) -> Result<(), StoreError> {
+    async fn remove_friend(&self, user_id: &UserId, friend_id: &UserId) -> Result<(), StoreError> {
         self.client
             .delete_item()
             .table_name(&self.table_name)
-            .key("pk", AttributeValue::S(user_partition_key(user)))
-            .key("sk", AttributeValue::S(friend_sort_key(friend)))
+            .key("pk", AttributeValue::S(user_partition_key(user_id)))
+            .key("sk", AttributeValue::S(friend_sort_key(friend_id)))
             .send()
             .await
             .map_err(|error| StoreError(error.to_string()))?;
@@ -144,13 +144,13 @@ fn attribute<'a>(
 impl FriendInviteStore for DynamoDbFriendInviteStore {
     async fn friend_invite_for(
         &self,
-        user: &UserId,
+        user_id: &UserId,
     ) -> Result<Option<StoredFriendInvite>, StoreError> {
         let response = self
             .client
             .get_item()
             .table_name(&self.table_name)
-            .key("pk", AttributeValue::S(user_partition_key(user)))
+            .key("pk", AttributeValue::S(user_partition_key(user_id)))
             .key("sk", AttributeValue::S(TOKEN_SK.into()))
             .send()
             .await
@@ -164,7 +164,7 @@ impl FriendInviteStore for DynamoDbFriendInviteStore {
         };
         Ok(invite_from_parts(
             token.to_string(),
-            user.0.clone(),
+            user_id.0.clone(),
             attribute(item, "expiresAt", true),
         ))
     }

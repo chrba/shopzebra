@@ -5,7 +5,7 @@ use jsonschema::Validator;
 use serde_json::Value;
 use thiserror::Error;
 
-use crate::event::{AggregateId, AggregateKind};
+use crate::event::{Aggregate, AggregateKind};
 
 /// Hard cap against storage/fold flooding — the log is append-only and
 /// immutable, oversized garbage would live forever.
@@ -35,7 +35,7 @@ pub struct ValidatedEnvelope {
 }
 
 struct EventTypeSpec {
-    aggregate: AggregateKind,
+    aggregate_kind: AggregateKind,
     /// Payload field that must equal the aggregate id from the path.
     aggregate_id_field: &'static str,
     schema: Validator,
@@ -44,14 +44,14 @@ struct EventTypeSpec {
 fn allow(
     specs: &mut HashMap<&'static str, EventTypeSpec>,
     event_type: &'static str,
-    aggregate: AggregateKind,
+    aggregate_kind: AggregateKind,
     aggregate_id_field: &'static str,
     schema_source: &'static str,
 ) {
     let schema: Value =
         serde_json::from_str(schema_source).expect("embedded schema is valid JSON");
     let validator = jsonschema::validator_for(&schema).expect("embedded schema compiles");
-    specs.insert(event_type, EventTypeSpec { aggregate, aggregate_id_field, schema: validator });
+    specs.insert(event_type, EventTypeSpec { aggregate_kind, aggregate_id_field, schema: validator });
 }
 
 /// The class-1 allowlist. Schemas are data (services/domain/schemas/) —
@@ -83,7 +83,7 @@ static ALLOWLIST: LazyLock<HashMap<&'static str, EventTypeSpec>> = LazyLock::new
 /// Validates form, never meaning: allowlist, aggregate match, size cap,
 /// JSON schema per event type (sync-engine.md §6).
 pub fn validate_envelope(
-    aggregate: &AggregateId,
+    aggregate: &Aggregate,
     event_type: &str,
     payload: Value,
 ) -> Result<ValidatedEnvelope, EnvelopeError> {
@@ -97,7 +97,7 @@ pub fn validate_envelope(
         .get(event_type)
         .ok_or_else(|| EnvelopeError::UnknownEventType(event_type.to_string()))?;
 
-    if spec.aggregate != aggregate.kind {
+    if spec.aggregate_kind != aggregate.kind {
         return Err(EnvelopeError::WrongAggregateKind(event_type.to_string()));
     }
 
@@ -118,8 +118,8 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    fn groceries() -> AggregateId {
-        AggregateId::list("abc")
+    fn groceries() -> Aggregate {
+        Aggregate::list("abc")
     }
 
     #[test]
@@ -130,9 +130,9 @@ mod tests {
             "addedBy": "user-1", "parentId": "apples"
         });
 
-        let validated = validate_envelope(&groceries(), "shopping/itemAdded", payload);
+        let validation = validate_envelope(&groceries(), "shopping/itemAdded", payload);
 
-        assert!(validated.is_ok());
+        assert!(validation.is_ok());
     }
 
     #[test]
@@ -200,8 +200,8 @@ mod recipe_tests {
     use super::*;
     use serde_json::json;
 
-    fn bolognese() -> AggregateId {
-        AggregateId::recipe("bolo")
+    fn bolognese() -> Aggregate {
+        Aggregate::recipe("bolo")
     }
 
     fn well_formed() -> serde_json::Value {
@@ -226,7 +226,7 @@ mod recipe_tests {
     #[test]
     fn a_recipe_event_is_rejected_on_a_list_aggregate() {
         let result =
-            validate_envelope(&AggregateId::list("abc"), "recipes/recipeCreated", well_formed());
+            validate_envelope(&Aggregate::list("abc"), "recipes/recipeCreated", well_formed());
 
         assert_eq!(
             result.unwrap_err(),

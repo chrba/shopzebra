@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::event::{AggregateId, NewEvent, UserId};
+use crate::event::{Aggregate, NewEvent, UserId};
 use crate::membership::{check_can_remove, member_removed_payload, MembershipViolation};
 use crate::ports::{Ports, StoreError};
 
@@ -20,7 +20,7 @@ pub enum RemoveMemberError {
 
 #[derive(Debug)]
 pub struct RemoveMemberRequest {
-    pub aggregate: AggregateId,
+    pub aggregate: Aggregate,
     pub member_id: UserId,
     pub event_id: String,
     pub device_id: String,
@@ -32,12 +32,12 @@ pub struct RemoveMemberRequest {
 /// step is safe to retry.
 pub async fn remove_member(
     ports: &Ports<'_>,
-    caller: &UserId,
+    caller_id: &UserId,
     request: RemoveMemberRequest,
 ) -> Result<(), RemoveMemberError> {
     let aggregate = request.aggregate;
-    let caller_role = ports.membership.role_of(&aggregate, caller).await?;
-    check_can_remove(caller_role, *caller == request.member_id)?;
+    let caller_role = ports.membership.role_of(&aggregate, caller_id).await?;
+    check_can_remove(caller_role, *caller_id == request.member_id)?;
 
     if ports
         .membership
@@ -48,7 +48,7 @@ pub async fn remove_member(
         return Err(RemoveMemberError::NotAMember);
     }
 
-    let stored = ports
+    let stored_event = ports
         .events
         .append(
             &aggregate,
@@ -57,7 +57,7 @@ pub async fn remove_member(
                 payload: member_removed_payload(&aggregate, &request.member_id),
                 event_id: request.event_id,
                 device_id: request.device_id,
-                user_id: caller.clone(),
+                user_id: caller_id.clone(),
             },
         )
         .await?;
@@ -66,7 +66,7 @@ pub async fn remove_member(
         .membership
         .remove_member(&aggregate, &request.member_id)
         .await?;
-    let _ = ports.broadcast.publish(&aggregate.channel(), &stored).await;
+    let _ = ports.broadcast.publish(&aggregate.channel(), &stored_event).await;
 
     Ok(())
 }
@@ -93,9 +93,9 @@ mod tests {
             }
         }
 
-        async fn with(self, user: &str, role: MemberRole) -> Self {
+        async fn with(self, user_id: &str, role: MemberRole) -> Self {
             self.membership
-                .add_member(&AggregateId::list("abc"), &UserId(user.into()), role)
+                .add_member(&Aggregate::list("abc"), &UserId(user_id.into()), role)
                 .await
                 .expect("member");
             self
@@ -111,14 +111,14 @@ mod tests {
 
         async fn log(&self) -> Vec<crate::event::StoredEvent> {
             self.store
-                .events_since(&AggregateId::list("abc"), None)
+                .events_since(&Aggregate::list("abc"), None)
                 .await
                 .expect("readable")
         }
 
-        async fn role_of(&self, user: &str) -> Option<MemberRole> {
+        async fn role_of(&self, user_id: &str) -> Option<MemberRole> {
             self.membership
-                .role_of(&AggregateId::list("abc"), &UserId(user.into()))
+                .role_of(&Aggregate::list("abc"), &UserId(user_id.into()))
                 .await
                 .expect("readable")
         }
@@ -126,7 +126,7 @@ mod tests {
 
     fn request(member_id: &str) -> RemoveMemberRequest {
         RemoveMemberRequest {
-            aggregate: AggregateId::list("abc"),
+            aggregate: Aggregate::list("abc"),
             member_id: UserId(member_id.into()),
             event_id: "evt-1".into(),
             device_id: "device-1".into(),
@@ -158,7 +158,7 @@ mod tests {
     #[tokio::test]
     async fn leaving_a_recipe_writes_the_recipe_member_event() {
         let fixture = Fixture::new();
-        let recipe = AggregateId::recipe("bolo");
+        let recipe = Aggregate::recipe("bolo");
         fixture
             .membership
             .add_member(&recipe, &UserId("tom".into()), MemberRole::Member)

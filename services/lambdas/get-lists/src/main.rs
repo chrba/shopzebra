@@ -47,7 +47,7 @@ async fn handle(
     users: &CognitoUserDirectory,
     http_request: Request,
 ) -> Result<Response<Body>, Error> {
-    let caller = match lib::auth::extract_user_id(&http_request) {
+    let caller_id = match lib::auth::extract_user_id(&http_request) {
         Ok(user_id) => UserId(user_id),
         Err(api_error) => return api_error.to_response(),
     };
@@ -57,11 +57,12 @@ async fn handle(
         Err(api_error) => return api_error.to_response(),
     };
 
-    match aggregates_with_owners(ports, users, &caller, kind).await {
+    match aggregates_with_owners(ports, users, &caller_id, kind).await {
         Ok(summaries) => {
             // The ids travel under the collection's own name (`lists`,
             // `recipes`) — the catch-up reads them as a plain id array.
-            let ids: Vec<_> = summaries.iter().map(|summary| summary.id.clone()).collect();
+            let aggregate_ids: Vec<_> =
+                summaries.iter().map(|summary| summary.id.clone()).collect();
             let owner_names: serde_json::Map<String, serde_json::Value> = summaries
                 .into_iter()
                 .filter_map(|summary| summary.owner_name.map(|name| (summary.id, json!(name))))
@@ -71,7 +72,7 @@ async fn handle(
             lib::response::json(
                 200,
                 &json!({
-                    kind.collection_name(): ids,
+                    kind.collection_name(): aggregate_ids,
                     "ownerNames": owner_names,
                     "maxMembers": MAX_LIST_MEMBERS,
                 }),

@@ -5,7 +5,7 @@ import { recipeDeleted, selectAllRecipes } from '../domain/recipesSlice'
 import { SwipeToDelete } from '../../../components/SwipeToDelete'
 import { DangerConfirmDialog } from '../../../components/DangerConfirmDialog'
 import { selectAllRecipePreferences } from '../../preferences/domain/preferencesSlice'
-import { selectAuthUser } from '../../auth/domain/authSlice'
+import { selectCurrentUserId, selectIdentity } from '../../auth/domain/authSlice'
 import { memberAvatarColor, memberInitial } from '../../lists/domain/memberAvatar'
 import { memberDisplayName } from '../../sharing/memberDisplayName'
 import { DEFAULT_RECIPE_EMOJI } from '../manage/recipeEmojiCatalog'
@@ -94,7 +94,8 @@ export function RecipesPage() {
   const dispatch = useAppDispatch()
   const recipes = useAppSelector(selectAllRecipes)
   const preferences = useAppSelector(selectAllRecipePreferences)
-  const me = useAppSelector(selectAuthUser)
+  const me = useAppSelector(selectIdentity)
+  const currentUserId = useAppSelector(selectCurrentUserId)
   // Ephemeral UI state — search term, which tile is swiped open and which
   // deletion is waiting for a confirmation all belong to this screen only.
   const [search, setSearch] = useState('')
@@ -135,7 +136,7 @@ export function RecipesPage() {
                 portions={recipe.portions}
                 durationMinutes={recipe.durationMinutes}
                 members={recipe.memberIds
-                  .filter((memberId) => memberId !== me?.userId)
+                  .filter((memberId) => memberId !== currentUserId)
                   .map((memberId) => {
                     const label = memberDisplayName(
                       {

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useAppDispatch, useAppSelector } from '../../../app/store'
-import { selectAuthUser } from '../../auth/domain/authSlice'
+import { selectCurrentUserId } from '../../auth/domain/authSlice'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import {
@@ -100,7 +100,7 @@ export function CategoryPage({ listId, categoryId }: CategoryPageProps) {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const items = useAppSelector((state) => selectListItems(state, listId))
-  const user = useAppSelector(selectAuthUser)
+  const currentUserId = useAppSelector(selectCurrentUserId)
 
   const [sheetProductId, setSheetProductId] = useState<string | null>(null)
 
@@ -108,7 +108,6 @@ export function CategoryPage({ listId, categoryId }: CategoryPageProps) {
   const products = PRODUCT_CATALOG.filter(
     (product) => product.categoryId === categoryId,
   )
-  const currentUserId = user?.userId ?? 'unknown'
   const listItemCount = items.length
 
   const itemsOf = (productId: string) =>

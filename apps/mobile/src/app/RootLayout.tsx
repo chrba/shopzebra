@@ -1,17 +1,11 @@
 // Shell around every page — renders the bottom navigation
 // bar on most screens but hides it on fullscreen routes
-// like sign-in, sign-up and list creation.
+// like list creation, sharing and joining.
 
 import { Outlet, useRouterState } from '@tanstack/react-router'
 import { BottomNav, type NavTab } from '../ui/BottomNav'
 
-const FULLSCREEN_ROUTES = [
-  '/lists/new',
-  '/recipes/new',
-  '/signin',
-  '/signup',
-  '/forgot-password',
-]
+const FULLSCREEN_ROUTES = ['/lists/new', '/recipes/new']
 
 /** Screens that own the whole viewport — no bottom nav underneath. */
 function isFullscreen(pathname: string): boolean {

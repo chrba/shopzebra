@@ -7,10 +7,7 @@ import * as iam from 'aws-cdk-lib/aws-iam'
 import * as path from 'path'
 import type { Construct } from 'constructs'
 import { RustFunction } from 'cargo-lambda-cdk'
-
-const COGNITO_USER_POOL_ID = 'eu-central-1_z6PK2KOsC'
-const COGNITO_CLIENT_ID = '1j2an4jbfpd0pjvqjil4c1ure5'
-const COGNITO_ISSUER = `https://cognito-idp.eu-central-1.amazonaws.com/${COGNITO_USER_POOL_ID}`
+import { ShopZebraUserPool } from './ShopZebraUserPool'
 
 const SERVICES_DIR = path.join(__dirname, '..', '..', '..', 'services')
 
@@ -41,10 +38,14 @@ export class ShopZebraApiStack extends cdk.Stack {
       partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
     })
 
+    // The pool that allows sign-up without an email address — the shadow
+    // account every guest gets (architecture/accountless-first-planned.md).
+    const identity = new ShopZebraUserPool(this, 'Identity')
+
     const lambdaEnvironment = {
       EVENTS_TABLE: eventsTable.tableName,
       MEMBERSHIP_TABLE: membershipTable.tableName,
-      USER_POOL_ID: COGNITO_USER_POOL_ID,
+      USER_POOL_ID: identity.userPool.userPoolId,
       RUST_LOG: 'info',
     }
 
@@ -163,9 +164,7 @@ export class ShopZebraApiStack extends cdk.Stack {
     // the access token carries only `sub`, so names have to be looked up.
     const listUsersPolicy = new iam.PolicyStatement({
       actions: ['cognito-idp:ListUsers'],
-      resources: [
-        `arn:aws:cognito-idp:${this.region}:${this.account}:userpool/${COGNITO_USER_POOL_ID}`,
-      ],
+      resources: [identity.userPool.userPoolArn],
     })
     joinListFunction.addToRolePolicy(listUsersPolicy)
     getListsFunction.addToRolePolicy(listUsersPolicy)
@@ -183,8 +182,8 @@ export class ShopZebraApiStack extends cdk.Stack {
 
     const authorizer = new apigwv2_authorizers.HttpJwtAuthorizer(
       'CognitoAuthorizer',
-      COGNITO_ISSUER,
-      { jwtAudience: [COGNITO_CLIENT_ID] },
+      identity.issuer,
+      { jwtAudience: [identity.userPoolClient.userPoolClientId] },
     )
 
     httpApi.addRoutes({
@@ -328,5 +327,15 @@ export class ShopZebraApiStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, 'ApiUrl', { value: httpApi.apiEndpoint })
     new cdk.CfnOutput(this, 'EventsTableName', { value: eventsTable.tableName })
+    // The app reads these three into apps/mobile/.env.local.
+    new cdk.CfnOutput(this, 'UserPoolId', {
+      value: identity.userPool.userPoolId,
+    })
+    new cdk.CfnOutput(this, 'UserPoolClientId', {
+      value: identity.userPoolClient.userPoolClientId,
+    })
+    new cdk.CfnOutput(this, 'UserPoolDomain', {
+      value: `${identity.domainPrefix}.auth.${this.region}.amazoncognito.com`,
+    })
   }
 }

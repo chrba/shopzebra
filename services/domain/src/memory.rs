@@ -7,7 +7,7 @@ use std::sync::Mutex;
 
 use async_trait::async_trait;
 
-use crate::event::{AggregateId, NewEvent, Position, StoredEvent, UserId};
+use crate::event::{Aggregate, NewEvent, Position, StoredEvent, UserId};
 use crate::ports::{
     EventPublisher, EventStore, FriendInviteStore, FriendStore, InviteStore, MemberRole,
     MembershipStore, StoreError, StoredFriendInvite, StoredInvite, UserDirectory,
@@ -35,7 +35,7 @@ impl MemoryEventStore {
 impl EventStore for MemoryEventStore {
     async fn append(
         &self,
-        aggregate: &AggregateId,
+        aggregate: &Aggregate,
         event: NewEvent,
     ) -> Result<StoredEvent, StoreError> {
         let mut log = self.log.lock().expect("event log lock");
@@ -46,12 +46,12 @@ impl EventStore for MemoryEventStore {
 
         if let Some(existing) = partition
             .iter()
-            .find(|stored| stored.event_id == event.event_id)
+            .find(|stored_event| stored_event.event_id == event.event_id)
         {
             return Ok(existing.clone());
         }
 
-        let stored = StoredEvent {
+        let stored_event = StoredEvent {
             // The log is gap-free, so the next position is simply its
             // length + 1 — the same contract the DynamoDB adapter
             // enforces with conditional puts.
@@ -62,13 +62,13 @@ impl EventStore for MemoryEventStore {
             device_id: event.device_id,
             user_id: event.user_id,
         };
-        partition.push(stored.clone());
-        Ok(stored)
+        partition.push(stored_event.clone());
+        Ok(stored_event)
     }
 
     async fn events_since(
         &self,
-        aggregate: &AggregateId,
+        aggregate: &Aggregate,
         since: Option<&Position>,
     ) -> Result<Vec<StoredEvent>, StoreError> {
         let log = self.log.lock().expect("event log lock");
@@ -78,7 +78,7 @@ impl EventStore for MemoryEventStore {
             .map(|partition| {
                 partition
                     .iter()
-                    .filter(|stored| since.is_none_or(|cursor| stored.position > *cursor))
+                    .filter(|stored_event| since.is_none_or(|cursor| stored_event.position > *cursor))
                     .cloned()
                     .collect()
             })
@@ -99,8 +99,8 @@ impl MemoryMembershipStore {
         Self::default()
     }
 
-    pub async fn with_member(self, aggregate: &AggregateId, user: &UserId, role: MemberRole) -> Self {
-        self.add_member(aggregate, user, role)
+    pub async fn with_member(self, aggregate: &Aggregate, user_id: &UserId, role: MemberRole) -> Self {
+        self.add_member(aggregate, user_id, role)
             .await
             .expect("in-memory add_member cannot fail");
         self
@@ -111,8 +111,8 @@ impl MemoryMembershipStore {
 impl MembershipStore for MemoryMembershipStore {
     async fn claim_ownership(
         &self,
-        aggregate: &AggregateId,
-        user: &UserId,
+        aggregate: &Aggregate,
+        user_id: &UserId,
     ) -> Result<bool, StoreError> {
         let mut roles = self.roles.lock().expect("membership lock");
         let already_owned = roles
@@ -123,65 +123,65 @@ impl MembershipStore for MemoryMembershipStore {
         if already_owned {
             return Ok(false);
         }
-        roles.insert((aggregate.partition_key(), user.0.clone()), MemberRole::Owner);
+        roles.insert((aggregate.partition_key(), user_id.0.clone()), MemberRole::Owner);
         Ok(true)
     }
 
     async fn role_of(
         &self,
-        aggregate: &AggregateId,
-        user: &UserId,
+        aggregate: &Aggregate,
+        user_id: &UserId,
     ) -> Result<Option<MemberRole>, StoreError> {
         let roles = self.roles.lock().expect("membership lock");
-        Ok(roles.get(&(aggregate.partition_key(), user.0.clone())).copied())
+        Ok(roles.get(&(aggregate.partition_key(), user_id.0.clone())).copied())
     }
 
-    async fn owner_of(&self, aggregate: &AggregateId) -> Result<Option<UserId>, StoreError> {
+    async fn owner_of(&self, aggregate: &Aggregate) -> Result<Option<UserId>, StoreError> {
         let roles = self.roles.lock().expect("membership lock");
         Ok(roles
             .iter()
             .find(|((partition, _), role)| {
                 partition == &aggregate.partition_key() && **role == MemberRole::Owner
             })
-            .map(|((_, user), _)| UserId(user.clone())))
+            .map(|((_, user_id), _)| UserId(user_id.clone())))
     }
 
     async fn add_member(
         &self,
-        aggregate: &AggregateId,
-        user: &UserId,
+        aggregate: &Aggregate,
+        user_id: &UserId,
         role: MemberRole,
     ) -> Result<(), StoreError> {
         let mut roles = self.roles.lock().expect("membership lock");
-        roles.insert((aggregate.partition_key(), user.0.clone()), role);
+        roles.insert((aggregate.partition_key(), user_id.0.clone()), role);
         Ok(())
     }
 
     async fn remove_member(
         &self,
-        aggregate: &AggregateId,
-        user: &UserId,
+        aggregate: &Aggregate,
+        user_id: &UserId,
     ) -> Result<(), StoreError> {
         let mut roles = self.roles.lock().expect("membership lock");
-        roles.remove(&(aggregate.partition_key(), user.0.clone()));
+        roles.remove(&(aggregate.partition_key(), user_id.0.clone()));
         Ok(())
     }
 
-    async fn members_of(&self, aggregate: &AggregateId) -> Result<Vec<UserId>, StoreError> {
+    async fn members_of(&self, aggregate: &Aggregate) -> Result<Vec<UserId>, StoreError> {
         let roles = self.roles.lock().expect("membership lock");
         Ok(roles
             .keys()
             .filter(|(partition, _)| partition == &aggregate.partition_key())
-            .map(|(_, user)| UserId(user.clone()))
+            .map(|(_, user_id)| UserId(user_id.clone()))
             .collect())
     }
 
-    async fn aggregates_of(&self, user: &UserId) -> Result<Vec<AggregateId>, StoreError> {
+    async fn aggregates_of(&self, user_id: &UserId) -> Result<Vec<Aggregate>, StoreError> {
         let roles = self.roles.lock().expect("membership lock");
         let aggregates = roles
             .keys()
-            .filter(|(_, member)| member == &user.0)
-            .filter_map(|(partition, _)| AggregateId::from_partition_key(partition))
+            .filter(|(_, member_id)| member_id == &user_id.0)
+            .filter_map(|(partition, _)| Aggregate::from_partition_key(partition))
             .collect();
         Ok(aggregates)
     }
@@ -202,7 +202,7 @@ impl MemoryInviteStore {
 
 #[async_trait]
 impl InviteStore for MemoryInviteStore {
-    async fn invite_for(&self, aggregate: &AggregateId) -> Result<Option<StoredInvite>, StoreError> {
+    async fn invite_for(&self, aggregate: &Aggregate) -> Result<Option<StoredInvite>, StoreError> {
         let invites = self.invites.lock().expect("invites lock");
         Ok(invites
             .iter()
@@ -217,7 +217,7 @@ impl InviteStore for MemoryInviteStore {
 
     async fn put_invite(&self, invite: &StoredInvite) -> Result<(), StoreError> {
         let mut invites = self.invites.lock().expect("invites lock");
-        invites.retain(|stored| stored.aggregate != invite.aggregate);
+        invites.retain(|stored_invite| stored_invite.aggregate != invite.aggregate);
         invites.push(invite.clone());
         Ok(())
     }
@@ -243,8 +243,8 @@ impl MemoryUserDirectory {
 
 #[async_trait]
 impl UserDirectory for MemoryUserDirectory {
-    async fn display_name(&self, user: &UserId) -> Result<Option<String>, StoreError> {
-        Ok(self.names.get(&user.0).cloned())
+    async fn display_name(&self, user_id: &UserId) -> Result<Option<String>, StoreError> {
+        Ok(self.names.get(&user_id.0).cloned())
     }
 }
 
@@ -285,14 +285,14 @@ mod invite_and_directory_tests {
         let invites = MemoryInviteStore::new();
         let invite = StoredInvite {
             token: "tok-1".into(),
-            aggregate: AggregateId::list("abc"),
+            aggregate: Aggregate::list("abc"),
             expires_at_ms: 42,
         };
 
         invites.put_invite(&invite).await.expect("stores");
 
         let by_list = invites
-            .invite_for(&AggregateId::list("abc"))
+            .invite_for(&Aggregate::list("abc"))
             .await
             .expect("readable");
         let by_token = invites.invite_by_token("tok-1").await.expect("readable");
@@ -306,7 +306,7 @@ mod invite_and_directory_tests {
         invites
             .put_invite(&StoredInvite {
                 token: "tok-1".into(),
-                aggregate: AggregateId::list("abc"),
+                aggregate: Aggregate::list("abc"),
                 expires_at_ms: 1,
             })
             .await
@@ -315,14 +315,14 @@ mod invite_and_directory_tests {
         invites
             .put_invite(&StoredInvite {
                 token: "tok-2".into(),
-                aggregate: AggregateId::list("abc"),
+                aggregate: Aggregate::list("abc"),
                 expires_at_ms: 2,
             })
             .await
             .expect("stores");
 
         let current = invites
-            .invite_for(&AggregateId::list("abc"))
+            .invite_for(&Aggregate::list("abc"))
             .await
             .expect("readable");
         assert_eq!(current.map(|invite| invite.token), Some("tok-2".into()));
@@ -371,11 +371,11 @@ impl MemoryFriendStore {
         Self::default()
     }
 
-    pub async fn with_friendship(self, a: &str, b: &str) -> Self {
-        self.add_friend(&UserId(a.into()), &UserId(b.into()))
+    pub async fn with_friendship(self, user_id: &str, friend_id: &str) -> Self {
+        self.add_friend(&UserId(user_id.into()), &UserId(friend_id.into()))
             .await
             .expect("in-memory add cannot fail");
-        self.add_friend(&UserId(b.into()), &UserId(a.into()))
+        self.add_friend(&UserId(friend_id.into()), &UserId(user_id.into()))
             .await
             .expect("in-memory add cannot fail");
         self
@@ -384,34 +384,34 @@ impl MemoryFriendStore {
 
 #[async_trait]
 impl FriendStore for MemoryFriendStore {
-    async fn friends_of(&self, user: &UserId) -> Result<Vec<UserId>, StoreError> {
+    async fn friends_of(&self, user_id: &UserId) -> Result<Vec<UserId>, StoreError> {
         let edges = self.edges.lock().expect("friends lock");
         Ok(edges
             .iter()
-            .filter(|(owner, _)| owner == &user.0)
-            .map(|(_, friend)| UserId(friend.clone()))
+            .filter(|(owner_id, _)| owner_id == &user_id.0)
+            .map(|(_, friend_id)| UserId(friend_id.clone()))
             .collect())
     }
 
-    async fn is_friend(&self, user: &UserId, other: &UserId) -> Result<bool, StoreError> {
+    async fn is_friend(&self, user_id: &UserId, other_id: &UserId) -> Result<bool, StoreError> {
         let edges = self.edges.lock().expect("friends lock");
         Ok(edges
             .iter()
-            .any(|(owner, friend)| owner == &user.0 && friend == &other.0))
+            .any(|(owner_id, friend_id)| owner_id == &user_id.0 && friend_id == &other_id.0))
     }
 
-    async fn add_friend(&self, user: &UserId, friend: &UserId) -> Result<(), StoreError> {
+    async fn add_friend(&self, user_id: &UserId, friend_id: &UserId) -> Result<(), StoreError> {
         let mut edges = self.edges.lock().expect("friends lock");
-        let edge = (user.0.clone(), friend.0.clone());
+        let edge = (user_id.0.clone(), friend_id.0.clone());
         if !edges.contains(&edge) {
             edges.push(edge);
         }
         Ok(())
     }
 
-    async fn remove_friend(&self, user: &UserId, friend: &UserId) -> Result<(), StoreError> {
+    async fn remove_friend(&self, user_id: &UserId, friend_id: &UserId) -> Result<(), StoreError> {
         let mut edges = self.edges.lock().expect("friends lock");
-        edges.retain(|(owner, other)| !(owner == &user.0 && other == &friend.0));
+        edges.retain(|(owner_id, other_id)| !(owner_id == &user_id.0 && other_id == &friend_id.0));
         Ok(())
     }
 }
@@ -431,12 +431,12 @@ impl MemoryFriendInviteStore {
 impl FriendInviteStore for MemoryFriendInviteStore {
     async fn friend_invite_for(
         &self,
-        user: &UserId,
+        user_id: &UserId,
     ) -> Result<Option<StoredFriendInvite>, StoreError> {
         let invites = self.invites.lock().expect("friend invites lock");
         Ok(invites
             .iter()
-            .find(|invite| invite.invited_by == *user)
+            .find(|invite| invite.invited_by == *user_id)
             .cloned())
     }
 
@@ -450,7 +450,7 @@ impl FriendInviteStore for MemoryFriendInviteStore {
 
     async fn put_friend_invite(&self, invite: &StoredFriendInvite) -> Result<(), StoreError> {
         let mut invites = self.invites.lock().expect("friend invites lock");
-        invites.retain(|stored| stored.invited_by != invite.invited_by);
+        invites.retain(|stored_invite| stored_invite.invited_by != invite.invited_by);
         invites.push(invite.clone());
         Ok(())
     }

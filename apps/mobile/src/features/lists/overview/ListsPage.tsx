@@ -6,7 +6,7 @@ import { listDeleted, selectAllLists } from '../domain/listsSlice'
 import { memberAvatarColor, memberInitial } from '../domain/memberAvatar'
 import { memberDisplayName } from '../../sharing/memberDisplayName'
 import { selectFriendCount } from '../../friends/domain/friendsSlice'
-import { selectAuthUser } from '../../auth/domain/authSlice'
+import { selectCurrentUserId, selectIdentity } from '../../auth/domain/authSlice'
 import { selectItemCountByListId } from '../../shopping/domain/shoppingSlice'
 import { selectAllListPreferences } from '../../preferences/domain/preferencesSlice'
 import type { AccentColor } from '../../preferences/domain/preferencesDomain'
@@ -115,7 +115,8 @@ export function ListsPage() {
   const preferences = useAppSelector(selectAllListPreferences)
   const itemCountByListId = useAppSelector(selectItemCountByListId)
   const initialSyncDone = useAppSelector(selectInitialSyncDone)
-  const me = useAppSelector(selectAuthUser)
+  const me = useAppSelector(selectIdentity)
+  const currentUserId = useAppSelector(selectCurrentUserId)
   const friendCount = useAppSelector(selectFriendCount)
 
   const lists = shoppingLists.map((list) => {
@@ -129,7 +130,7 @@ export function ListsPage() {
       // Own membership is a given — the circles show who else is on the
       // list, so an empty row plus the invite circle reads as "share this".
       members: list.memberIds
-        .filter((memberId) => memberId !== me?.userId)
+        .filter((memberId) => memberId !== currentUserId)
         .map((memberId) => ({
         id: memberId,
         initial: memberInitial(

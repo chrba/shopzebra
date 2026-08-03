@@ -1,10 +1,14 @@
 import { useState } from 'react'
 import { store, useAppSelector } from '../../app/store'
 import { selectDeviceId } from '../../app/appSlice'
-import { selectAuthUser } from '../auth/domain/authSlice'
+import { selectCurrentUserId, selectIdentity } from '../auth/domain/authSlice'
 import { selectFriends } from '../friends/domain/friendsSlice'
 import { memberAvatarColor, memberInitial } from '../lists/domain/memberAvatar'
 import { MEMBER_NAME_FALLBACK, memberDisplayName } from './memberDisplayName'
+import {
+  FirstShareNameSheet,
+  needsNameBeforeSharing,
+} from './FirstShareNameSheet'
 import { addMember, removeMember } from './memberCommands'
 import type { Aggregate } from '../../app/sync/aggregate'
 import { useToast } from '../../components/Toast'
@@ -161,17 +165,30 @@ export function MembersPage({
   onBack,
   onInvite,
 }: MembersPageProps) {
-  const me = useAppSelector(selectAuthUser)
+  const me = useAppSelector(selectIdentity)
+  const currentUserId = useAppSelector(selectCurrentUserId)
   const friends = useAppSelector(selectFriends)
   const isFull = maxMembers !== null && members.length >= maxMembers
   const toast = useToast()
   const [addingId, setAddingId] = useState<string | null>(null)
+  const [askingForName, setAskingForName] = useState(false)
   const [pendingRemoval, setPendingRemoval] = useState<{
     readonly id: string
     readonly name: string
   } | null>(null)
 
-  const isOwner = me !== null && ownerId === me.userId
+  const isOwner = ownerId === currentUserId
+
+  // Screen 1A: sharing is the first thing that needs an account and a name
+  // (accountless-first-planned.md). The sheet opens over this screen; once
+  // it is done, the invite route mints a token as the freshly named owner.
+  const handleInvite = () => {
+    if (needsNameBeforeSharing(me)) {
+      setAskingForName(true)
+      return
+    }
+    onInvite()
+  }
 
   // Friends who are not on this list yet — the one-tap candidates.
   const candidates = friends.filter(
@@ -240,7 +257,7 @@ export function MembersPage({
       <div className="mx-5 flex flex-col gap-2.5">
         {members.map((member) => {
           const name = memberDisplayName(member, me)
-          const isMe = me !== null && member.id === me.userId
+          const isMe = member.id === currentUserId
           return (
             <MemberCard
               key={member.id}
@@ -284,9 +301,18 @@ export function MembersPage({
         )}
 
         {isOwner && !isFull && (
-          <InviteCta onClick={onInvite} />
+          <InviteCta onClick={handleInvite} />
         )}
       </div>
+
+      {askingForName && (
+        <FirstShareNameSheet
+          onDone={() => {
+            setAskingForName(false)
+            onInvite()
+          }}
+        />
+      )}
 
       <DangerConfirmDialog
         open={pendingRemoval !== null}

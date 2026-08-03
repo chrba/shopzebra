@@ -5,6 +5,11 @@ import { friendRemoved, selectFriends } from './domain/friendsSlice'
 import { removeFriend } from './friendCommands'
 import { memberAvatarColor, memberInitial } from '../lists/domain/memberAvatar'
 import { MEMBER_NAME_FALLBACK } from '../sharing/memberDisplayName'
+import {
+  FirstShareNameSheet,
+  needsNameBeforeSharing,
+} from '../sharing/FirstShareNameSheet'
+import { selectIdentity } from '../auth/domain/authSlice'
 import { SwipeToDelete } from '../../components/SwipeToDelete'
 import { InviteIcon } from '../../components/InviteIcon'
 import { useToast } from '../../components/Toast'
@@ -55,9 +60,11 @@ export function FriendsPage() {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const friends = useAppSelector(selectFriends)
+  const identity = useAppSelector(selectIdentity)
   const toast = useToast()
 
   const [openSwipeId, setOpenSwipeId] = useState<string | null>(null)
+  const [askingForName, setAskingForName] = useState(false)
   const [pendingRemoval, setPendingRemoval] = useState<{
     readonly id: string
     readonly name: string
@@ -75,6 +82,18 @@ export function FriendsPage() {
       console.warn('removing the friend failed', error)
       toast.show('Entfernen fehlgeschlagen')
     })
+  }
+
+  const goToInvite = () => void navigate({ to: '/friends/invite' })
+
+  // Screen 1A: a friendship link is shared like everything else, so a
+  // device without an account is asked for a name over this screen first.
+  const handleInvite = () => {
+    if (needsNameBeforeSharing(identity)) {
+      setAskingForName(true)
+      return
+    }
+    goToInvite()
   }
 
   return (
@@ -106,7 +125,16 @@ export function FriendsPage() {
         })}
       </div>
 
-      <InviteFriendCta onClick={() => void navigate({ to: '/friends/invite' })} />
+      <InviteFriendCta onClick={handleInvite} />
+
+      {askingForName && (
+        <FirstShareNameSheet
+          onDone={() => {
+            setAskingForName(false)
+            goToInvite()
+          }}
+        />
+      )}
 
       <DangerConfirmDialog
         open={pendingRemoval !== null}

@@ -39,7 +39,7 @@ async fn main() -> Result<(), Error> {
 }
 
 async fn handle(ports: &Ports<'_>, http_request: Request) -> Result<Response<Body>, Error> {
-    let caller = match lib::auth::extract_user_id(&http_request) {
+    let caller_id = match lib::auth::extract_user_id(&http_request) {
         Ok(user_id) => UserId(user_id),
         Err(api_error) => return api_error.to_response(),
     };
@@ -75,7 +75,7 @@ async fn handle(ports: &Ports<'_>, http_request: Request) -> Result<Response<Bod
         (Err(api_error), _) | (_, Err(api_error)) => return api_error.to_response(),
     };
 
-    match remove_member(ports, &caller, request).await {
+    match remove_member(ports, &caller_id, request).await {
         // 200 with an empty object rather than 204: the shared response
         // helper always writes a body, and a 204 carrying one is malformed.
         Ok(()) => lib::response::json(200, &serde_json::json!({})),

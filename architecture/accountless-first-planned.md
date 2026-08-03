@@ -1,9 +1,9 @@
 # Ohne Konto starten — Richtung entschieden, Spike offen
 
-> ⚠️ **Das ist Zukunft, kein Ist-Zustand.** Heute erzwingt die App ein
-> Cognito-Konto vor allem anderen. Die **Richtung ist entschieden**
-> (2026-08-02, siehe unten), aber vor der Umsetzung steht ein Spike, der die
-> Cognito-Annahmen verifiziert.
+> **M1 ist umgesetzt (2026-08-03).** Die App startet ohne Konto; beim ersten
+> Teilen oder Beitreten entsteht das Schattenkonto. M2 (Sichern/Verknüpfen)
+> und M3 (Zweitgerät) sind weiterhin Zukunft. Was heute existiert, steht in
+> [status.md](./status.md) §2.
 
 ## Die Absicht
 
@@ -200,5 +200,20 @@ und Review-Findings vermerkt und bekommen eigene Pläne, wenn sie drankommen:
 
 ## Status
 
-**M1 in Planung abgeschlossen, Umsetzung noch nicht begonnen. M2/M3 vertagt
-und im Plan vermerkt.**
+**M1 umgesetzt (2026-08-03), M2/M3 vertagt** und im Plan vermerkt.
+
+Zwei Dinge sind bei der Umsetzung anders gelaufen als geplant — beide, weil
+der Plan die Sync-Engine unangetastet lassen wollte und das nicht trägt:
+
+- **Das lokale Event-Log muss bei jedem Boot geöffnet werden**, nicht erst
+  mit einer Identität. Der Plan hätte den Torwächter allein in `startSync()`
+  gesetzt; dann lädt die Outbox nie, `record()` puffert nur im RAM, und weil
+  die Storage-Handler ausschließlich den `confirmed`-Tree schreiben (der ohne
+  Server leer bleibt), hätte ein Gast bei jedem Reload alles verloren.
+  Umgesetzt: `syncEngine.openLocalLog()` beim Boot, Server-Kontakt separat
+  freigeschaltet (`mayContactServer`)
+- **Die Pending-Queue des Reducers muss beim Andocken mitwandern.** Sie
+  spiegelt die Outbox; wird nur die Outbox umgeschrieben, holt der nächste
+  Rebase die Sentinel-Autoren zurück. Umgesetzt als vierte Protokoll-Action
+  `pendingAuthorRewritten` neben `eventsConfirmed`/`pendingRestored`/
+  `pendingDiscarded`

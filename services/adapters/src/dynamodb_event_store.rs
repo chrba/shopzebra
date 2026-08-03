@@ -7,7 +7,7 @@ use aws_sdk_dynamodb::operation::transact_write_items::TransactWriteItemsError;
 use aws_sdk_dynamodb::types::{AttributeValue, Put, TransactWriteItem};
 use aws_sdk_dynamodb::Client;
 
-use domain::event::{AggregateId, NewEvent, Position, StoredEvent, UserId};
+use domain::event::{Aggregate, NewEvent, Position, StoredEvent, UserId};
 use domain::ports::{EventStore, StoreError};
 
 const EVENT_PREFIX: &str = "EVT#";
@@ -36,7 +36,7 @@ impl DynamoDbEventStore {
 
     /// The highest position in the aggregate log, read strongly
     /// consistent — the candidate for the next append is this + 1.
-    async fn last_position(&self, aggregate: &AggregateId) -> Result<Option<Position>, StoreError> {
+    async fn last_position(&self, aggregate: &Aggregate) -> Result<Option<Position>, StoreError> {
         let newest_first = self
             .client
             .query()
@@ -60,7 +60,7 @@ impl DynamoDbEventStore {
 
     async fn stored_event_for_dedup(
         &self,
-        aggregate: &AggregateId,
+        aggregate: &Aggregate,
         event_id: &str,
     ) -> Result<Option<StoredEvent>, StoreError> {
         let marker = self
@@ -169,7 +169,7 @@ fn cancellation_cause(error: &SdkError<TransactWriteItemsError>) -> CanceledBeca
 impl EventStore for DynamoDbEventStore {
     async fn append(
         &self,
-        aggregate: &AggregateId,
+        aggregate: &Aggregate,
         event: NewEvent,
     ) -> Result<StoredEvent, StoreError> {
         let partition_key = aggregate.partition_key();
@@ -244,7 +244,7 @@ impl EventStore for DynamoDbEventStore {
 
     async fn events_since(
         &self,
-        aggregate: &AggregateId,
+        aggregate: &Aggregate,
         since: Option<&Position>,
     ) -> Result<Vec<StoredEvent>, StoreError> {
         let first_wanted = since.map_or_else(Position::first, Position::next);

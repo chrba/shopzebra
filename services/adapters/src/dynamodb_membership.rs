@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use aws_sdk_dynamodb::types::{AttributeValue, Put, TransactWriteItem};
 use aws_sdk_dynamodb::Client;
 
-use domain::event::{AggregateId, UserId};
+use domain::event::{Aggregate, UserId};
 use domain::ports::{MemberRole, MembershipStore, StoreError};
 
 const MEMBER_PREFIX: &str = "MEMBER#";
@@ -42,8 +42,8 @@ fn role_from_attribute(value: &str) -> Option<MemberRole> {
 impl MembershipStore for DynamoDbMembershipStore {
     async fn claim_ownership(
         &self,
-        aggregate: &AggregateId,
-        user: &UserId,
+        aggregate: &Aggregate,
+        user_id: &UserId,
     ) -> Result<bool, StoreError> {
         // `claimedBy`, deliberately NOT `userId`: the byUser GSI indexes
         // the `userId` attribute, and the claim marker must stay out of
@@ -53,7 +53,7 @@ impl MembershipStore for DynamoDbMembershipStore {
             .table_name(&self.table_name)
             .item("pk", AttributeValue::S(aggregate.partition_key()))
             .item("sk", AttributeValue::S(OWNER_MARKER.into()))
-            .item("claimedBy", AttributeValue::S(user.0.clone()))
+            .item("claimedBy", AttributeValue::S(user_id.0.clone()))
             .condition_expression("attribute_not_exists(sk)")
             .build()
             .map_err(|error| StoreError(error.to_string()))?;
@@ -61,8 +61,8 @@ impl MembershipStore for DynamoDbMembershipStore {
         let owner_membership = Put::builder()
             .table_name(&self.table_name)
             .item("pk", AttributeValue::S(aggregate.partition_key()))
-            .item("sk", AttributeValue::S(format!("{MEMBER_PREFIX}{}", user.0)))
-            .item("userId", AttributeValue::S(user.0.clone()))
+            .item("sk", AttributeValue::S(format!("{MEMBER_PREFIX}{}", user_id.0)))
+            .item("userId", AttributeValue::S(user_id.0.clone()))
             .item("role", AttributeValue::S(role_to_attribute(MemberRole::Owner).into()))
             .build()
             .map_err(|error| StoreError(error.to_string()))?;
@@ -85,15 +85,15 @@ impl MembershipStore for DynamoDbMembershipStore {
 
     async fn role_of(
         &self,
-        aggregate: &AggregateId,
-        user: &UserId,
+        aggregate: &Aggregate,
+        user_id: &UserId,
     ) -> Result<Option<MemberRole>, StoreError> {
         let item = self
             .client
             .get_item()
             .table_name(&self.table_name)
             .key("pk", AttributeValue::S(aggregate.partition_key()))
-            .key("sk", AttributeValue::S(format!("{MEMBER_PREFIX}{}", user.0)))
+            .key("sk", AttributeValue::S(format!("{MEMBER_PREFIX}{}", user_id.0)))
             .send()
             .await
             .map_err(|error| StoreError(error.to_string()))?;
@@ -104,7 +104,7 @@ impl MembershipStore for DynamoDbMembershipStore {
             .and_then(|role| role_from_attribute(&role)))
     }
 
-    async fn owner_of(&self, aggregate: &AggregateId) -> Result<Option<UserId>, StoreError> {
+    async fn owner_of(&self, aggregate: &Aggregate) -> Result<Option<UserId>, StoreError> {
         // Read the claim marker rather than scanning members for the owner
         // role: it is a single point read, and it is written in the same
         // transaction that makes someone owner.
@@ -130,16 +130,16 @@ impl MembershipStore for DynamoDbMembershipStore {
 
     async fn add_member(
         &self,
-        aggregate: &AggregateId,
-        user: &UserId,
+        aggregate: &Aggregate,
+        user_id: &UserId,
         role: MemberRole,
     ) -> Result<(), StoreError> {
         self.client
             .put_item()
             .table_name(&self.table_name)
             .item("pk", AttributeValue::S(aggregate.partition_key()))
-            .item("sk", AttributeValue::S(format!("{MEMBER_PREFIX}{}", user.0)))
-            .item("userId", AttributeValue::S(user.0.clone()))
+            .item("sk", AttributeValue::S(format!("{MEMBER_PREFIX}{}", user_id.0)))
+            .item("userId", AttributeValue::S(user_id.0.clone()))
             .item("role", AttributeValue::S(role_to_attribute(role).into()))
             .send()
             .await
@@ -149,21 +149,21 @@ impl MembershipStore for DynamoDbMembershipStore {
 
     async fn remove_member(
         &self,
-        aggregate: &AggregateId,
-        user: &UserId,
+        aggregate: &Aggregate,
+        user_id: &UserId,
     ) -> Result<(), StoreError> {
         self.client
             .delete_item()
             .table_name(&self.table_name)
             .key("pk", AttributeValue::S(aggregate.partition_key()))
-            .key("sk", AttributeValue::S(format!("{MEMBER_PREFIX}{}", user.0)))
+            .key("sk", AttributeValue::S(format!("{MEMBER_PREFIX}{}", user_id.0)))
             .send()
             .await
             .map_err(|error| StoreError(error.to_string()))?;
         Ok(())
     }
 
-    async fn members_of(&self, aggregate: &AggregateId) -> Result<Vec<UserId>, StoreError> {
+    async fn members_of(&self, aggregate: &Aggregate) -> Result<Vec<UserId>, StoreError> {
         // Only the MEMBER# rows: the OWNER marker names the same person
         // again, and the INVITE row is no membership at all.
         let result = self
@@ -185,14 +185,14 @@ impl MembershipStore for DynamoDbMembershipStore {
             .collect())
     }
 
-    async fn aggregates_of(&self, user: &UserId) -> Result<Vec<AggregateId>, StoreError> {
+    async fn aggregates_of(&self, user_id: &UserId) -> Result<Vec<Aggregate>, StoreError> {
         let result = self
             .client
             .query()
             .table_name(&self.table_name)
             .index_name(BY_USER_INDEX)
             .key_condition_expression("userId = :userId")
-            .expression_attribute_values(":userId", AttributeValue::S(user.0.clone()))
+            .expression_attribute_values(":userId", AttributeValue::S(user_id.0.clone()))
             .send()
             .await
             .map_err(|error| StoreError(error.to_string()))?;
@@ -212,10 +212,10 @@ impl MembershipStore for DynamoDbMembershipStore {
 /// the owner claim marker carried a `userId` attribute and showed up next
 /// to the membership row, duplicating every owned aggregate. Rows that are
 /// not an aggregate log at all (address book, invites) drop out.
-fn distinct_aggregates<'a>(partition_keys: impl Iterator<Item = &'a str>) -> Vec<AggregateId> {
+fn distinct_aggregates<'a>(partition_keys: impl Iterator<Item = &'a str>) -> Vec<Aggregate> {
     let mut seen = std::collections::HashSet::new();
     partition_keys
-        .filter_map(AggregateId::from_partition_key)
+        .filter_map(Aggregate::from_partition_key)
         .filter(|aggregate| seen.insert(aggregate.partition_key()))
         .collect()
 }
@@ -246,9 +246,9 @@ mod tests {
         assert_eq!(
             aggregates,
             vec![
-                AggregateId::list("abc"),
-                AggregateId::recipe("r1"),
-                AggregateId::plan("p1"),
+                Aggregate::list("abc"),
+                Aggregate::recipe("r1"),
+                Aggregate::plan("p1"),
             ]
         );
     }
@@ -259,7 +259,7 @@ mod tests {
 
         let aggregates = distinct_aggregates(index_rows.into_iter());
 
-        assert_eq!(aggregates, vec![AggregateId::list("abc")]);
+        assert_eq!(aggregates, vec![Aggregate::list("abc")]);
     }
 
     #[test]

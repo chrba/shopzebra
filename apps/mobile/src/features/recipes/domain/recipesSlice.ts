@@ -1,4 +1,6 @@
 import { createSlice, type PayloadAction } from '../../../app/createSlice'
+import { identityAttached } from '../../auth/domain/authSlice'
+import { withRewrittenMembership } from '../../sharing/rewrittenMembership'
 import type { Ingredient, Recipe } from './recipesDomain'
 
 type RecipesState = {
@@ -188,6 +190,30 @@ const recipesSlice = createSlice({
       }),
     }),
   },
+  extraReducers: [
+    {
+      creator: identityAttached,
+      // Exactly as for a list: a recipe written before the account
+      // existed belongs to that account afterwards.
+      reducer: (
+        state: RecipesState,
+        action: PayloadAction<{
+          readonly previousUserId: string
+          readonly userId: string
+        }>,
+      ): RecipesState => ({
+        ...state,
+        recipes: state.recipes.map((recipe) => ({
+          ...recipe,
+          ...withRewrittenMembership(
+            recipe,
+            action.payload.previousUserId,
+            action.payload.userId,
+          ),
+        })),
+      }),
+    },
+  ],
 })
 
 // --- Actions ---

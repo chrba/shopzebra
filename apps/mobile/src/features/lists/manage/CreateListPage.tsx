@@ -2,7 +2,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useAppDispatch, useAppSelector } from '../../../app/store'
 import { listCreated } from '../domain/listsSlice'
 import { listPreferencesSet } from '../../preferences/domain/preferencesSlice'
-import { selectAuthUser } from '../../auth/domain/authSlice'
+import { selectCurrentUserId } from '../../auth/domain/authSlice'
 import { ListEditor } from './ListEditor'
 
 const DEFAULT_VALUES = {
@@ -12,17 +12,15 @@ const DEFAULT_VALUES = {
 }
 
 /**
- * Page for creating a new shopping list.
- * The signed-in user becomes the owner (owner model — members join
- * later via invites, never at creation time).
+ * Page for creating a new shopping list. Whoever uses this device becomes
+ * the owner (owner model — members join later via invites, never at
+ * creation time). No account needed: before one exists the local sentinel
+ * authors the event and docking rewrites it (accountless-first-planned.md).
  */
 export function CreateListPage() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
-  const owner = useAppSelector(selectAuthUser)
-
-  // The route guard (requireAuth) guarantees a signed-in user.
-  if (!owner) return null
+  const ownerId = useAppSelector(selectCurrentUserId)
 
   return (
     <ListEditor
@@ -35,7 +33,7 @@ export function CreateListPage() {
           listCreated({
             listId,
             name: result.name,
-            ownerId: owner.userId,
+            ownerId,
           }),
         )
         dispatch(

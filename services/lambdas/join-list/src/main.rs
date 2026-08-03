@@ -60,7 +60,7 @@ async fn handle(
     friends: &DynamoDbFriendStore,
     http_request: Request,
 ) -> Result<Response<Body>, Error> {
-    let caller = match lib::auth::extract_user_id(&http_request) {
+    let caller_id = match lib::auth::extract_user_id(&http_request) {
         Ok(user_id) => UserId(user_id),
         Err(api_error) => return api_error.to_response(),
     };
@@ -70,7 +70,7 @@ async fn handle(
         Err(api_error) => return api_error.to_response(),
     };
 
-    match join_aggregate(ports, invites, users, friends, &caller, request).await {
+    match join_aggregate(ports, invites, users, friends, &caller_id, request).await {
         // An already-joined caller gets the same 200: the join is
         // idempotent, and the client only needs to know where to navigate.
         Ok(joined) => lib::response::json(

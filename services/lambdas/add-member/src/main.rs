@@ -6,7 +6,7 @@ use aws_sdk_dynamodb::Client;
 use domain::event::UserId;
 use domain::ports::Ports;
 use domain::usecases::add_member::{add_member, AddMemberError, AddMemberRequest};
-use domain::event::AggregateId;
+use domain::event::Aggregate;
 use lambda_http::{run, service_fn, Body, Error, Request, Response};
 use lib::aggregate_route::aggregate_from_path;
 use lib::error::ApiError;
@@ -56,7 +56,7 @@ async fn handle(
     friends: &DynamoDbFriendStore,
     http_request: Request,
 ) -> Result<Response<Body>, Error> {
-    let caller = match lib::auth::extract_user_id(&http_request) {
+    let caller_id = match lib::auth::extract_user_id(&http_request) {
         Ok(user_id) => UserId(user_id),
         Err(api_error) => return api_error.to_response(),
     };
@@ -71,7 +71,7 @@ async fn handle(
         Err(api_error) => return api_error.to_response(),
     };
 
-    match add_member(ports, users, friends, &caller, request).await {
+    match add_member(ports, users, friends, &caller_id, request).await {
         Ok(()) => lib::response::json(200, &serde_json::json!({})),
         Err(AddMemberError::NotAllowed(violation)) => {
             ApiError::Forbidden(violation.to_string()).to_response()
@@ -90,7 +90,7 @@ async fn handle(
     }
 }
 
-fn parse_request(aggregate: AggregateId, body: &[u8]) -> Result<AddMemberRequest, ApiError> {
+fn parse_request(aggregate: Aggregate, body: &[u8]) -> Result<AddMemberRequest, ApiError> {
     let action = wire::parse_action(body)?;
     let payload = wire::required_payload(&action)?;
     let member_id = payload

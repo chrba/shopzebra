@@ -1,19 +1,18 @@
 // Route tree and app bootstrap.
 //
-// The root route's beforeLoad runs once on startup: it
-// restores the Cognito session, loads persisted lists from
-// clientStorage and hydrates the Redux store — all before
-// any component renders.
+// The root route's beforeLoad runs once on startup: it restores the
+// identity (if this device already has one), loads persisted lists from
+// clientStorage, hydrates the Redux store and opens the local event log —
+// all before any component renders.
 //
-// Auth guards (requireAuth / requireGuest) protect routes
-// so unauthenticated users land on /signin and logged-in
-// users skip the auth pages.
+// There are no auth guards: the app is fully usable without an account
+// (architecture/accountless-first-planned.md). An identity is created at
+// the first share or join, and only then does anything reach the server.
 
 import {
   createRootRoute,
   createRoute,
   createRouter,
-  isRedirect,
   redirect,
 } from '@tanstack/react-router'
 import { getCurrentUser, fetchAuthSession } from 'aws-amplify/auth'
@@ -26,12 +25,7 @@ import {
 } from '../features/lists/domain/listsSlice'
 import {
   friendIntentRestored,
-  friendIntentStored,
-  joinIntentCleared,
   joinIntentRestored,
-  joinIntentStored,
-  selectPendingFriendToken,
-  selectPendingJoinToken,
 } from '../features/lists/join/joinIntentSlice'
 import {
   FRIEND_INTENT_KEY,
@@ -46,14 +40,13 @@ import { AcceptFriendPage } from '../features/friends/AcceptFriendPage'
 import {
   fetchInvite,
   fetchSharingProjection,
-  joinByToken,
 } from '../features/sharing/memberCommands'
+import { joinWithToken } from '../features/sharing/joinWithToken'
 import { ListMembersPage } from '../features/lists/members/ListMembersPage'
 import { ListInvitePage } from '../features/lists/members/ListInvitePage'
 import { RecipeMembersPage } from '../features/recipes/members/RecipeMembersPage'
 import { RecipeInvitePage } from '../features/recipes/members/RecipeInvitePage'
 import { JoinListPage } from '../features/lists/join/JoinListPage'
-import { syncEngine } from './sync/syncEngine'
 import { shoppingLoaded } from '../features/shopping/domain/shoppingSlice'
 import { SHOPPING_STORAGE_KEY } from '../features/shopping/domain/shoppingClientStorageHandler'
 import {
@@ -74,14 +67,19 @@ import { RECIPES_KEY } from '../features/recipes/domain/recipesClientStorageHand
 import { RECIPE_PREFS_KEY } from '../features/preferences/domain/preferencesClientStorageHandler'
 import type { Recipe } from '../features/recipes/domain/recipesDomain'
 import {
-  sessionRestored,
-  sessionNotFound,
-  selectAuthUser,
-  selectIsAuthenticated,
-  type AuthProvider,
+  guestIdentityCreated,
+  linkedIdentityRestored,
+  selectCurrentUserId,
+  selectHasIdentity,
+  type EstablishedIdentity,
 } from '../features/auth/domain/authSlice'
-import { appLoaded, selectDeviceId, selectIsAppLoaded } from './appSlice'
-import { startSync } from './sync/startSync'
+import { restoredIdentity } from '../features/auth/domain/restoredIdentity'
+import {
+  ensureShadowAccount,
+  loadShadowCredentials,
+} from '../features/auth/domain/shadowAccount'
+import { appLoaded, selectIsAppLoaded } from './appSlice'
+import { openLocalLog, startSync } from './sync/startSync'
 import { getItem, setItem } from './clientStorage'
 import type { ShoppingList } from '../features/lists/domain/listsDomain'
 import type { ListPreferences } from '../features/preferences/domain/preferencesDomain'
@@ -92,9 +90,6 @@ import { CreateListPage } from '../features/lists/manage/CreateListPage'
 import { EditListPage } from '../features/lists/manage/EditListPage'
 import { ShoppingListPage } from '../features/shopping/list-view/ShoppingListPage'
 import { CategoryPage } from '../features/shopping/category/CategoryPage'
-import { SignInPage } from '../features/auth/sign-in/SignInPage'
-import { SignUpPage } from '../features/auth/sign-up/SignUpPage'
-import { ForgotPasswordPage } from '../features/auth/forgot-password/ForgotPasswordPage'
 import { ProfilePage } from '../features/auth/profile/ProfilePage'
 
 const DEVICE_ID_KEY = 'shopzebra_device_id'
@@ -128,6 +123,83 @@ async function storedRecipePreferences(): Promise<{
     : {}
 }
 
+/** A claim of the id token, or undefined when it is absent or not text. */
+function textClaim(claim: unknown): string | undefined {
+  return typeof claim === 'string' ? claim : undefined
+}
+
+/** How this session was authenticated, as the `identities` claim reports it. */
+function providerOfSession(identitiesClaim: unknown): string | undefined {
+  if (!Array.isArray(identitiesClaim)) return undefined
+  const first: unknown = identitiesClaim[0]
+  if (typeof first !== 'object' || first === null) return undefined
+  const providerName =
+    'providerName' in first ? textClaim(first.providerName) : undefined
+  return providerName?.toLowerCase()
+}
+
+/** Who the live Amplify session belongs to, or null when there is none. */
+async function identityOfSession(): Promise<EstablishedIdentity | null> {
+  try {
+    const cognitoUser = await getCurrentUser()
+    const session = await fetchAuthSession()
+    const claims = session.tokens?.idToken?.payload ?? {}
+    return restoredIdentity(cognitoUser.userId, {
+      email: textClaim(claims.email),
+      name: textClaim(claims.name),
+      provider: providerOfSession(claims.identities),
+    })
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Signs the stored shadow credentials back in. Reached when this device
+ * has an account but no session — the token cache was cleared, or the
+ * refresh token expired.
+ */
+async function identityOfStoredCredentials(): Promise<EstablishedIdentity | null> {
+  if ((await loadShadowCredentials()) === null) return null
+  try {
+    await ensureShadowAccount()
+    return await identityOfSession()
+  } catch (error: unknown) {
+    // Offline at boot: stay local, the outbox holds everything.
+    console.warn('signing the shadow account back in failed', error)
+    return null
+  }
+}
+
+/**
+ * Puts the identity of a returning device back into the store. Called once
+ * per app start, before anything renders. A device that never shared has
+ * no identity — that is a normal state here, not a failure.
+ */
+async function restoreIdentity(): Promise<void> {
+  const restored =
+    (await identityOfSession()) ?? (await identityOfStoredCredentials())
+  if (restored === null) return
+
+  store.dispatch(
+    restored.kind === 'linked'
+      ? linkedIdentityRestored(restored)
+      : guestIdentityCreated({
+          userId: restored.userId,
+          name: restored.name,
+        }),
+  )
+}
+
+/**
+ * The binary rule for the direct-fetch commands: a device without an
+ * identity has no session, so every read would come back 401. The screens
+ * behind these loaders show the name sheet instead.
+ */
+function canReachServer(): boolean {
+  return selectHasIdentity(store.getState())
+}
+
 const rootRoute = createRootRoute({
   component: RootLayout,
   beforeLoad: async () => {
@@ -136,35 +208,11 @@ const rootRoute = createRootRoute({
     // keeps the pending skeleton from flashing on in-app navigations.
     if (selectIsAppLoaded(store.getState())) return
 
-    // 1. Check Amplify session
-    try {
-      const cognitoUser = await getCurrentUser()
-      const session = await fetchAuthSession()
-      const claims = session.tokens?.idToken?.payload
-      const identities = claims?.identities as
-        | readonly { readonly providerName?: string }[]
-        | undefined
-      const providerName = identities?.[0]?.providerName?.toLowerCase()
-      const provider: AuthProvider =
-        providerName === 'google'
-          ? 'google'
-          : providerName === 'apple'
-            ? 'apple'
-            : 'email'
-      store.dispatch(
-        sessionRestored({
-          user: {
-            userId: cognitoUser.userId,
-            email: (claims?.email as string) ?? '',
-            name: (claims?.name as string) ?? '',
-            provider,
-          },
-        }),
-      )
-    } catch {
-      // No active session
-      store.dispatch(sessionNotFound())
-    }
+    // 1. Restore the identity. A live Amplify session wins; stored shadow
+    //    credentials without one mean the token cache was cleared — sign in
+    //    again silently. Neither: the device stays local, which is a normal
+    //    state here, not an error.
+    await restoreIdentity()
 
     // 2. Load persisted lists + preferences (local-first: rendered
     // immediately, the sync engine catches up with the server log in
@@ -266,104 +314,20 @@ const rootRoute = createRootRoute({
     }
     store.dispatch(appLoaded({ theme: 'dark', deviceId }))
 
-    // 5. Local-first boot: the store above is hydrated from clientStorage
-    // and rendered immediately. If authenticated, the sync engine now
+    // 5. Open the local event log: the queued events of this device go
+    // back into the reducer's pending queue, with or without an account.
+    await openLocalLog()
+
+    // 6. Local-first boot: the store above is hydrated from clientStorage
+    // and rendered immediately. With an identity the sync engine now
     // catches up with the server log in the background — no await, so
-    // the app never blocks the first render on network.
-    if (selectIsAuthenticated(store.getState())) startSync()
+    // the app never blocks the first render on network. Without one this
+    // is a no-op: the log stays on the device.
+    startSync()
   },
 })
 
-// --- Auth routes (public, redirect if already authenticated) ---
-
-function requireGuest() {
-  const state = store.getState()
-  if (selectIsAuthenticated(state)) {
-    throw redirect({ to: '/profile' })
-  }
-}
-
-/** Token of an invite route, or null for every other path. */
-function joinTokenOf(pathname: string): string | null {
-  const token = pathname.startsWith('/join/')
-    ? pathname.slice('/join/'.length)
-    : ''
-  return token === '' ? null : token
-}
-
-/** Token of a friendship invite route, or null for every other path. */
-function friendTokenOf(pathname: string): string | null {
-  const token = pathname.startsWith('/friend/')
-    ? pathname.slice('/friend/'.length)
-    : ''
-  return token === '' ? null : token
-}
-
-/**
- * Guards every protected route, and doubles as the single place where a
- * deferred join is resolved: whichever route the user lands on after
- * signing in, a pending invite wins. Works on a cold start too, because
- * the intent is persisted.
- */
-function requireAuth({
-  location,
-}: {
-  readonly location: { readonly pathname: string }
-}) {
-  const state = store.getState()
-
-  if (!selectIsAuthenticated(state)) {
-    // Remember the invite before sending the visitor off to sign in —
-    // otherwise the token dies on the auth detour.
-    const token = joinTokenOf(location.pathname)
-    if (token) store.dispatch(joinIntentStored({ token }))
-    const friendToken = friendTokenOf(location.pathname)
-    if (friendToken) store.dispatch(friendIntentStored({ token: friendToken }))
-    throw redirect({ to: '/signin' })
-  }
-
-  const onInviteRoute =
-    joinTokenOf(location.pathname) !== null ||
-    friendTokenOf(location.pathname) !== null
-  // Not on an invite route itself, or the redirect would loop. A pending
-  // list join outranks a pending friendship — it carries more intent.
-  if (!onInviteRoute) {
-    const pendingToken = selectPendingJoinToken(state)
-    if (pendingToken) {
-      throw redirect({ to: '/join/$token', params: { token: pendingToken } })
-    }
-    const pendingFriendToken = selectPendingFriendToken(state)
-    if (pendingFriendToken) {
-      throw redirect({
-        to: '/friend/$token',
-        params: { token: pendingFriendToken },
-      })
-    }
-  }
-}
-
-const signInRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/signin',
-  beforeLoad: requireGuest,
-  component: SignInPage,
-})
-
-const signUpRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/signup',
-  beforeLoad: requireGuest,
-  component: SignUpPage,
-})
-
-const forgotPasswordRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/forgot-password',
-  beforeLoad: requireGuest,
-  component: ForgotPasswordPage,
-})
-
-// --- App routes (protected, redirect if not authenticated) ---
+// --- App routes — reachable without an account ---
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -376,21 +340,18 @@ const indexRoute = createRoute({
 const listsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/lists',
-  beforeLoad: requireAuth,
   component: ListsPage,
 })
 
 const createListRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/lists/new',
-  beforeLoad: requireAuth,
   component: CreateListPage,
 })
 
 const editListRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/lists/$listId/edit',
-  beforeLoad: requireAuth,
   component: () => {
     const { listId } = editListRoute.useParams()
     return EditListPage({ listId })
@@ -400,7 +361,6 @@ const editListRoute = createRoute({
 const shoppingListRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/lists/$listId',
-  beforeLoad: requireAuth,
   component: () => {
     const { listId } = shoppingListRoute.useParams()
     return ShoppingListPage({ listId })
@@ -410,7 +370,6 @@ const shoppingListRoute = createRoute({
 const categoryRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/lists/$listId/category/$categoryId',
-  beforeLoad: requireAuth,
   component: () => {
     const { listId, categoryId } = categoryRoute.useParams()
     return CategoryPage({ listId, categoryId })
@@ -420,8 +379,8 @@ const categoryRoute = createRoute({
 const listMembersRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/lists/$listId/members',
-  beforeLoad: requireAuth,
   loader: async () => {
+    if (!canReachServer()) return
     // Owner names and the member cap come from the list projection; the
     // friends fill the one-tap picker. Failing either costs data, not the
     // screen — the cached state stands in.
@@ -451,14 +410,17 @@ const listMembersRoute = createRoute({
 const listInviteRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/lists/$listId/invite',
-  beforeLoad: requireAuth,
   loader: async ({ params }) => {
     const state = store.getState()
+    if (!canReachServer()) return { invite: null }
     const list = selectListById(state, params.listId)
-    const me = selectAuthUser(state)
 
-    // Only the owner may mint invites (events.md owner model).
-    if (!list || !me || list.ownerId !== me.userId) return { invite: null }
+    // Only the owner may mint invites (events.md owner model). Before the
+    // first share the owner is still the local sentinel — the name sheet
+    // creates the identity and reloads this loader.
+    if (!list || list.ownerId !== selectCurrentUserId(state)) {
+      return { invite: null }
+    }
     try {
       return { invite: await fetchInvite({ kind: 'list', id: params.listId }) }
     } catch (error: unknown) {
@@ -476,39 +438,33 @@ const listInviteRoute = createRoute({
 const joinRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/join/$token',
-  beforeLoad: requireAuth,
   loader: async ({ params }) => {
-    try {
-      const joined = await joinByToken(params.token, {
-        eventId: crypto.randomUUID(),
-        deviceId: selectDeviceId(store.getState()),
+    // Redeeming needs an identity: the server writes the member-added
+    // event under the caller's JWT. A device without one gets the name
+    // sheet on the page below, which joins as soon as the account exists.
+    if (!selectHasIdentity(store.getState())) return { outcome: null }
+
+    const outcome = await joinWithToken(params.token)
+    if (outcome.status === 'joined') {
+      throw redirect({
+        to: '/lists/$listId',
+        params: { listId: outcome.aggregate.id },
       })
-      // Cleared on success and on failure alike — a token left behind
-      // would fire again on every later sign-in.
-      store.dispatch(joinIntentCleared())
-      // Pull the new aggregate and its log before navigating into it.
-      await syncEngine.requestSync()
-      throw redirect({ to: '/lists/$listId', params: { listId: joined.id } })
-    } catch (error: unknown) {
-      // The success path throws a redirect — never swallow it.
-      if (isRedirect(error)) throw error
-      store.dispatch(joinIntentCleared())
-      // 409 is the server's "this list is full" — worth its own message.
-      const message = error instanceof Error ? error.message : ''
-      return { reason: message.includes('409') ? 'full' : 'invalid' } as const
     }
+    return { outcome }
   },
   component: () => {
-    const data = joinRoute.useLoaderData()
-    return JoinListPage({ reason: data?.reason ?? 'invalid' })
+    const { token } = joinRoute.useParams()
+    const { outcome } = joinRoute.useLoaderData()
+    return JoinListPage({ token, outcome })
   },
 })
 
 const friendsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/friends',
-  beforeLoad: requireAuth,
   loader: async () => {
+    if (!canReachServer()) return
     // Refresh the address book; on failure the cached state stands.
     try {
       store.dispatch(friendsLoaded({ friends: await fetchFriends() }))
@@ -522,8 +478,8 @@ const friendsRoute = createRoute({
 const friendsInviteRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/friends/invite',
-  beforeLoad: requireAuth,
   loader: async () => {
+    if (!canReachServer()) return { invite: null }
     try {
       return { invite: await createFriendInvite() }
     } catch (error: unknown) {
@@ -540,7 +496,6 @@ const friendsInviteRoute = createRoute({
 const acceptFriendRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/friend/$token',
-  beforeLoad: requireAuth,
   component: () => {
     const { token } = acceptFriendRoute.useParams()
     return AcceptFriendPage({ token })
@@ -550,21 +505,18 @@ const acceptFriendRoute = createRoute({
 const recipesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/recipes',
-  beforeLoad: requireAuth,
   component: RecipesPage,
 })
 
 const createRecipeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/recipes/new',
-  beforeLoad: requireAuth,
   component: CreateRecipePage,
 })
 
 const editRecipeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/recipes/$recipeId/edit',
-  beforeLoad: requireAuth,
   component: () => {
     const { recipeId } = editRecipeRoute.useParams()
     return EditRecipePage({ recipeId })
@@ -574,7 +526,6 @@ const editRecipeRoute = createRoute({
 const recipeDetailRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/recipes/$recipeId',
-  beforeLoad: requireAuth,
   component: () => {
     const { recipeId } = recipeDetailRoute.useParams()
     return RecipeDetailPage({ recipeId })
@@ -584,8 +535,8 @@ const recipeDetailRoute = createRoute({
 const recipeMembersRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/recipes/$recipeId/members',
-  beforeLoad: requireAuth,
   loader: async () => {
+    if (!canReachServer()) return
     // Same two reads as for a list: the projection carries owner names and
     // the member cap, the friends fill the one-tap picker. Failing either
     // costs data, not the screen.
@@ -615,14 +566,17 @@ const recipeMembersRoute = createRoute({
 const recipeInviteRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/recipes/$recipeId/invite',
-  beforeLoad: requireAuth,
   loader: async ({ params }) => {
     const state = store.getState()
+    if (!canReachServer()) return { invite: null }
     const recipe = selectRecipeById(state, params.recipeId)
-    const me = selectAuthUser(state)
 
-    // Only the owner may mint invites (events.md owner model).
-    if (!recipe || !me || recipe.ownerId !== me.userId) return { invite: null }
+    // Only the owner may mint invites (events.md owner model). Before the
+    // first share the owner is still the local sentinel — the name sheet
+    // creates the identity and reloads this loader.
+    if (!recipe || recipe.ownerId !== selectCurrentUserId(state)) {
+      return { invite: null }
+    }
     try {
       return {
         invite: await fetchInvite({ kind: 'recipe', id: params.recipeId }),
@@ -642,15 +596,11 @@ const recipeInviteRoute = createRoute({
 const profileRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/profile',
-  beforeLoad: requireAuth,
   component: ProfilePage,
 })
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
-  signInRoute,
-  signUpRoute,
-  forgotPasswordRoute,
   listsRoute,
   createListRoute,
   editListRoute,

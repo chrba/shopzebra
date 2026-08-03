@@ -56,9 +56,16 @@ impl AggregateKind {
     }
 }
 
-/// Identity of one aggregate log (one DynamoDB partition).
+/// Which aggregate a request addresses: its kind plus its id — together
+/// one event log, one DynamoDB partition. The server never materializes an
+/// aggregate's state, so this pair is the only form it ever takes here.
+///
+/// The client names the same pair the same way (`app/sync/aggregate.ts`),
+/// and so does the wire. `id` alone is what the payloads call `listId` /
+/// `recipeId`; a bare id string is therefore an `aggregate_id`, this pair
+/// is an `aggregate`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct AggregateId {
+pub struct Aggregate {
     pub kind: AggregateKind,
     pub id: String,
 }
@@ -74,7 +81,7 @@ pub const RECIPE_MEMBER_REMOVED: &str = "recipes/recipeMemberRemoved";
 pub const PLAN_MEMBER_ADDED: &str = "plans/planMemberAdded";
 pub const PLAN_MEMBER_REMOVED: &str = "plans/planMemberRemoved";
 
-impl AggregateId {
+impl Aggregate {
     pub fn list(id: impl Into<String>) -> Self {
         Self { kind: AggregateKind::List, id: id.into() }
     }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useAppDispatch, useAppSelector } from '../../app/store'
-import { selectAuthUser } from '../auth/domain/authSlice'
+import { selectCurrentUserId } from '../auth/domain/authSlice'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -40,7 +40,7 @@ export function ItemDetailSheet({
   onClose,
 }: ItemDetailSheetProps) {
   const dispatch = useAppDispatch()
-  const user = useAppSelector(selectAuthUser)
+  const addedBy = useAppSelector(selectCurrentUserId)
   const allItems = useAppSelector((state) => selectListItems(state, listId))
   const customVariants = useAppSelector((state) =>
     selectCustomVariants(state, listId, productId),
@@ -62,7 +62,6 @@ export function ItemDetailSheet({
   const emoji = product?.emoji ?? '\u{1F6D2}'
   const unit = product?.unit ?? noteItem?.unit ?? 'St'
   const categoryId = product?.categoryId ?? noteItem?.category ?? ''
-  const addedBy = user?.userId ?? 'unknown'
   const variants = [...(product?.variants ?? []), ...customVariants]
   const showQuantity = variants.length === 0 || genericItem !== null
   const foreignAddedBy =

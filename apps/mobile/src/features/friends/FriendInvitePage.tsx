@@ -11,6 +11,8 @@ type FriendInvitePageProps = {
 /**
  * Mints and shares the caller's friendship link (screen 3 of the friends
  * proposal). Accepting it writes both address books — no list involved.
+ * Reached only with an identity: the friends screen asks a nameless device
+ * for a name first.
  */
 export function FriendInvitePage({ invite }: FriendInvitePageProps) {
   const navigate = useNavigate()

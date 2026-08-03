@@ -5,7 +5,10 @@ import {
   selectRecipeById,
   selectRecipeMembers,
 } from '../domain/recipesSlice'
-import { selectAuthUser } from '../../auth/domain/authSlice'
+import {
+  selectCurrentUserId,
+  selectIdentity,
+} from '../../auth/domain/authSlice'
 import { ShareWithRow } from '../../sharing/ShareWithRow'
 import { memberDisplayName } from '../../sharing/memberDisplayName'
 import {
@@ -34,7 +37,8 @@ export function EditRecipePage({ recipeId }: EditRecipePageProps) {
   const members = useAppSelector((state) =>
     selectRecipeMembers(state, recipeId),
   )
-  const me = useAppSelector(selectAuthUser)
+  const me = useAppSelector(selectIdentity)
+  const currentUserId = useAppSelector(selectCurrentUserId)
 
   // A recipe that was deleted on another device while this page was open.
   if (!recipe) return null
@@ -54,7 +58,7 @@ export function EditRecipePage({ recipeId }: EditRecipePageProps) {
       extraSection={
         <ShareWithRow
           members={members
-            .filter((member) => member.id !== me?.userId)
+            .filter((member) => member.id !== currentUserId)
             .map((member) => ({
               id: member.id,
               label: memberDisplayName(member, me),

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useAppDispatch, useAppSelector } from '../../../app/store'
 import { selectListById } from '../../lists/domain/listsSlice'
-import { selectAuthUser } from '../../auth/domain/authSlice'
+import { selectCurrentUserId } from '../../auth/domain/authSlice'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -121,7 +121,7 @@ export function ShoppingListPage({ listId }: ShoppingListPageProps) {
   const navigate = useNavigate()
   const list = useAppSelector((state) => selectListById(state, listId))
   const items = useAppSelector((state) => selectListItems(state, listId))
-  const user = useAppSelector(selectAuthUser)
+  const currentUserId = useAppSelector(selectCurrentUserId)
 
   const [completedExpanded, setCompletedExpanded] = useState(false)
   const [searchInput, setSearchInput] = useState('')
@@ -141,7 +141,6 @@ export function ShoppingListPage({ listId }: ShoppingListPageProps) {
   const done = items.filter((item) => item.checked).length
   const progressPercent = total > 0 ? Math.round((done / total) * 100) : 0
   const allDone = total > 0 && done === total
-  const currentUserId = user?.userId ?? 'unknown'
 
   const searchTerm = searchInput.trim().toLowerCase()
   const searchResults =

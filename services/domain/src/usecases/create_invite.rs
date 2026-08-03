@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::event::{AggregateId, UserId};
+use crate::event::{Aggregate, UserId};
 use crate::limits::INVITE_TTL_MS;
 use crate::membership::{check_can_invite, MembershipViolation};
 use crate::ports::{InviteStore, MembershipStore, StoreError, StoredInvite};
@@ -15,7 +15,7 @@ pub enum CreateInviteError {
 
 #[derive(Debug)]
 pub struct CreateInviteRequest {
-    pub aggregate: AggregateId,
+    pub aggregate: Aggregate,
     /// Minted by the lambda, so the domain stays deterministic and
     /// replayable in tests.
     pub fresh_token: String,
@@ -28,11 +28,11 @@ pub struct CreateInviteRequest {
 pub async fn create_invite(
     membership: &dyn MembershipStore,
     invites: &dyn InviteStore,
-    caller: &UserId,
+    caller_id: &UserId,
     request: CreateInviteRequest,
 ) -> Result<StoredInvite, CreateInviteError> {
     let aggregate = request.aggregate;
-    let role = membership.role_of(&aggregate, caller).await?;
+    let role = membership.role_of(&aggregate, caller_id).await?;
     check_can_invite(role)?;
 
     if let Some(active) = invites.invite_for(&aggregate).await? {
@@ -57,11 +57,11 @@ mod tests {
     use crate::memory::{MemoryInviteStore, MemoryMembershipStore};
     use crate::ports::MemberRole;
 
-    async fn owned_by(user: &str) -> MemoryMembershipStore {
+    async fn owned_by(user_id: &str) -> MemoryMembershipStore {
         MemoryMembershipStore::new()
             .with_member(
-                &AggregateId::list("abc"),
-                &UserId(user.into()),
+                &Aggregate::list("abc"),
+                &UserId(user_id.into()),
                 MemberRole::Owner,
             )
             .await
@@ -69,7 +69,7 @@ mod tests {
 
     fn request(token: &str, now_ms: u64) -> CreateInviteRequest {
         CreateInviteRequest {
-            aggregate: AggregateId::list("abc"),
+            aggregate: Aggregate::list("abc"),
             fresh_token: token.into(),
             now_ms,
         }
@@ -151,7 +151,7 @@ mod tests {
     async fn a_plain_member_may_not_invite() {
         let membership = MemoryMembershipStore::new()
             .with_member(
-                &AggregateId::list("abc"),
+                &Aggregate::list("abc"),
                 &UserId("tom".into()),
                 MemberRole::Member,
             )

@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::event::{AggregateId, NewEvent, UserId};
+use crate::event::{Aggregate, NewEvent, UserId};
 use crate::limits::MAX_LIST_MEMBERS;
 use crate::membership::member_added_payload;
 use crate::ports::{FriendStore, InviteStore, MemberRole, Ports, StoreError, UserDirectory};
@@ -36,7 +36,7 @@ pub struct JoinAggregateRequest {
 pub struct JoinedAggregate {
     /// Which aggregate was joined — the token decides, not the route, so
     /// the caller learns from here whether to open a list or a recipe.
-    pub aggregate: AggregateId,
+    pub aggregate: Aggregate,
     pub already_member: bool,
 }
 
@@ -52,7 +52,7 @@ pub async fn join_aggregate(
     invites: &dyn InviteStore,
     users: &dyn UserDirectory,
     friends: &dyn FriendStore,
-    caller: &UserId,
+    caller_id: &UserId,
     request: JoinAggregateRequest,
 ) -> Result<JoinedAggregate, JoinAggregateError> {
     let invite = invites
@@ -64,40 +64,40 @@ pub async fn join_aggregate(
     }
     let aggregate = invite.aggregate;
 
-    if ports.membership.role_of(&aggregate, caller).await?.is_some() {
+    if ports.membership.role_of(&aggregate, caller_id).await?.is_some() {
         return Ok(JoinedAggregate {
             aggregate,
             already_member: true,
         });
     }
 
-    let members = ports.membership.members_of(&aggregate).await?;
-    if members.len() >= MAX_LIST_MEMBERS {
+    let member_ids = ports.membership.members_of(&aggregate).await?;
+    if member_ids.len() >= MAX_LIST_MEMBERS {
         return Err(JoinAggregateError::ListFull);
     }
 
     let name = users
-        .display_name(caller)
+        .display_name(caller_id)
         .await?
         .unwrap_or_else(|| UNKNOWN_MEMBER_NAME.into());
 
-    let stored = ports
+    let stored_event = ports
         .events
         .append(
             &aggregate,
             NewEvent {
                 event_type: aggregate.member_added_event().into(),
-                payload: member_added_payload(&aggregate, caller, &name),
+                payload: member_added_payload(&aggregate, caller_id, &name),
                 event_id: request.event_id,
                 device_id: request.device_id,
-                user_id: caller.clone(),
+                user_id: caller_id.clone(),
             },
         )
         .await?;
 
     ports
         .membership
-        .add_member(&aggregate, caller, MemberRole::Member)
+        .add_member(&aggregate, caller_id, MemberRole::Member)
         .await?;
 
     // Sharing something is how most friendships come about: the joiner and
@@ -108,11 +108,11 @@ pub async fn join_aggregate(
     // already-member early-return would then skip this loop forever,
     // losing the friendships with no repair path. A silently missing
     // friendship, by contrast, is curable via the friend invite link.
-    for member in &members {
-        let _ = befriend(friends, caller, member).await;
+    for member_id in &member_ids {
+        let _ = befriend(friends, caller_id, member_id).await;
     }
 
-    let _ = ports.broadcast.publish(&aggregate.channel(), &stored).await;
+    let _ = ports.broadcast.publish(&aggregate.channel(), &stored_event).await;
 
     Ok(JoinedAggregate {
         aggregate,
@@ -123,7 +123,7 @@ pub async fn join_aggregate(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::event::AggregateId;
+    use crate::event::Aggregate;
     use crate::memory::{
         MemoryEventPublisher, MemoryEventStore, MemoryFriendStore, MemoryInviteStore,
         MemoryMembershipStore, MemoryUserDirectory,
@@ -151,11 +151,11 @@ mod tests {
         }
 
         async fn with_invite(self, expires_at_ms: u64) -> Self {
-            self.with_invite_to(AggregateId::list("abc"), expires_at_ms)
+            self.with_invite_to(Aggregate::list("abc"), expires_at_ms)
                 .await
         }
 
-        async fn with_invite_to(self, aggregate: AggregateId, expires_at_ms: u64) -> Self {
+        async fn with_invite_to(self, aggregate: Aggregate, expires_at_ms: u64) -> Self {
             self.invites
                 .put_invite(&StoredInvite {
                     token: "tok-1".into(),
@@ -177,7 +177,7 @@ mod tests {
 
         async fn log(&self) -> Vec<crate::event::StoredEvent> {
             self.store
-                .events_since(&AggregateId::list("abc"), None)
+                .events_since(&Aggregate::list("abc"), None)
                 .await
                 .expect("readable")
         }
@@ -208,7 +208,7 @@ mod tests {
         .await
         .expect("join succeeds");
 
-        assert_eq!(joined.aggregate, AggregateId::list("abc"));
+        assert_eq!(joined.aggregate, Aggregate::list("abc"));
         assert!(!joined.already_member);
 
         let log = fixture.log().await;
@@ -221,7 +221,7 @@ mod tests {
 
         let role = fixture
             .membership
-            .role_of(&AggregateId::list("abc"), &UserId("tom".into()))
+            .role_of(&Aggregate::list("abc"), &UserId("tom".into()))
             .await
             .expect("readable");
         assert_eq!(role, Some(MemberRole::Member));
@@ -256,7 +256,7 @@ mod tests {
         fixture
             .membership
             .add_member(
-                &AggregateId::list("abc"),
+                &Aggregate::list("abc"),
                 &UserId("tom".into()),
                 MemberRole::Member,
             )
@@ -316,7 +316,7 @@ mod tests {
         assert!(fixture.log().await.is_empty());
         let role = fixture
             .membership
-            .role_of(&AggregateId::list("abc"), &UserId("tom".into()))
+            .role_of(&Aggregate::list("abc"), &UserId("tom".into()))
             .await
             .expect("readable");
         assert_eq!(role, None);
@@ -329,7 +329,7 @@ mod tests {
             fixture
                 .membership
                 .add_member(
-                    &AggregateId::list("abc"),
+                    &Aggregate::list("abc"),
                     &UserId(format!("member-{index}")),
                     MemberRole::Member,
                 )
@@ -355,7 +355,7 @@ mod tests {
     #[tokio::test]
     async fn joining_a_recipe_writes_the_recipe_member_event_not_the_list_one() {
         let fixture = Fixture::new()
-            .with_invite_to(AggregateId::recipe("bolo"), 10_000)
+            .with_invite_to(Aggregate::recipe("bolo"), 10_000)
             .await;
         let users = MemoryUserDirectory::new().with_name("tom", "Tom");
 
@@ -370,11 +370,11 @@ mod tests {
         .await
         .expect("a recipe is joined like a list");
 
-        assert_eq!(joined.aggregate, AggregateId::recipe("bolo"));
+        assert_eq!(joined.aggregate, Aggregate::recipe("bolo"));
 
         let log = fixture
             .store
-            .events_since(&AggregateId::recipe("bolo"), None)
+            .events_since(&Aggregate::recipe("bolo"), None)
             .await
             .expect("readable");
         assert_eq!(log.len(), 1);
@@ -386,7 +386,7 @@ mod tests {
 
         let role = fixture
             .membership
-            .role_of(&AggregateId::recipe("bolo"), &UserId("tom".into()))
+            .role_of(&Aggregate::recipe("bolo"), &UserId("tom".into()))
             .await
             .expect("readable");
         assert_eq!(role, Some(MemberRole::Member));
@@ -398,7 +398,7 @@ mod tests {
         fixture
             .membership
             .add_member(
-                &AggregateId::list("abc"),
+                &Aggregate::list("abc"),
                 &UserId("mama".into()),
                 MemberRole::Owner,
             )

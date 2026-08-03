@@ -35,7 +35,7 @@ async fn main() -> Result<(), Error> {
 }
 
 async fn handle(ports: &Ports<'_>, http_request: Request) -> Result<Response<Body>, Error> {
-    let caller = match lib::auth::extract_user_id(&http_request) {
+    let caller_id = match lib::auth::extract_user_id(&http_request) {
         Ok(user_id) => UserId(user_id),
         Err(api_error) => return api_error.to_response(),
     };
@@ -50,7 +50,7 @@ async fn handle(ports: &Ports<'_>, http_request: Request) -> Result<Response<Bod
         Err(api_error) => return api_error.to_response(),
     };
 
-    match get_events(ports, &caller, &aggregate, after).await {
+    match get_events(ports, &caller_id, &aggregate, after).await {
         Ok(events) => {
             let wire_events: Vec<_> = events.iter().map(|event| event.to_wire()).collect();
             lib::response::json(200, &json!({ "events": wire_events }))

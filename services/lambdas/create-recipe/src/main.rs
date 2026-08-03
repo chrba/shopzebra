@@ -34,7 +34,7 @@ async fn main() -> Result<(), Error> {
 }
 
 async fn handle(ports: &Ports<'_>, http_request: Request) -> Result<Response<Body>, Error> {
-    let caller = match lib::auth::extract_user_id(&http_request) {
+    let caller_id = match lib::auth::extract_user_id(&http_request) {
         Ok(user_id) => UserId(user_id),
         Err(api_error) => return api_error.to_response(),
     };
@@ -44,7 +44,7 @@ async fn handle(ports: &Ports<'_>, http_request: Request) -> Result<Response<Bod
         Err(api_error) => return api_error.to_response(),
     };
 
-    match create_recipe(ports, &caller, request).await {
+    match create_recipe(ports, &caller_id, request).await {
         Ok(stored) => lib::response::json(
             201,
             &json!({ "position": stored.position.to_string(), "eventId": stored.event_id }),

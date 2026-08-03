@@ -33,7 +33,7 @@ async fn handle(
     friends: &DynamoDbFriendStore,
     http_request: Request,
 ) -> Result<Response<Body>, Error> {
-    let caller = match lib::auth::extract_user_id(&http_request) {
+    let caller_id = match lib::auth::extract_user_id(&http_request) {
         Ok(user_id) => UserId(user_id),
         Err(api_error) => return api_error.to_response(),
     };
@@ -46,7 +46,7 @@ async fn handle(
         return ApiError::BadRequest("friendId is required".into()).to_response();
     };
 
-    match remove_friend(friends, &caller, &UserId(friend_id)).await {
+    match remove_friend(friends, &caller_id, &UserId(friend_id)).await {
         Ok(()) => lib::response::json(200, &serde_json::json!({})),
         Err(store_error) => {
             tracing::error!(error = %store_error, "remove friend failed");

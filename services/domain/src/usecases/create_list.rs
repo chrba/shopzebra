@@ -2,7 +2,7 @@ use serde_json::Value;
 use thiserror::Error;
 
 use crate::envelope::{validate_envelope, EnvelopeError};
-use crate::event::{AggregateId, NewEvent, StoredEvent, UserId};
+use crate::event::{Aggregate, NewEvent, StoredEvent, UserId};
 use crate::ports::{Ports, StoreError};
 
 #[derive(Debug, Error)]
@@ -31,7 +31,7 @@ pub struct CreateListRequest {
 /// the event itself (POST /lists, not the generic append path).
 pub async fn create_list(
     ports: &Ports<'_>,
-    caller: &UserId,
+    caller_id: &UserId,
     request: CreateListRequest,
 ) -> Result<StoredEvent, CreateListError> {
     let list_id = request
@@ -40,36 +40,36 @@ pub async fn create_list(
         .and_then(Value::as_str)
         .ok_or_else(|| EnvelopeError::SchemaViolation("listId is required".into()))?
         .to_string();
-    let aggregate = AggregateId::list(list_id);
+    let aggregate = Aggregate::list(list_id);
 
-    let validated = validate_envelope(&aggregate, "lists/listCreated", request.payload)?;
+    let validated_envelope = validate_envelope(&aggregate, "lists/listCreated", request.payload)?;
 
-    let created_by = validated.payload.get("createdBy").and_then(Value::as_str);
-    if created_by != Some(caller.0.as_str()) {
+    let created_by = validated_envelope.payload.get("createdBy").and_then(Value::as_str);
+    if created_by != Some(caller_id.0.as_str()) {
         return Err(CreateListError::CreatorMustBeCaller);
     }
 
-    if !ports.membership.claim_ownership(&aggregate, caller).await? {
+    if !ports.membership.claim_ownership(&aggregate, caller_id).await? {
         return Err(CreateListError::AlreadyExists);
     }
 
-    let stored = ports
+    let stored_event = ports
         .events
         .append(
             &aggregate,
             NewEvent {
-                event_type: validated.event_type,
-                payload: validated.payload,
+                event_type: validated_envelope.event_type,
+                payload: validated_envelope.payload,
                 event_id: request.event_id,
                 device_id: request.device_id,
-                user_id: caller.clone(),
+                user_id: caller_id.clone(),
             },
         )
         .await?;
 
-    let _ = ports.broadcast.publish(&aggregate.channel(), &stored).await;
+    let _ = ports.broadcast.publish(&aggregate.channel(), &stored_event).await;
 
-    Ok(stored)
+    Ok(stored_event)
 }
 
 #[cfg(test)]
@@ -105,13 +105,13 @@ mod tests {
         let membership = MemoryMembershipStore::new();
         let publisher = MemoryEventPublisher::new();
 
-        let stored = create_list(&wired(&store, &membership, &publisher), &mama(), create_request("abc", "mama"))
+        let stored_event = create_list(&wired(&store, &membership, &publisher), &mama(), create_request("abc", "mama"))
             .await
             .expect("create succeeds");
 
-        assert_eq!(stored.event_type, "lists/listCreated");
+        assert_eq!(stored_event.event_type, "lists/listCreated");
         let role = membership
-            .role_of(&AggregateId::list("abc"), &mama())
+            .role_of(&Aggregate::list("abc"), &mama())
             .await
             .expect("readable");
         assert_eq!(role, Some(MemberRole::Owner));
@@ -126,7 +126,7 @@ mod tests {
         let result = create_list(&wired(&store, &membership, &publisher), &mama(), create_request("abc", "papa")).await;
 
         assert!(matches!(result, Err(CreateListError::CreatorMustBeCaller)));
-        let log = store.events_since(&AggregateId::list("abc"), None).await.expect("readable");
+        let log = store.events_since(&Aggregate::list("abc"), None).await.expect("readable");
         assert!(log.is_empty());
     }
 

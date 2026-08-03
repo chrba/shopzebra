@@ -2,7 +2,7 @@ use serde_json::Value;
 use thiserror::Error;
 
 use crate::envelope::{validate_envelope, EnvelopeError};
-use crate::event::{AggregateId, NewEvent, StoredEvent, UserId};
+use crate::event::{Aggregate, NewEvent, StoredEvent, UserId};
 use crate::membership::{check_can_append, MembershipViolation};
 use crate::ports::{Ports, StoreError};
 
@@ -31,25 +31,25 @@ pub struct AppendEventRequest {
 /// append at the server-assigned position, broadcast (sync-engine.md §6).
 pub async fn append_event(
     ports: &Ports<'_>,
-    caller: &UserId,
-    aggregate: &AggregateId,
+    caller_id: &UserId,
+    aggregate: &Aggregate,
     request: AppendEventRequest,
 ) -> Result<StoredEvent, AppendEventError> {
-    let role = ports.membership.role_of(aggregate, caller).await?;
+    let role = ports.membership.role_of(aggregate, caller_id).await?;
     check_can_append(role)?;
 
-    let validated = validate_envelope(aggregate, &request.event_type, request.payload)?;
+    let validated_envelope = validate_envelope(aggregate, &request.event_type, request.payload)?;
 
-    let stored = ports
+    let stored_event = ports
         .events
         .append(
             aggregate,
             NewEvent {
-                event_type: validated.event_type,
-                payload: validated.payload,
+                event_type: validated_envelope.event_type,
+                payload: validated_envelope.payload,
                 event_id: request.event_id,
                 device_id: request.device_id,
-                user_id: caller.clone(),
+                user_id: caller_id.clone(),
             },
         )
         .await?;
@@ -57,9 +57,9 @@ pub async fn append_event(
     // Best-effort: the cursor catch-up is the reliable delivery path,
     // AppSync only cuts latency. A failed broadcast must not fail an
     // append that is already in the canonical log.
-    let _ = ports.broadcast.publish(&aggregate.channel(), &stored).await;
+    let _ = ports.broadcast.publish(&aggregate.channel(), &stored_event).await;
 
-    Ok(stored)
+    Ok(stored_event)
 }
 
 #[cfg(test)]
@@ -69,8 +69,8 @@ mod tests {
     use crate::ports::{EventStore, MemberRole};
     use serde_json::json;
 
-    fn groceries() -> AggregateId {
-        AggregateId::list("abc")
+    fn groceries() -> Aggregate {
+        Aggregate::list("abc")
     }
 
     fn mama() -> UserId {
@@ -106,11 +106,11 @@ mod tests {
         let membership = members_only_store().await;
         let publisher = MemoryEventPublisher::new();
 
-        let stored = append_event(&wired(&store, &membership, &publisher), &mama(), &groceries(), rename_request("event-1"))
+        let stored_event = append_event(&wired(&store, &membership, &publisher), &mama(), &groceries(), rename_request("event-1"))
             .await
             .expect("append succeeds");
 
-        assert_eq!(stored.user_id, mama());
+        assert_eq!(stored_event.user_id, mama());
         assert_eq!(publisher.published_channels(), vec!["lists/abc".to_string()]);
     }
 

@@ -39,13 +39,14 @@ async fn handle(
     users: &CognitoUserDirectory,
     http_request: Request,
 ) -> Result<Response<Body>, Error> {
-    let caller = match lib::auth::extract_user_id(&http_request) {
+    let caller_id = match lib::auth::extract_user_id(&http_request) {
         Ok(user_id) => UserId(user_id),
         Err(api_error) => return api_error.to_response(),
     };
 
-    match my_friends(friends, users, &caller).await {
+    match my_friends(friends, users, &caller_id).await {
         Ok(entries) => {
+            // Each entry is a Friend — id plus display name, not just an id.
             let friends: Vec<_> = entries
                 .into_iter()
                 .map(|friend| json!({ "id": friend.id, "name": friend.name }))

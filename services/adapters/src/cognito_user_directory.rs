@@ -25,12 +25,12 @@ impl CognitoUserDirectory {
 
 #[async_trait]
 impl UserDirectory for CognitoUserDirectory {
-    async fn display_name(&self, user: &UserId) -> Result<Option<String>, StoreError> {
+    async fn display_name(&self, user_id: &UserId) -> Result<Option<String>, StoreError> {
         let response = self
             .client
             .list_users()
             .user_pool_id(&self.user_pool_id)
-            .filter(format!("sub = \"{}\"", user.0))
+            .filter(format!("sub = \"{}\"", user_id.0))
             .limit(1)
             .send()
             .await

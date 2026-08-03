@@ -39,7 +39,7 @@ async fn handle(
     invites: &DynamoDbInviteStore,
     http_request: Request,
 ) -> Result<Response<Body>, Error> {
-    let caller = match lib::auth::extract_user_id(&http_request) {
+    let caller_id = match lib::auth::extract_user_id(&http_request) {
         Ok(user_id) => UserId(user_id),
         Err(api_error) => return api_error.to_response(),
     };
@@ -55,7 +55,7 @@ async fn handle(
         now_ms: now_ms(),
     };
 
-    match create_invite(membership, invites, &caller, request).await {
+    match create_invite(membership, invites, &caller_id, request).await {
         Ok(invite) => lib::response::json(
             201,
             &json!({ "token": invite.token, "expiresAt": invite.expires_at_ms }),

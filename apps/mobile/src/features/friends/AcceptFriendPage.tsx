@@ -1,6 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { useAppDispatch } from '../../app/store'
+import { useAppDispatch, useAppSelector } from '../../app/store'
+import { selectIdentity } from '../auth/domain/authSlice'
+import {
+  FirstShareNameSheet,
+  needsNameBeforeSharing,
+} from '../sharing/FirstShareNameSheet'
 import { friendIntentCleared } from '../lists/join/joinIntentSlice'
 import { friendsLoaded } from './domain/friendsSlice'
 import { acceptFriendInvite, fetchFriends } from './friendCommands'
@@ -23,30 +28,44 @@ type AcceptFriendPageProps = {
 export function AcceptFriendPage({ token }: AcceptFriendPageProps) {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
-  const [state, setState] = useState<'asking' | 'accepting' | 'failed'>('asking')
+  const identity = useAppSelector(selectIdentity)
+  const [state, setState] = useState<
+    'asking' | 'naming' | 'accepting' | 'failed'
+  >('asking')
 
   const finish = (to: '/friends' | '/lists') => {
     dispatch(friendIntentCleared())
     void navigate({ to })
   }
 
-  const handleAccept = () => {
+  const accept = async () => {
     setState('accepting')
-    acceptFriendInvite(token)
-      .then(async () => {
-        // Refresh the address book so the new friend is visible on arrival.
-        try {
-          dispatch(friendsLoaded({ friends: await fetchFriends() }))
-        } catch (error: unknown) {
-          console.warn('refreshing friends after accept failed', error)
-        }
-        finish('/friends')
-      })
-      .catch((error: unknown) => {
-        console.warn('accepting the friend invite failed', error)
-        setState('failed')
-      })
+    try {
+      await acceptFriendInvite(token)
+    } catch (error: unknown) {
+      console.warn('accepting the friend invite failed', error)
+      setState('failed')
+      return
+    }
+    // Refresh the address book so the new friend is visible on arrival.
+    try {
+      dispatch(friendsLoaded({ friends: await fetchFriends() }))
+    } catch (error: unknown) {
+      console.warn('refreshing friends after accept failed', error)
+    }
+    finish('/friends')
   }
+
+  // Becoming someone's contact is a shared act: it needs an account and a
+  // name, so a device without one is asked first.
+  const handleAccept = () => {
+    if (needsNameBeforeSharing(identity)) {
+      setState('naming')
+      return
+    }
+    void accept()
+  }
+
 
   if (state === 'failed') {
     return (
@@ -101,6 +120,10 @@ export function AcceptFriendPage({ token }: AcceptFriendPageProps) {
           Ablehnen
         </Button>
       </div>
+
+      {state === 'naming' && (
+        <FirstShareNameSheet confirmLabel="Annehmen" onDone={accept} />
+      )}
     </div>
   )
 }

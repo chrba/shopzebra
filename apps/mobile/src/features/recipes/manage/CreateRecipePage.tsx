@@ -2,20 +2,18 @@ import { useNavigate } from '@tanstack/react-router'
 import { useAppDispatch, useAppSelector } from '../../../app/store'
 import { recipeCreated } from '../domain/recipesSlice'
 import { recipePreferencesSet } from '../../preferences/domain/preferencesSlice'
-import { selectAuthUser } from '../../auth/domain/authSlice'
+import { selectCurrentUserId } from '../../auth/domain/authSlice'
 import { EMPTY_RECIPE, RecipeEditor } from './RecipeEditor'
 
 /**
- * Page for writing a new recipe. The signed-in user becomes the owner —
- * others join later through an invite, exactly like a shopping list.
+ * Page for writing a new recipe. Whoever uses this device becomes the owner
+ * — others join later through an invite, exactly like a shopping list, and
+ * no account is needed to write one.
  */
 export function CreateRecipePage() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
-  const owner = useAppSelector(selectAuthUser)
-
-  // The route guard (requireAuth) guarantees a signed-in user.
-  if (!owner) return null
+  const ownerId = useAppSelector(selectCurrentUserId)
 
   return (
     <RecipeEditor
@@ -28,7 +26,7 @@ export function CreateRecipePage() {
           recipeCreated({
             recipeId,
             name: result.name,
-            ownerId: owner.userId,
+            ownerId,
             portions: result.portions,
             ...(result.durationMinutes === null
               ? {}

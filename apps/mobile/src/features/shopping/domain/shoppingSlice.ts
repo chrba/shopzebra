@@ -1,5 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit'
 import { createSlice, type PayloadAction } from '../../../app/createSlice'
+import { identityAttached } from '../../auth/domain/authSlice'
 import { listDeleted } from '../../lists/domain/listsSlice'
 import type { ListItem } from './shoppingDomain'
 
@@ -240,6 +241,31 @@ const shoppingSlice = createSlice({
           Object.entries(state.customVariantsByListId).filter(
             ([listId]) => listId !== action.payload.listId,
           ),
+        ),
+      }),
+    },
+    {
+      // Docking: items a guest put on a list were authored by the local
+      // sentinel. Left alone, the list view would mark them as somebody
+      // else's the moment the device has a real user id.
+      creator: identityAttached,
+      reducer: (
+        state: ShoppingState,
+        action: PayloadAction<{
+          readonly previousUserId: string
+          readonly userId: string
+        }>,
+      ): ShoppingState => ({
+        ...state,
+        itemsByListId: Object.fromEntries(
+          Object.entries(state.itemsByListId).map(([listId, items]) => [
+            listId,
+            items.map((item) =>
+              item.addedBy === action.payload.previousUserId
+                ? { ...item, addedBy: action.payload.userId }
+                : item,
+            ),
+          ]),
         ),
       }),
     },

@@ -1,4 +1,4 @@
-use crate::event::{AggregateId, AggregateKind, UserId};
+use crate::event::{Aggregate, AggregateKind, UserId};
 use crate::ports::{Ports, StoreError, UserDirectory};
 
 /// One aggregate as an overview needs it: its id plus the owner's display
@@ -19,15 +19,15 @@ pub struct AggregateSummary {
 pub async fn aggregates_with_owners(
     ports: &Ports<'_>,
     users: &dyn UserDirectory,
-    caller: &UserId,
+    caller_id: &UserId,
     kind: AggregateKind,
 ) -> Result<Vec<AggregateSummary>, StoreError> {
-    let aggregates = my_aggregates(ports, caller, kind).await?;
+    let aggregates = my_aggregates(ports, caller_id, kind).await?;
 
     let mut summaries = Vec::with_capacity(aggregates.len());
     for aggregate in aggregates {
         let owner_name = match ports.membership.owner_of(&aggregate).await? {
-            Some(owner) => users.display_name(&owner).await?,
+            Some(owner_id) => users.display_name(&owner_id).await?,
             None => None,
         };
         summaries.push(AggregateSummary {
@@ -45,10 +45,10 @@ pub async fn aggregates_with_owners(
 /// server-owned.
 pub async fn my_aggregates(
     ports: &Ports<'_>,
-    caller: &UserId,
+    caller_id: &UserId,
     kind: AggregateKind,
-) -> Result<Vec<AggregateId>, StoreError> {
-    let aggregates = ports.membership.aggregates_of(caller).await?;
+) -> Result<Vec<Aggregate>, StoreError> {
+    let aggregates = ports.membership.aggregates_of(caller_id).await?;
     Ok(aggregates
         .into_iter()
         .filter(|aggregate| aggregate.kind == kind)
@@ -65,11 +65,11 @@ mod tests {
     async fn returns_only_the_lists_the_caller_belongs_to() {
         let store = MemoryEventStore::new();
         let membership = MemoryMembershipStore::new()
-            .with_member(&AggregateId::list("abc"), &UserId("mama".into()), MemberRole::Owner)
+            .with_member(&Aggregate::list("abc"), &UserId("mama".into()), MemberRole::Owner)
             .await
-            .with_member(&AggregateId::list("def"), &UserId("mama".into()), MemberRole::Member)
+            .with_member(&Aggregate::list("def"), &UserId("mama".into()), MemberRole::Member)
             .await
-            .with_member(&AggregateId::list("xyz"), &UserId("papa".into()), MemberRole::Owner)
+            .with_member(&Aggregate::list("xyz"), &UserId("papa".into()), MemberRole::Owner)
             .await;
         let publisher = MemoryEventPublisher::new();
         let ports = Ports { events: &store, membership: &membership, broadcast: &publisher };
@@ -91,9 +91,9 @@ mod tests {
         let store = MemoryEventStore::new();
         let mama = UserId("mama".into());
         let membership = MemoryMembershipStore::new()
-            .with_member(&AggregateId::list("abc"), &mama, MemberRole::Owner)
+            .with_member(&Aggregate::list("abc"), &mama, MemberRole::Owner)
             .await
-            .with_member(&AggregateId::recipe("bolo"), &mama, MemberRole::Owner)
+            .with_member(&Aggregate::recipe("bolo"), &mama, MemberRole::Owner)
             .await;
         let publisher = MemoryEventPublisher::new();
         let ports = Ports { events: &store, membership: &membership, broadcast: &publisher };
@@ -102,7 +102,7 @@ mod tests {
             .await
             .expect("readable");
 
-        assert_eq!(recipes, vec![AggregateId::recipe("bolo")]);
+        assert_eq!(recipes, vec![Aggregate::recipe("bolo")]);
     }
 }
 
@@ -118,9 +118,9 @@ mod owner_name_tests {
     async fn every_list_carries_its_owners_display_name() {
         let store = MemoryEventStore::new();
         let membership = MemoryMembershipStore::new()
-            .with_member(&AggregateId::list("abc"), &UserId("mama".into()), MemberRole::Owner)
+            .with_member(&Aggregate::list("abc"), &UserId("mama".into()), MemberRole::Owner)
             .await
-            .with_member(&AggregateId::list("abc"), &UserId("tom".into()), MemberRole::Member)
+            .with_member(&Aggregate::list("abc"), &UserId("tom".into()), MemberRole::Member)
             .await;
         let publisher = MemoryEventPublisher::new();
         let users = MemoryUserDirectory::new().with_name("mama", "Sarah");
@@ -144,7 +144,7 @@ mod owner_name_tests {
     async fn an_owner_without_a_name_yields_none_rather_than_a_placeholder() {
         let store = MemoryEventStore::new();
         let membership = MemoryMembershipStore::new()
-            .with_member(&AggregateId::list("abc"), &UserId("mama".into()), MemberRole::Owner)
+            .with_member(&Aggregate::list("abc"), &UserId("mama".into()), MemberRole::Owner)
             .await;
         let publisher = MemoryEventPublisher::new();
         let users = MemoryUserDirectory::new();
@@ -165,7 +165,7 @@ mod owner_name_tests {
     #[tokio::test]
     async fn a_shared_recipe_carries_its_owners_name_just_like_a_list() {
         let store = MemoryEventStore::new();
-        let recipe = AggregateId::recipe("bolo");
+        let recipe = Aggregate::recipe("bolo");
         let membership = MemoryMembershipStore::new()
             .with_member(&recipe, &UserId("mama".into()), MemberRole::Owner)
             .await

@@ -1,4 +1,6 @@
 import { createSlice, type PayloadAction } from '../../../app/createSlice'
+import { identityAttached } from '../../auth/domain/authSlice'
+import { withRewrittenMembership } from '../../sharing/rewrittenMembership'
 import type { ShoppingList } from './listsDomain'
 
 type ListsState = {
@@ -184,6 +186,30 @@ const listsSlice = createSlice({
       }),
     }),
   },
+  extraReducers: [
+    {
+      creator: identityAttached,
+      // What this device owned under the local sentinel belongs to the
+      // freshly created account now. Foreign ids stay untouched.
+      reducer: (
+        state: ListsState,
+        action: PayloadAction<{
+          readonly previousUserId: string
+          readonly userId: string
+        }>,
+      ): ListsState => ({
+        ...state,
+        lists: state.lists.map((list) => ({
+          ...list,
+          ...withRewrittenMembership(
+            list,
+            action.payload.previousUserId,
+            action.payload.userId,
+          ),
+        })),
+      }),
+    },
+  ],
 })
 
 // --- Actions ---

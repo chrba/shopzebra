@@ -1,5 +1,6 @@
 import { setItem } from '../../../app/clientStorage'
 import { isEventsConfirmed } from '../../../app/sync/withSync'
+import { identityAttached } from '../../auth/domain/authSlice'
 import type { ShoppingList } from './listsDomain'
 
 type ListsState = {
@@ -18,7 +19,9 @@ export function listsClientStorageHandler(
   action: { readonly type: string; readonly payload?: unknown },
   getState: () => unknown,
 ): void {
-  if (!isEventsConfirmed(action)) return
+  // Docking rewrites the confirmed tree in place; without this the
+  // sentinel would come back on the next start.
+  if (!isEventsConfirmed(action) && !identityAttached.match(action)) return
   const state = getState() as {
     readonly sync: { readonly confirmed: { readonly lists: ListsState } }
   }

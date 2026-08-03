@@ -35,11 +35,11 @@ pub struct Friend {
 /// the list invite.
 pub async fn create_friend_invite(
     invites: &dyn FriendInviteStore,
-    caller: &UserId,
+    caller_id: &UserId,
     fresh_token: String,
     now_ms: u64,
 ) -> Result<StoredFriendInvite, FriendError> {
-    if let Some(active) = invites.friend_invite_for(caller).await? {
+    if let Some(active) = invites.friend_invite_for(caller_id).await? {
         if active.expires_at_ms > now_ms {
             return Ok(active);
         }
@@ -47,7 +47,7 @@ pub async fn create_friend_invite(
 
     let invite = StoredFriendInvite {
         token: fresh_token,
-        invited_by: caller.clone(),
+        invited_by: caller_id.clone(),
         expires_at_ms: now_ms + INVITE_TTL_MS,
     };
     invites.put_friend_invite(&invite).await?;
@@ -59,7 +59,7 @@ pub async fn create_friend_invite(
 pub async fn accept_friend_invite(
     invites: &dyn FriendInviteStore,
     friends: &dyn FriendStore,
-    caller: &UserId,
+    caller_id: &UserId,
     token: &str,
     now_ms: u64,
 ) -> Result<UserId, FriendError> {
@@ -70,11 +70,11 @@ pub async fn accept_friend_invite(
     if invite.expires_at_ms <= now_ms {
         return Err(FriendError::InvalidToken);
     }
-    if invite.invited_by == *caller {
+    if invite.invited_by == *caller_id {
         return Err(FriendError::OwnInvite);
     }
 
-    befriend(friends, caller, &invite.invited_by).await?;
+    befriend(friends, caller_id, &invite.invited_by).await?;
     Ok(invite.invited_by)
 }
 
@@ -97,13 +97,13 @@ pub async fn befriend(
 pub async fn my_friends(
     friends: &dyn FriendStore,
     users: &dyn UserDirectory,
-    caller: &UserId,
+    caller_id: &UserId,
 ) -> Result<Vec<Friend>, StoreError> {
-    let ids = friends.friends_of(caller).await?;
-    let mut entries = Vec::with_capacity(ids.len());
-    for id in ids {
-        let name = users.display_name(&id).await?;
-        entries.push(Friend { id: id.0, name });
+    let friend_ids = friends.friends_of(caller_id).await?;
+    let mut entries = Vec::with_capacity(friend_ids.len());
+    for friend_id in friend_ids {
+        let name = users.display_name(&friend_id).await?;
+        entries.push(Friend { id: friend_id.0, name });
     }
     Ok(entries)
 }
@@ -113,10 +113,10 @@ pub async fn my_friends(
 /// stay untouched — dropping somebody here never revokes access.
 pub async fn remove_friend(
     friends: &dyn FriendStore,
-    caller: &UserId,
-    friend: &UserId,
+    caller_id: &UserId,
+    friend_id: &UserId,
 ) -> Result<(), StoreError> {
-    friends.remove_friend(caller, friend).await
+    friends.remove_friend(caller_id, friend_id).await
 }
 
 #[cfg(test)]
@@ -124,18 +124,18 @@ mod tests {
     use super::*;
     use crate::memory::{MemoryFriendInviteStore, MemoryFriendStore, MemoryUserDirectory};
 
-    fn user(id: &str) -> UserId {
+    fn user_id(id: &str) -> UserId {
         UserId(id.into())
     }
 
     #[tokio::test]
     async fn a_repeated_create_reuses_the_active_token() {
         let invites = MemoryFriendInviteStore::new();
-        create_friend_invite(&invites, &user("sarah"), "tok-1".into(), 1_000)
+        create_friend_invite(&invites, &user_id("sarah"), "tok-1".into(), 1_000)
             .await
             .expect("first");
 
-        let second = create_friend_invite(&invites, &user("sarah"), "tok-2".into(), 2_000)
+        let second = create_friend_invite(&invites, &user_id("sarah"), "tok-2".into(), 2_000)
             .await
             .expect("second");
 
@@ -146,13 +146,13 @@ mod tests {
     #[tokio::test]
     async fn an_expired_token_is_replaced() {
         let invites = MemoryFriendInviteStore::new();
-        create_friend_invite(&invites, &user("sarah"), "tok-1".into(), 0)
+        create_friend_invite(&invites, &user_id("sarah"), "tok-1".into(), 0)
             .await
             .expect("first");
 
         let fresh = create_friend_invite(
             &invites,
-            &user("sarah"),
+            &user_id("sarah"),
             "tok-2".into(),
             INVITE_TTL_MS + 1,
         )
@@ -166,21 +166,21 @@ mod tests {
     async fn accepting_puts_each_into_the_others_address_book() {
         let invites = MemoryFriendInviteStore::new();
         let friends = MemoryFriendStore::new();
-        create_friend_invite(&invites, &user("sarah"), "tok-1".into(), 0)
+        create_friend_invite(&invites, &user_id("sarah"), "tok-1".into(), 0)
             .await
             .expect("invite");
 
-        let inviter = accept_friend_invite(&invites, &friends, &user("tom"), "tok-1", 1_000)
+        let inviter = accept_friend_invite(&invites, &friends, &user_id("tom"), "tok-1", 1_000)
             .await
             .expect("accepts");
 
-        assert_eq!(inviter, user("sarah"));
+        assert_eq!(inviter, user_id("sarah"));
         assert!(friends
-            .is_friend(&user("tom"), &user("sarah"))
+            .is_friend(&user_id("tom"), &user_id("sarah"))
             .await
             .expect("readable"));
         assert!(friends
-            .is_friend(&user("sarah"), &user("tom"))
+            .is_friend(&user_id("sarah"), &user_id("tom"))
             .await
             .expect("readable"));
     }
@@ -190,7 +190,7 @@ mod tests {
         let invites = MemoryFriendInviteStore::new();
         let friends = MemoryFriendStore::new();
 
-        let result = accept_friend_invite(&invites, &friends, &user("tom"), "nope", 0).await;
+        let result = accept_friend_invite(&invites, &friends, &user_id("tom"), "nope", 0).await;
 
         assert!(matches!(result, Err(FriendError::InvalidToken)));
     }
@@ -199,14 +199,14 @@ mod tests {
     async fn an_expired_token_is_rejected() {
         let invites = MemoryFriendInviteStore::new();
         let friends = MemoryFriendStore::new();
-        create_friend_invite(&invites, &user("sarah"), "tok-1".into(), 0)
+        create_friend_invite(&invites, &user_id("sarah"), "tok-1".into(), 0)
             .await
             .expect("invite");
 
         let result = accept_friend_invite(
             &invites,
             &friends,
-            &user("tom"),
+            &user_id("tom"),
             "tok-1",
             INVITE_TTL_MS + 1,
         )
@@ -219,15 +219,15 @@ mod tests {
     async fn nobody_befriends_themselves_through_their_own_link() {
         let invites = MemoryFriendInviteStore::new();
         let friends = MemoryFriendStore::new();
-        create_friend_invite(&invites, &user("sarah"), "tok-1".into(), 0)
+        create_friend_invite(&invites, &user_id("sarah"), "tok-1".into(), 0)
             .await
             .expect("invite");
 
-        let result = accept_friend_invite(&invites, &friends, &user("sarah"), "tok-1", 1).await;
+        let result = accept_friend_invite(&invites, &friends, &user_id("sarah"), "tok-1", 1).await;
 
         assert!(matches!(result, Err(FriendError::OwnInvite)));
         assert!(friends
-            .friends_of(&user("sarah"))
+            .friends_of(&user_id("sarah"))
             .await
             .expect("readable")
             .is_empty());
@@ -238,7 +238,7 @@ mod tests {
         let friends = MemoryFriendStore::new().with_friendship("sarah", "tom").await;
         let users = MemoryUserDirectory::new().with_name("tom", "Tom");
 
-        let entries = my_friends(&friends, &users, &user("sarah"))
+        let entries = my_friends(&friends, &users, &user_id("sarah"))
             .await
             .expect("readable");
 
@@ -256,7 +256,7 @@ mod tests {
         let friends = MemoryFriendStore::new().with_friendship("sarah", "tom").await;
         let users = MemoryUserDirectory::new();
 
-        let entries = my_friends(&friends, &users, &user("sarah"))
+        let entries = my_friends(&friends, &users, &user_id("sarah"))
             .await
             .expect("readable");
 
@@ -267,18 +267,18 @@ mod tests {
     async fn removing_touches_only_the_callers_own_side() {
         let friends = MemoryFriendStore::new().with_friendship("sarah", "tom").await;
 
-        remove_friend(&friends, &user("sarah"), &user("tom"))
+        remove_friend(&friends, &user_id("sarah"), &user_id("tom"))
             .await
             .expect("removes");
 
         assert!(!friends
-            .is_friend(&user("sarah"), &user("tom"))
+            .is_friend(&user_id("sarah"), &user_id("tom"))
             .await
             .expect("readable"));
         // Tom tidying up is Tom's business — Sarah's removal leaves his
         // address book alone.
         assert!(friends
-            .is_friend(&user("tom"), &user("sarah"))
+            .is_friend(&user_id("tom"), &user_id("sarah"))
             .await
             .expect("readable"));
     }
@@ -287,16 +287,16 @@ mod tests {
     async fn befriending_twice_creates_no_duplicates() {
         let friends = MemoryFriendStore::new();
 
-        befriend(&friends, &user("sarah"), &user("tom"))
+        befriend(&friends, &user_id("sarah"), &user_id("tom"))
             .await
             .expect("first");
-        befriend(&friends, &user("sarah"), &user("tom"))
+        befriend(&friends, &user_id("sarah"), &user_id("tom"))
             .await
             .expect("second");
 
         assert_eq!(
-            friends.friends_of(&user("sarah")).await.expect("readable"),
-            vec![user("tom")]
+            friends.friends_of(&user_id("sarah")).await.expect("readable"),
+            vec![user_id("tom")]
         );
     }
 }

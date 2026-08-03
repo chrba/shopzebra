@@ -5,6 +5,7 @@
 
 import type { PayloadAction } from '../createSlice'
 import { cursorKeyOf, type Aggregate } from './aggregate'
+import { withRewrittenAuthor } from './authorRewrite'
 
 /**
  * One queued send: target path + wire payload. Routing happens at enqueue
@@ -139,6 +140,20 @@ export class Outbox implements SendQueue, ReceiveLedger {
   removeHead(): Promise<void> {
     if (!this.head()) return Promise.resolve()
     return this.commit({ ...this.state, queue: this.state.queue.slice(1) })
+  }
+
+  /**
+   * Called once, when the device docks onto its real identity: every event
+   * queued under the local sentinel now belongs to the new user. Without
+   * it the server would reject the whole backlog (CreatorMustBeCaller).
+   */
+  rewriteAuthor(previousUserId: string, userId: string): Promise<void> {
+    return this.commit({
+      ...this.state,
+      queue: this.state.queue.map((entry) =>
+        withRewrittenAuthor(entry, previousUserId, userId),
+      ),
+    })
   }
 
   /** Last folded position of an aggregate. Called by catch-up (`?since=`). */

@@ -2,7 +2,7 @@ use serde_json::Value;
 use thiserror::Error;
 
 use crate::envelope::{validate_envelope, EnvelopeError};
-use crate::event::{AggregateId, NewEvent, StoredEvent, UserId};
+use crate::event::{Aggregate, NewEvent, StoredEvent, UserId};
 use crate::ports::{Ports, StoreError};
 
 #[derive(Debug, Error)]
@@ -33,7 +33,7 @@ pub struct CreateRecipeRequest {
 /// (sharing-model.md).
 pub async fn create_recipe(
     ports: &Ports<'_>,
-    caller: &UserId,
+    caller_id: &UserId,
     request: CreateRecipeRequest,
 ) -> Result<StoredEvent, CreateRecipeError> {
     let recipe_id = request
@@ -42,36 +42,36 @@ pub async fn create_recipe(
         .and_then(Value::as_str)
         .ok_or_else(|| EnvelopeError::SchemaViolation("recipeId is required".into()))?
         .to_string();
-    let aggregate = AggregateId::recipe(recipe_id);
+    let aggregate = Aggregate::recipe(recipe_id);
 
-    let validated = validate_envelope(&aggregate, "recipes/recipeCreated", request.payload)?;
+    let validated_envelope = validate_envelope(&aggregate, "recipes/recipeCreated", request.payload)?;
 
-    let created_by = validated.payload.get("createdBy").and_then(Value::as_str);
-    if created_by != Some(caller.0.as_str()) {
+    let created_by = validated_envelope.payload.get("createdBy").and_then(Value::as_str);
+    if created_by != Some(caller_id.0.as_str()) {
         return Err(CreateRecipeError::CreatorMustBeCaller);
     }
 
-    if !ports.membership.claim_ownership(&aggregate, caller).await? {
+    if !ports.membership.claim_ownership(&aggregate, caller_id).await? {
         return Err(CreateRecipeError::AlreadyExists);
     }
 
-    let stored = ports
+    let stored_event = ports
         .events
         .append(
             &aggregate,
             NewEvent {
-                event_type: validated.event_type,
-                payload: validated.payload,
+                event_type: validated_envelope.event_type,
+                payload: validated_envelope.payload,
                 event_id: request.event_id,
                 device_id: request.device_id,
-                user_id: caller.clone(),
+                user_id: caller_id.clone(),
             },
         )
         .await?;
 
-    let _ = ports.broadcast.publish(&aggregate.channel(), &stored).await;
+    let _ = ports.broadcast.publish(&aggregate.channel(), &stored_event).await;
 
-    Ok(stored)
+    Ok(stored_event)
 }
 
 #[cfg(test)]
@@ -114,7 +114,7 @@ mod tests {
         let membership = MemoryMembershipStore::new();
         let publisher = MemoryEventPublisher::new();
 
-        let stored = create_recipe(
+        let stored_event = create_recipe(
             &wired(&store, &membership, &publisher),
             &mama(),
             create_request("bolo", "mama"),
@@ -122,9 +122,9 @@ mod tests {
         .await
         .expect("create succeeds");
 
-        assert_eq!(stored.event_type, "recipes/recipeCreated");
+        assert_eq!(stored_event.event_type, "recipes/recipeCreated");
         let role = membership
-            .role_of(&AggregateId::recipe("bolo"), &mama())
+            .role_of(&Aggregate::recipe("bolo"), &mama())
             .await
             .expect("readable");
         assert_eq!(role, Some(MemberRole::Owner));
@@ -145,7 +145,7 @@ mod tests {
 
         assert!(matches!(result, Err(CreateRecipeError::CreatorMustBeCaller)));
         let log = store
-            .events_since(&AggregateId::recipe("bolo"), None)
+            .events_since(&Aggregate::recipe("bolo"), None)
             .await
             .expect("readable");
         assert!(log.is_empty());
@@ -181,11 +181,11 @@ mod tests {
         let membership = MemoryMembershipStore::new();
         let publisher = MemoryEventPublisher::new();
         membership
-            .claim_ownership(&AggregateId::list("same"), &mama())
+            .claim_ownership(&Aggregate::list("same"), &mama())
             .await
             .expect("claims");
 
-        let stored = create_recipe(
+        let stored_event = create_recipe(
             &wired(&store, &membership, &publisher),
             &mama(),
             create_request("same", "mama"),
@@ -193,7 +193,7 @@ mod tests {
         .await
         .expect("a recipe is a different aggregate than a list of the same id");
 
-        assert_eq!(stored.event_type, "recipes/recipeCreated");
+        assert_eq!(stored_event.event_type, "recipes/recipeCreated");
     }
 
     #[tokio::test]

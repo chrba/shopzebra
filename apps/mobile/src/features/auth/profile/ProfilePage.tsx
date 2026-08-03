@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useAppDispatch, useAppSelector } from '../../../app/store'
-import { selectAuthUser } from '../domain/authSlice'
+import { selectIdentity } from '../domain/authSlice'
 import { performChangeDisplayName, performSignOut } from '../domain/authThunks'
 import { PageHeader } from '@/components/PageHeader'
 import { DangerConfirmDialog } from '@/components/DangerConfirmDialog'
@@ -81,11 +81,15 @@ function ChevronRightIcon() {
 export function ProfilePage() {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
-  const user = useAppSelector(selectAuthUser)
+  const identity = useAppSelector(selectIdentity)
 
-  const email = user?.email ?? ''
-  const displayName = user?.name ?? ''
-  const isFederated = user?.provider !== 'email'
+  // Guests own no email, no password and nowhere to sign back in to —
+  // those rows return with M2/M3. A device without any identity has no
+  // name to show either: it is asked for one at the first share.
+  const linked = identity.kind === 'linked' ? identity : null
+  const email = linked?.email ?? ''
+  const displayName = identity.kind === 'none' ? '' : identity.name
+  const isFederated = linked !== null && linked.provider !== 'email'
   const initial = (displayName || email).charAt(0).toUpperCase() || '?'
 
   const [editingName, setEditingName] = useState(false)
@@ -127,7 +131,8 @@ export function ProfilePage() {
         </span>
       </div>
 
-      {/* Personal data */}
+      {/* Personal data — a nameless device is asked at its first share */}
+      {identity.kind !== 'none' && (
       <div className="mx-5 mb-4">
         <div className="text-muted-foreground mb-2 pl-1 text-xs font-semibold uppercase tracking-wider">
           Persönliche Daten
@@ -161,7 +166,8 @@ export function ProfilePage() {
             {!editingName && <ChevronRightIcon />}
           </button>
 
-          {/* Email */}
+          {/* Email — a guest has none until M2 links one */}
+          {linked !== null && (
           <div className="flex items-center gap-3 px-4 py-3.5">
             <div className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-white/[0.04] text-muted-foreground">
               <EmailIcon />
@@ -173,9 +179,10 @@ export function ProfilePage() {
               </div>
             </div>
           </div>
+          )}
 
           {/* Change password — only for email/password accounts */}
-          {!isFederated && (
+          {linked !== null && !isFederated && (
             <button className="flex w-full items-center gap-3 px-4 py-3.5 text-left active:opacity-70">
               <div className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-white/[0.04] text-muted-foreground">
                 <LockIcon />
@@ -188,6 +195,7 @@ export function ProfilePage() {
           )}
         </div>
       </div>
+      )}
 
       {/* Notifications */}
       <div className="mx-5 mb-4">
@@ -219,7 +227,8 @@ export function ProfilePage() {
         </div>
       </div>
 
-      {/* Account */}
+      {/* Account — signing out a guest would throw away their only copy */}
+      {linked !== null && (
       <div className="mx-5 mb-4">
         <div className="text-muted-foreground mb-2 pl-1 text-xs font-semibold uppercase tracking-wider">
           Konto
@@ -236,6 +245,7 @@ export function ProfilePage() {
           </button>
         </div>
       </div>
+      )}
 
       {/* Legal Footer */}
       <div className="mt-auto flex justify-center gap-5 px-6 pt-6">
@@ -251,12 +261,14 @@ export function ProfilePage() {
       </div>
 
       {/* Delete account */}
+      {linked !== null && (
       <button
         className="mx-auto pt-3 text-[13px] font-medium text-destructive opacity-50 transition-opacity hover:opacity-80"
         onClick={() => setDeleteDialogOpen(true)}
       >
         Konto löschen
       </button>
+      )}
 
       {/* Version */}
       <div className="text-muted-foreground py-2 text-center text-xs font-medium opacity-60">

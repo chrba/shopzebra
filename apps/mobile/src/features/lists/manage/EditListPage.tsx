@@ -12,7 +12,10 @@ import {
 import { ListEditor } from './ListEditor'
 import { ShareWithRow } from '../../sharing/ShareWithRow'
 import { memberDisplayName } from '../../sharing/memberDisplayName'
-import { selectAuthUser } from '../../auth/domain/authSlice'
+import {
+  selectCurrentUserId,
+  selectIdentity,
+} from '../../auth/domain/authSlice'
 
 type EditListPageProps = {
   readonly listId: string
@@ -32,7 +35,8 @@ export function EditListPage({ listId }: EditListPageProps) {
     selectListPreferences(state, listId),
   )
   const members = useAppSelector((state) => selectListMembers(state, listId))
-  const me = useAppSelector(selectAuthUser)
+  const me = useAppSelector(selectIdentity)
+  const currentUserId = useAppSelector(selectCurrentUserId)
 
   if (!list) {
     return (
@@ -54,7 +58,7 @@ export function EditListPage({ listId }: EditListPageProps) {
       extraSection={
         <ShareWithRow
           members={members
-            .filter((member) => member.id !== me?.userId)
+            .filter((member) => member.id !== currentUserId)
             .map((member) => ({
               id: member.id,
               label: memberDisplayName(member, me),

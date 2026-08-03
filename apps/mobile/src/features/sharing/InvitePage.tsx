@@ -17,6 +17,9 @@ type InvitePageProps = {
  * The invite half of design/pure/invite.html, on its own screen since the
  * tab toggle was dropped. Reached from the members screen's CTA card, and
  * shared by every aggregate kind — only the wording differs.
+ *
+ * Reached only with an identity: the members screen asks a nameless device
+ * for a name first, and that is what creates the account.
  */
 export function InvitePage({
   invite,

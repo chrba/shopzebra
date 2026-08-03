@@ -1,6 +1,6 @@
 # Implementierungs-Stand — ShopZebra
 
-**Stand: 2026-08-02** · Branch `feat/implement-backend`
+**Stand: 2026-08-03** · Branch `feat/implement-backend`
 
 Alle anderen Dokumente in `architecture/` und `services/events.md` beschreiben den **Zielzustand**. Dieses Dokument beschreibt, was davon heute existiert. Wer den Code bewertet, plant oder erweitert, liest es zuerst — sonst bewertet er eine App, die es so noch nicht gibt.
 
@@ -12,7 +12,7 @@ Alle anderen Dokumente in `architecture/` und `services/events.md` beschreiben d
 
 | Bereich | Stand |
 |---|---|
-| Auth (Cognito) | ✅ funktionsfähig |
+| Auth (Cognito) | ✅ **ohne Konto nutzbar (M1, 2026-08-03)** — Start ohne Login, Schattenkonto beim ersten Teilen/Beitreten. Sichern/Verknüpfen = M2, Zweitgerät = M3 (beide vertagt) |
 | Listen-Übersicht + Verwaltung | ✅ funktionsfähig, lokal |
 | Lokale Persistenz | ✅ funktionsfähig |
 | **Einkaufsliste (Hauptscreen)** | ✅ funktionsfähig, lokal (Katalog + Suche + Varianten-Sheet) |
@@ -23,7 +23,7 @@ Alle anderen Dokumente in `architecture/` und `services/events.md` beschreiben d
 | Sync zum Server | ✅ **Stufe 1 (Outbox, Cursor, Retry)** live verifiziert + **Stufe 2 (`withSync`-Rebase)** implementiert (2026-07-29, **nur unit-getestet, nicht live verifiziert**) |
 | Offline-Queue | ✅ persistente Outbox mit Retry/Backoff (Retry-Pfad nur unit-getestet, nicht live) |
 | Echtzeit (AppSync) | ❌ existiert nicht |
-| Tests | 🟡 Frontend: 163 Tests; Backend: 93 Tests (81 Domain, 12 Adapter); Infrastruktur: 46 |
+| Tests | 🟡 Frontend: 193 Tests; Backend: 93 Tests (81 Domain, 12 Adapter); Infrastruktur: 52 |
 
 ---
 
@@ -40,6 +40,17 @@ Alle anderen Dokumente in `architecture/` und `services/events.md` beschreiben d
 **Einkaufsliste** — `features/shopping/` (`domain`/`list-view`/`category`), Routen `/lists/$listId` und `/lists/$listId/category/$categoryId`. Events im Wire-Format (`itemAdded/Checked/Unchecked/Removed/Updated/NoteUpdated`, `customVariantAdded`), Compound-IDs für Varianten, Produktkatalog als statische Referenzdaten (aus `design/pure/list.html` generiert, 178 Produkte/10 Kategorien). UI: Tile-Grid (Tap = abhaken, Long-Press = Detail-Sheet), Erledigt-Sektion, Celebration, Katalog-Suche, Kategorie-Grid mit Toggle. Gemeinsames `ItemDetailSheet` (Varianten-Chips, Menge, Notiz, Custom-Variante, Entfernen). 16 Verhaltens-Tests.
 
 Bewusst noch offen gegenüber den Prototypen: Emoji-Picker im Sheet (braucht `productPrefs` in preferences), Produkt-Memory beim Reselect, Spracheingabe (Capacitor). Celebration folgt `design/shadcn/list.html` (2026-07-29): Konfetti, Erledigt-Sektion bleibt sichtbar (automatisch zugeklappt), Kategorie-Zähler zählt auch erledigte Items.
+
+**Ohne Konto starten (M1, 2026-08-03)** — `features/auth/domain/` (`localUser`, `shadowAccount`, `identityThunks`, `restoredIdentity`) + `features/sharing/FirstShareNameSheet`. Plan: `.claude/plans/2026-08-02-ohne-konto-starten.md`.
+
+- **Identität ist ein Summentyp** `none | guest | linked` (`authSlice`). `AuthUser`, `sessionRestored`, die ganze Sign-in-Familie und die Seiten `sign-in`/`sign-up`/`forgot-password` sind **gelöscht** — Anmelden kommt mit M3 als OTP-Flow neu. `selectCurrentUserId` liefert vor der ersten Identität die Sentinel-Id `local-user`, danach die Cognito-`sub`
+- **Kein Login-Zwang:** `requireAuth`/`requireGuest` sind weg, jede Route ist ohne Konto erreichbar. Listen anlegen, einkaufen und Rezepte schreiben funktioniert sofort
+- **Schattenkonto beim ersten Teilen/Beitreten:** `ensureIdentity` legt einen normalen Cognito-User an (Username = UUID, Zufallspasswort, ohne E-Mail; Credentials im clientStorage), schreibt den Namen als `name`-Attribut und startet danach den Sync. Der Pool bestätigt jeden Sign-up per Pre-SignUp-Trigger — ohne E-Mail gibt es keinen Code
+- **Andocken:** In einem Zug und **vor** dem ersten Server-Kontakt werden umgeschrieben: die Outbox-Queue (`Outbox.rewriteAuthor`), die gefalteten Trees (`identityAttached` per `extraReducers` in lists/recipes/shopping) und die Pending-Queue des Reducers (`pendingAuthorRewritten`). Nur Autoren-**Felder** werden ersetzt, nie Werte — eine Liste namens „local-user" überlebt
+- **Binäre Sync-Regel an zwei Stellen:** `startSync()` startet die Engine nur mit Identität, und die Engine selbst lässt ohne `mayContactServer` keinen Zyklus laufen. Ein POST ohne Session käme als 401 zurück und `drainOutbox` würde das Event endgültig verwerfen
+- **Das lokale Log lebt trotzdem:** `syncEngine.openLocalLog()` läuft bei **jedem** Boot — ohne ihn wären die Events eines Gastes nur im RAM (die Storage-Handler persistieren nur den `confirmed`-Tree, und der bleibt ohne Server leer) und ein Reload würde alles löschen
+- **Profil ist zustandsabhängig:** E-Mail, Passwort ändern, Abmelden und Konto löschen erscheinen nur für ein verknüpftes Konto; ein Gast hat nichts davon, und „Abmelden" wäre für ihn ein getarnter Löschknopf. Der Namens-Block erscheint ab der ersten Identität
+- **Bekannte Grenzen:** Der Join-Intent-Mechanismus (`joinIntentSlice`) wird nicht mehr angesteuert, bleibt aber liegen (sein Test pinnt ihn); Gerät verloren ohne Konto = Daten weg (akzeptiert); die Schattenkonto-Credentials liegen in Capacitor Preferences, nicht im Keychain
 
 **Profil** — `features/profile/ProfilePage.tsx`.
 
@@ -110,11 +121,11 @@ Alle Binaries leben unter `lambdas/` (Workspace-Glob `lambdas/*`); die drei Arch
 
 `ShopZebraApiStack` deckt alle sieben Endpunkte ab: Events- und Membership-Table (PAY_PER_REQUEST, Membership mit `byUser`-GSI), `RustFunction`s für `create-list`, `append-event`, `get-events`, `get-lists` (manifestPath `services/lambdas/…`), HTTP-API mit Cognito-JWT-Authorizer und Routen `POST /lists`, `GET /lists`, `POST`+`GET /lists/{listId}/events`, Grants nach Least-Privilege (Lese-Lambdas nur `grantReadData`). Dazu seit 2026-07-31 `create-invite`, `join-list` und `remove-member` mit den Routen `POST /lists/{listId}/invites`, `POST /lists/join` und `DELETE /lists/{listId}/members/{memberId}`; `join-list` und `get-lists` haben zusätzlich `cognito-idp:ListUsers` auf den User Pool. `cdk synth` läuft grün.
 
-Der **User Pool selbst ist nicht in CDK** — er wird nur über die feste ID `eu-central-1_z6PK2KOsC` referenziert (bewusst vertagt). Damit ist auch das Attribute-Mapping für Google (`name` → `name`) reiner Konsolen-Zustand und im Repo nicht prüfbar.
+Seit 2026-08-03 liegt der **User Pool in CDK** (`lib/ShopZebraUserPool.ts`): E-Mail als Alias statt als Username, kein Pflichtattribut, Pre-SignUp-Trigger, `RemovalPolicy.RETAIN`. Beides — Alias und Pflichtattribute — ist nach Pool-Erstellung unveränderlich, deshalb war ein **neuer Pool zwingend** (Spike-Befund). Der alte Pool `eu-central-1_z6PK2KOsC` wird nicht mehr referenziert; **bestehende Konten wandern nicht mit**, das ist vor dem Launch bewusst akzeptiert. Pool-Id, Client-Id und Domain kommen als CfnOutputs heraus und gehören in `apps/mobile/.env.local` (`VITE_USER_POOL_ID`, `VITE_USER_POOL_CLIENT_ID`, `VITE_USER_POOL_DOMAIN`) — `amplify.ts` hat keine hartkodierten Ids mehr.
 
 Noch nicht im Stack: AppSync Events, Rate Limiting (Usage Plan). Der Cognito User Pool selbst lebt außerhalb dieses Stacks (ID hartkodiert).
 
-**Nicht verifiziert: ob der Stack in dieser Form schon deployed ist.**
+**Nicht deployed:** Der Stand vom 2026-08-03 (neuer Pool + Pre-SignUp-Trigger + Authorizer auf den neuen Pool) ist `cdk synth`- und `cdk diff`-geprüft, aber **noch nicht ausgerollt**. Bis dahin läuft die App gegen einen Pool, den es noch nicht gibt — nach dem Deploy müssen die drei Outputs in `.env.local`.
 
 ---
 

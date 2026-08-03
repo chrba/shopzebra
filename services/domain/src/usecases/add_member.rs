@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::event::{AggregateId, NewEvent, UserId};
+use crate::event::{Aggregate, NewEvent, UserId};
 use crate::membership::{check_can_invite, member_added_payload, MembershipViolation};
 use crate::limits::MAX_LIST_MEMBERS;
 use crate::ports::{FriendStore, MemberRole, Ports, StoreError, UserDirectory};
@@ -24,7 +24,7 @@ pub enum AddMemberError {
 
 #[derive(Debug)]
 pub struct AddMemberRequest {
-    pub aggregate: AggregateId,
+    pub aggregate: Aggregate,
     pub member_id: UserId,
     pub event_id: String,
     pub device_id: String,
@@ -37,11 +37,11 @@ pub async fn add_member(
     ports: &Ports<'_>,
     users: &dyn UserDirectory,
     friends: &dyn FriendStore,
-    caller: &UserId,
+    caller_id: &UserId,
     request: AddMemberRequest,
 ) -> Result<(), AddMemberError> {
     let aggregate = request.aggregate;
-    let role = ports.membership.role_of(&aggregate, caller).await?;
+    let role = ports.membership.role_of(&aggregate, caller_id).await?;
     check_can_invite(role)?;
 
     if ports
@@ -55,12 +55,12 @@ pub async fn add_member(
         return Ok(());
     }
 
-    if !friends.is_friend(caller, &request.member_id).await? {
+    if !friends.is_friend(caller_id, &request.member_id).await? {
         return Err(AddMemberError::NotAFriend);
     }
 
-    let members = ports.membership.members_of(&aggregate).await?;
-    if members.len() >= MAX_LIST_MEMBERS {
+    let member_ids = ports.membership.members_of(&aggregate).await?;
+    if member_ids.len() >= MAX_LIST_MEMBERS {
         return Err(AddMemberError::ListFull);
     }
 
@@ -69,7 +69,7 @@ pub async fn add_member(
         .await?
         .unwrap_or_else(|| UNKNOWN_MEMBER_NAME.into());
 
-    let stored = ports
+    let stored_event = ports
         .events
         .append(
             &aggregate,
@@ -78,7 +78,7 @@ pub async fn add_member(
                 payload: member_added_payload(&aggregate, &request.member_id, &name),
                 event_id: request.event_id,
                 device_id: request.device_id,
-                user_id: caller.clone(),
+                user_id: caller_id.clone(),
             },
         )
         .await?;
@@ -95,11 +95,11 @@ pub async fn add_member(
     // already-member early-return would then skip this loop forever,
     // losing the friendships with no repair path. A silently missing
     // friendship, by contrast, is curable via the friend invite link.
-    for member in &members {
-        let _ = befriend(friends, &request.member_id, member).await;
+    for member_id in &member_ids {
+        let _ = befriend(friends, &request.member_id, member_id).await;
     }
 
-    let _ = ports.broadcast.publish(&aggregate.channel(), &stored).await;
+    let _ = ports.broadcast.publish(&aggregate.channel(), &stored_event).await;
 
     Ok(())
 }
@@ -132,25 +132,25 @@ mod tests {
             }
         }
 
-        async fn with(self, list: &str, user: &str, role: MemberRole) -> Self {
-            self.with_aggregate(&AggregateId::list(list), user, role).await
+        async fn with(self, list_id: &str, user_id: &str, role: MemberRole) -> Self {
+            self.with_aggregate(&Aggregate::list(list_id), user_id, role).await
         }
 
         async fn with_aggregate(
             self,
-            aggregate: &AggregateId,
-            user: &str,
+            aggregate: &Aggregate,
+            user_id: &str,
             role: MemberRole,
         ) -> Self {
             self.membership
-                .add_member(aggregate, &UserId(user.into()), role)
+                .add_member(aggregate, &UserId(user_id.into()), role)
                 .await
                 .expect("member");
             self
         }
 
-        async fn befriended(mut self, a: &str, b: &str) -> Self {
-            self.friends = self.friends.with_friendship(a, b).await;
+        async fn befriended(mut self, user_id: &str, friend_id: &str) -> Self {
+            self.friends = self.friends.with_friendship(user_id, friend_id).await;
             self
         }
 
@@ -162,16 +162,16 @@ mod tests {
             }
         }
 
-        async fn log(&self, list: &str) -> Vec<crate::event::StoredEvent> {
+        async fn log(&self, list_id: &str) -> Vec<crate::event::StoredEvent> {
             self.store
-                .events_since(&AggregateId::list(list), None)
+                .events_since(&Aggregate::list(list_id), None)
                 .await
                 .expect("readable")
         }
 
-        async fn role_of(&self, list: &str, user: &str) -> Option<MemberRole> {
+        async fn role_of(&self, list_id: &str, user_id: &str) -> Option<MemberRole> {
             self.membership
-                .role_of(&AggregateId::list(list), &UserId(user.into()))
+                .role_of(&Aggregate::list(list_id), &UserId(user_id.into()))
                 .await
                 .expect("readable")
         }
@@ -179,7 +179,7 @@ mod tests {
 
     fn request(list_id: &str, member_id: &str) -> AddMemberRequest {
         AddMemberRequest {
-            aggregate: AggregateId::list(list_id),
+            aggregate: Aggregate::list(list_id),
             member_id: UserId(member_id.into()),
             event_id: "evt-1".into(),
             device_id: "device-1".into(),
@@ -346,7 +346,7 @@ mod tests {
     #[tokio::test]
     async fn adding_someone_to_a_recipe_writes_the_recipe_member_event() {
         let fixture = Fixture::new()
-            .with_aggregate(&AggregateId::recipe("bolo"), "mama", MemberRole::Owner)
+            .with_aggregate(&Aggregate::recipe("bolo"), "mama", MemberRole::Owner)
             .await
             .befriended("mama", "tom")
             .await;
@@ -358,7 +358,7 @@ mod tests {
             &fixture.friends,
             &UserId("mama".into()),
             AddMemberRequest {
-                aggregate: AggregateId::recipe("bolo"),
+                aggregate: Aggregate::recipe("bolo"),
                 member_id: UserId("tom".into()),
                 event_id: "evt-1".into(),
                 device_id: "device-1".into(),
@@ -369,7 +369,7 @@ mod tests {
 
         let log = fixture
             .store
-            .events_since(&AggregateId::recipe("bolo"), None)
+            .events_since(&Aggregate::recipe("bolo"), None)
             .await
             .expect("readable");
         assert_eq!(log.len(), 1);

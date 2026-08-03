@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::event::{AggregateId, Position, StoredEvent, UserId};
+use crate::event::{Aggregate, Position, StoredEvent, UserId};
 use crate::membership::{check_can_read, MembershipViolation};
 use crate::ports::{Ports, StoreError};
 
@@ -17,11 +17,11 @@ pub enum GetEventsError {
 /// log — the bootstrap of a new device (sync-engine.md §4).
 pub async fn get_events(
     ports: &Ports<'_>,
-    caller: &UserId,
-    aggregate: &AggregateId,
+    caller_id: &UserId,
+    aggregate: &Aggregate,
     after: Option<Position>,
 ) -> Result<Vec<StoredEvent>, GetEventsError> {
-    let role = ports.membership.role_of(aggregate, caller).await?;
+    let role = ports.membership.role_of(aggregate, caller_id).await?;
     check_can_read(role)?;
 
     Ok(ports.events.events_since(aggregate, after.as_ref()).await?)
@@ -35,8 +35,8 @@ mod tests {
     use crate::usecases::append_event::{append_event, AppendEventRequest};
     use serde_json::json;
 
-    fn groceries() -> AggregateId {
-        AggregateId::list("abc")
+    fn groceries() -> Aggregate {
+        Aggregate::list("abc")
     }
 
     fn mama() -> UserId {

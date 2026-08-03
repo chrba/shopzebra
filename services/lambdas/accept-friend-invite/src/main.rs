@@ -38,7 +38,7 @@ async fn handle(
     friends: &DynamoDbFriendStore,
     http_request: Request,
 ) -> Result<Response<Body>, Error> {
-    let caller = match lib::auth::extract_user_id(&http_request) {
+    let caller_id = match lib::auth::extract_user_id(&http_request) {
         Ok(user_id) => UserId(user_id),
         Err(api_error) => return api_error.to_response(),
     };
@@ -48,7 +48,7 @@ async fn handle(
         Err(api_error) => return api_error.to_response(),
     };
 
-    match accept_friend_invite(invites, friends, &caller, &token, now_ms()).await {
+    match accept_friend_invite(invites, friends, &caller_id, &token, now_ms()).await {
         Ok(inviter) => lib::response::json(200, &json!({ "friendId": inviter.0 })),
         Err(FriendError::InvalidToken) => {
             ApiError::BadRequest("invalid or expired friend invite token".into()).to_response()

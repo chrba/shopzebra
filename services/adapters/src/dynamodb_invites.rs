@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use aws_sdk_dynamodb::types::{AttributeValue, Put, TransactWriteItem};
 use aws_sdk_dynamodb::Client;
 
-use domain::event::AggregateId;
+use domain::event::Aggregate;
 use domain::ports::{InviteStore, StoreError, StoredInvite};
 
 const INVITE_SK: &str = "INVITE";
@@ -39,7 +39,7 @@ fn token_partition_key(token: &str) -> String {
 /// invite: the safe direction for an authorization token.
 fn invite_from_parts(
     token: String,
-    aggregate: &AggregateId,
+    aggregate: &Aggregate,
     expires_at: Option<&str>,
 ) -> Option<StoredInvite> {
     let expires_at_ms = expires_at?.parse().ok()?;
@@ -68,7 +68,7 @@ fn number_attribute<'a>(
 impl InviteStore for DynamoDbInviteStore {
     async fn invite_for(
         &self,
-        aggregate: &AggregateId,
+        aggregate: &Aggregate,
     ) -> Result<Option<StoredInvite>, StoreError> {
         let response = self
             .client
@@ -108,7 +108,7 @@ impl InviteStore for DynamoDbInviteStore {
             return Ok(None);
         };
         let Some(aggregate) = string_attribute(item, "aggregate")
-            .and_then(AggregateId::from_partition_key)
+            .and_then(Aggregate::from_partition_key)
         else {
             return Ok(None);
         };
@@ -165,7 +165,7 @@ mod tests {
 
     #[test]
     fn a_malformed_expiry_yields_no_invite() {
-        let list = AggregateId::list("list-1");
+        let list = Aggregate::list("list-1");
         assert_eq!(
             invite_from_parts("tok".into(), &list, Some("not-a-number")),
             None
@@ -175,11 +175,11 @@ mod tests {
 
     #[test]
     fn a_wellformed_item_maps_to_the_invite() {
-        let invite = invite_from_parts("tok".into(), &AggregateId::list("abc"), Some("42"))
+        let invite = invite_from_parts("tok".into(), &Aggregate::list("abc"), Some("42"))
             .expect("maps");
 
         assert_eq!(invite.token, "tok");
-        assert_eq!(invite.aggregate, AggregateId::list("abc"));
+        assert_eq!(invite.aggregate, Aggregate::list("abc"));
         assert_eq!(invite.expires_at_ms, 42);
     }
 
@@ -188,10 +188,10 @@ mod tests {
     /// silently put the joiner into a list of the same id.
     #[test]
     fn the_kind_survives_the_token_row_round_trip() {
-        let recipe = AggregateId::recipe("bolo");
+        let recipe = Aggregate::recipe("bolo");
 
-        let stored = recipe.partition_key();
-        let read_back = AggregateId::from_partition_key(&stored).expect("readable");
+        let partition_key = recipe.partition_key();
+        let read_back = Aggregate::from_partition_key(&partition_key).expect("readable");
 
         assert_eq!(read_back, recipe);
         assert_eq!(
@@ -204,7 +204,7 @@ mod tests {
 
     #[test]
     fn a_token_row_naming_no_known_aggregate_yields_no_invite() {
-        assert_eq!(AggregateId::from_partition_key("GARBAGE#x"), None);
+        assert_eq!(Aggregate::from_partition_key("GARBAGE#x"), None);
     }
 
     #[test]

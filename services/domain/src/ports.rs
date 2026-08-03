@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use thiserror::Error;
 
-use crate::event::{AggregateId, NewEvent, Position, StoredEvent, UserId};
+use crate::event::{Aggregate, NewEvent, Position, StoredEvent, UserId};
 
 #[derive(Debug, Error)]
 #[error("store unavailable: {0}")]
@@ -21,13 +21,13 @@ pub trait EventStore: Send + Sync {
     ///   event is returned so client retries are safe
     async fn append(
         &self,
-        aggregate: &AggregateId,
+        aggregate: &Aggregate,
         event: NewEvent,
     ) -> Result<StoredEvent, StoreError>;
 
     async fn events_since(
         &self,
-        aggregate: &AggregateId,
+        aggregate: &Aggregate,
         since: Option<&Position>,
     ) -> Result<Vec<StoredEvent>, StoreError>;
 }
@@ -44,8 +44,8 @@ pub enum MemberRole {
 pub trait MembershipStore: Send + Sync {
     async fn role_of(
         &self,
-        aggregate: &AggregateId,
-        user: &UserId,
+        aggregate: &Aggregate,
+        user_id: &UserId,
     ) -> Result<Option<MemberRole>, StoreError>;
 
     /// Atomically claims ownership of a fresh aggregate: the creator
@@ -53,38 +53,38 @@ pub trait MembershipStore: Send + Sync {
     /// already has an owner (concurrent create or id collision).
     async fn claim_ownership(
         &self,
-        aggregate: &AggregateId,
-        user: &UserId,
+        aggregate: &Aggregate,
+        user_id: &UserId,
     ) -> Result<bool, StoreError>;
 
     /// Who owns this aggregate. Needed to show the owner by name: the
     /// owner never triggers a `listMemberAdded` for themselves, so their
     /// name reaches other devices through the list projection instead.
-    async fn owner_of(&self, aggregate: &AggregateId) -> Result<Option<UserId>, StoreError>;
+    async fn owner_of(&self, aggregate: &Aggregate) -> Result<Option<UserId>, StoreError>;
 
     async fn add_member(
         &self,
-        aggregate: &AggregateId,
-        user: &UserId,
+        aggregate: &Aggregate,
+        user_id: &UserId,
         role: MemberRole,
     ) -> Result<(), StoreError>;
 
     async fn remove_member(
         &self,
-        aggregate: &AggregateId,
-        user: &UserId,
+        aggregate: &Aggregate,
+        user_id: &UserId,
     ) -> Result<(), StoreError>;
 
     /// Everyone on this aggregate. Needed to enforce the member cap and to
     /// befriend a joiner with the people already there.
-    async fn members_of(&self, aggregate: &AggregateId) -> Result<Vec<UserId>, StoreError>;
+    async fn members_of(&self, aggregate: &Aggregate) -> Result<Vec<UserId>, StoreError>;
 
     /// All aggregates the user is a member of — the fan-out for the
     /// per-list cursor catch-up. Contract: **each aggregate exactly
     /// once**, regardless of how many rows the projection keeps per
     /// membership. A duplicate here makes every consumer fetch and
     /// fold the same log twice.
-    async fn aggregates_of(&self, user: &UserId) -> Result<Vec<AggregateId>, StoreError>;
+    async fn aggregates_of(&self, user_id: &UserId) -> Result<Vec<Aggregate>, StoreError>;
 }
 
 /// Real-time broadcast (AppSync Events). Best-effort: the cursor catch-up
@@ -109,7 +109,7 @@ pub struct Ports<'a> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StoredInvite {
     pub token: String,
-    pub aggregate: AggregateId,
+    pub aggregate: Aggregate,
     pub expires_at_ms: u64,
 }
 
@@ -117,7 +117,7 @@ pub struct StoredInvite {
 pub trait InviteStore: Send + Sync {
     /// The list's current invite, if any. Lets a repeated create hand out
     /// the same token, so link and QR stay stable across screen visits.
-    async fn invite_for(&self, aggregate: &AggregateId) -> Result<Option<StoredInvite>, StoreError>;
+    async fn invite_for(&self, aggregate: &Aggregate) -> Result<Option<StoredInvite>, StoreError>;
 
     /// Resolves a token to its invite — the joiner knows nothing else.
     async fn invite_by_token(&self, token: &str) -> Result<Option<StoredInvite>, StoreError>;
@@ -132,7 +132,7 @@ pub trait InviteStore: Send + Sync {
 #[async_trait]
 pub trait UserDirectory: Send + Sync {
     /// None when the user set no name yet; callers fall back.
-    async fn display_name(&self, user: &UserId) -> Result<Option<String>, StoreError>;
+    async fn display_name(&self, user_id: &UserId) -> Result<Option<String>, StoreError>;
 }
 
 /// A pending friendship invite. Unlike `StoredInvite` it has no aggregate —
@@ -148,7 +148,7 @@ pub struct StoredFriendInvite {
 #[async_trait]
 pub trait FriendInviteStore: Send + Sync {
     /// The inviter's current token, if any — a repeated create reuses it.
-    async fn friend_invite_for(&self, user: &UserId) -> Result<Option<StoredFriendInvite>, StoreError>;
+    async fn friend_invite_for(&self, user_id: &UserId) -> Result<Option<StoredFriendInvite>, StoreError>;
     async fn friend_invite_by_token(&self, token: &str) -> Result<Option<StoredFriendInvite>, StoreError>;
     async fn put_friend_invite(&self, invite: &StoredFriendInvite) -> Result<(), StoreError>;
 }
@@ -161,9 +161,9 @@ pub trait FriendInviteStore: Send + Sync {
 /// up must not change the other side's list.
 #[async_trait]
 pub trait FriendStore: Send + Sync {
-    async fn friends_of(&self, user: &UserId) -> Result<Vec<UserId>, StoreError>;
-    async fn is_friend(&self, user: &UserId, other: &UserId) -> Result<bool, StoreError>;
+    async fn friends_of(&self, user_id: &UserId) -> Result<Vec<UserId>, StoreError>;
+    async fn is_friend(&self, user_id: &UserId, other_id: &UserId) -> Result<bool, StoreError>;
     /// Writes one direction. Callers that mean "they became friends" call it twice.
-    async fn add_friend(&self, user: &UserId, friend: &UserId) -> Result<(), StoreError>;
-    async fn remove_friend(&self, user: &UserId, friend: &UserId) -> Result<(), StoreError>;
+    async fn add_friend(&self, user_id: &UserId, friend_id: &UserId) -> Result<(), StoreError>;
+    async fn remove_friend(&self, user_id: &UserId, friend_id: &UserId) -> Result<(), StoreError>;
 }

@@ -1,4 +1,4 @@
-use domain::event::{AggregateId, AggregateKind};
+use domain::event::{Aggregate, AggregateKind};
 use lambda_http::{Request, RequestExt};
 
 use crate::error::ApiError;
@@ -25,12 +25,12 @@ pub fn kind_from_collection(http_request: &Request) -> Result<AggregateKind, Api
 /// Which aggregate a request addresses. Sharing and the event log are one
 /// mechanism for lists, recipes and plans (sharing-model.md), so one lambda
 /// serves all their routes — the path parameter is what tells them apart.
-pub fn aggregate_from_path(http_request: &Request) -> Result<AggregateId, ApiError> {
+pub fn aggregate_from_path(http_request: &Request) -> Result<Aggregate, ApiError> {
     let parameters = http_request.path_parameters();
     ROUTE_PARAMETERS
         .iter()
         .find_map(|(kind, parameter)| {
-            parameters.first(parameter).map(|id| AggregateId {
+            parameters.first(parameter).map(|id| Aggregate {
                 kind: *kind,
                 id: id.to_string(),
             })
