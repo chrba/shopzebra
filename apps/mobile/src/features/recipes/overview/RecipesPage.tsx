@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useAppDispatch, useAppSelector } from '../../../app/store'
 import { recipeDeleted, selectAllRecipes } from '../domain/recipesSlice'
-import { SwipeToDelete } from '../../../components/SwipeToDelete'
+import { SwipeAction } from '../../../components/SwipeAction'
 import { DangerConfirmDialog } from '../../../components/DangerConfirmDialog'
 import { selectAllRecipePreferences } from '../../preferences/domain/preferencesSlice'
 import { selectCurrentUserId, selectIdentity } from '../../auth/domain/authSlice'
@@ -118,12 +118,14 @@ export function RecipesPage() {
 
         <div className="grid grid-cols-2 gap-3 px-5">
           {shown.map((recipe) => (
-            <SwipeToDelete
+            <SwipeAction
               key={recipe.id}
               isOpen={swipedRecipeId === recipe.id}
               onOpen={() => setSwipedRecipeId(recipe.id)}
               onClose={() => setSwipedRecipeId(null)}
-              onDelete={() => {
+              label="Löschen"
+              tone="destructive"
+              onTrigger={() => {
                 setSwipedRecipeId(null)
                 setPendingDeleteId(recipe.id)
               }}
@@ -152,7 +154,7 @@ export function RecipesPage() {
                     }
                   })}
               />
-            </SwipeToDelete>
+            </SwipeAction>
           ))}
 
           <NewRecipeTile />

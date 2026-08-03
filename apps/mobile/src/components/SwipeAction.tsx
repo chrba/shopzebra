@@ -1,35 +1,52 @@
 import { useRef, useCallback, useEffect } from 'react'
-import { Trash2 } from 'lucide-react'
+import { LogOut, Trash2 } from 'lucide-react'
 
-const DELETE_ZONE_WIDTH = 70
+const ACTION_ZONE_WIDTH = 70
 const SWIPE_THRESHOLD = 40
 const DIRECTION_LOCK_THRESHOLD = 10
 
-type SwipeToDeleteProps = {
+/**
+ * What the revealed action does to the swiped thing. `destructive` is the
+ * red, irreversible one (deleting); `parting` only ends this device's own
+ * involvement (leaving a list somebody else owns) and is deliberately not
+ * red — nothing is destroyed.
+ */
+export type SwipeActionTone = 'destructive' | 'parting'
+
+type SwipeActionProps = {
   readonly children: React.ReactNode
   readonly isOpen: boolean
   readonly onOpen: () => void
   readonly onClose: () => void
-  readonly onDelete: () => void
+  /** Verb on the revealed button — "Löschen", "Verlassen". */
+  readonly label: string
+  readonly tone: SwipeActionTone
+  readonly onTrigger: () => void
 }
 
 /**
- * Wrapper that reveals a red delete button when the child is swiped left.
+ * Wrapper that reveals one action when the child is swiped. Which action
+ * that is belongs to the caller: a list I own is deleted, a list somebody
+ * shared with me is left.
  * @param props.children The content that can be swiped.
- * @param props.isOpen Whether the delete zone is currently revealed.
+ * @param props.isOpen Whether the action zone is currently revealed.
  * @param props.onOpen Called when the swipe exceeds the
- *   threshold and the delete zone should open.
+ *   threshold and the action zone should open.
  * @param props.onClose Called when the swipe snaps back
  *   or the foreground is tapped while open.
- * @param props.onDelete Called when the delete button in the revealed zone is tapped.
+ * @param props.label The verb shown next to the icon.
+ * @param props.tone Destructive (red) or parting (neutral).
+ * @param props.onTrigger Called when the revealed button is tapped.
  */
-export function SwipeToDelete({
+export function SwipeAction({
   children,
   isOpen,
   onOpen,
   onClose,
-  onDelete,
-}: SwipeToDeleteProps) {
+  label,
+  tone,
+  onTrigger,
+}: SwipeActionProps) {
   const foregroundRef = useRef<HTMLDivElement>(null)
   const startXRef = useRef(0)
   const startYRef = useRef(0)
@@ -51,7 +68,7 @@ export function SwipeToDelete({
     if (!el) return
     el.style.transition = 'transform 0.25s ease-out'
     el.style.transform = isOpen
-      ? `translateX(${DELETE_ZONE_WIDTH}px)`
+      ? `translateX(${ACTION_ZONE_WIDTH}px)`
       : 'translateX(0)'
     const timerId = setTimeout(() => {
       el.style.transition = ''
@@ -96,9 +113,9 @@ export function SwipeToDelete({
     hasMovedRef.current = true
 
     // Swipe RIGHT to reveal delete on the left
-    const baseX = isOpenRef.current ? DELETE_ZONE_WIDTH : 0
+    const baseX = isOpenRef.current ? ACTION_ZONE_WIDTH : 0
     const rawX = baseX + deltaX
-    const clampedX = Math.min(DELETE_ZONE_WIDTH, Math.max(0, rawX))
+    const clampedX = Math.min(ACTION_ZONE_WIDTH, Math.max(0, rawX))
 
     const el = foregroundRef.current
     if (el) el.style.transform = `translateX(${clampedX}px)`
@@ -118,7 +135,7 @@ export function SwipeToDelete({
     el.style.transition = 'transform 0.25s ease-out'
 
     if (currentX > SWIPE_THRESHOLD) {
-      el.style.transform = `translateX(${DELETE_ZONE_WIDTH}px)`
+      el.style.transform = `translateX(${ACTION_ZONE_WIDTH}px)`
       onOpenRef.current()
     } else {
       el.style.transform = 'translateX(0)'
@@ -192,17 +209,34 @@ export function SwipeToDelete({
 
   return (
     <div className="relative flex flex-col overflow-hidden rounded-2xl">
-      {/* Background: Delete action on the left, revealed on swipe right */}
+      {/* Background: the action on the left, revealed on swipe right */}
       <div
-        className="absolute inset-0 z-0 flex items-center justify-start bg-destructive/15 pl-5"
+        className={`absolute inset-0 z-0 flex items-center justify-start pl-5 ${
+          tone === 'destructive' ? 'bg-destructive/15' : 'bg-teal/15'
+        }`}
         onClick={(e) => {
           e.stopPropagation()
-          onDelete()
+          onTrigger()
         }}
       >
-        <div className="flex size-10 items-center justify-center rounded-full bg-destructive/20">
-          <Trash2 className="text-destructive size-5" />
+        <div
+          className={`flex size-10 items-center justify-center rounded-full ${
+            tone === 'destructive' ? 'bg-destructive/20' : 'bg-teal/20'
+          }`}
+        >
+          {tone === 'destructive' ? (
+            <Trash2 className="text-destructive size-5" />
+          ) : (
+            <LogOut className="text-teal size-5" />
+          )}
         </div>
+        <span
+          className={`ml-2 text-[11px] font-bold ${
+            tone === 'destructive' ? 'text-destructive' : 'text-teal'
+          }`}
+        >
+          {label}
+        </span>
       </div>
 
       {/* Foreground: Slides right to reveal delete.

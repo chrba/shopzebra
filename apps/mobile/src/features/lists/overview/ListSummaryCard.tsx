@@ -38,6 +38,11 @@ export type ListSummaryViewModel = {
     readonly initial: string
     readonly color: string
   }[]
+  /**
+   * Who this list belongs to — null for my own. Named in the meta line so
+   * a shared list says whose it is before anyone taps it.
+   */
+  readonly ownerName: string | null
 }
 
 type ListSummaryCardProps = {
@@ -109,6 +114,7 @@ export function ListSummaryCard({
 
         <CardDescription className="text-xs font-medium">
           {list.itemCount} Items
+          {list.ownerName !== null && ` · von ${list.ownerName}`}
         </CardDescription>
 
         {/* Whole row is the target — a 24px plus alone would be far below
@@ -121,15 +127,20 @@ export function ListSummaryCard({
             onManageMembers()
           }}
         >
-          {list.members.slice(0, VISIBLE_AVATARS).map((member) => (
-            <span
-              key={member.id}
-              className="border-card -mr-2 flex size-6 items-center justify-center rounded-full border-2 text-[10px] font-bold text-white last:mr-0"
-              style={{ backgroundColor: member.color }}
-            >
-              {member.initial}
-            </span>
-          ))}
+          {/* Own wrapper so `last:mr-0` really hits the last avatar — with
+              the invite circle as a sibling it never did, and the circle
+              ended up underneath it. */}
+          <span className="flex">
+            {list.members.slice(0, VISIBLE_AVATARS).map((member) => (
+              <span
+                key={member.id}
+                className="border-card -mr-2 flex size-6 items-center justify-center rounded-full border-2 text-[10px] font-bold text-white last:mr-0"
+                style={{ backgroundColor: member.color }}
+              >
+                {member.initial}
+              </span>
+            ))}
+          </span>
           {list.members.length > VISIBLE_AVATARS && (
             <span className="text-muted-foreground ml-1 text-[11px] font-semibold">
               +{list.members.length - VISIBLE_AVATARS}

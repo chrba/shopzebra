@@ -94,6 +94,21 @@ const listsSlice = createSlice({
       ),
     }),
 
+    /**
+     * Local-only: I left this list. The server wrote the member-removed
+     * event, but it will never reach me — leaving ends my access to that
+     * log. The payload names the id `id` and not `listId` on purpose: a
+     * `listId` at the root would put this into the outbox, where it would
+     * be posted to a list I am no longer a member of.
+     */
+    listLeft: (
+      state: ListsState,
+      action: PayloadAction<{ readonly id: string }>,
+    ): ListsState => ({
+      ...state,
+      lists: state.lists.filter((list) => list.id !== action.payload.id),
+    }),
+
     listDeleted: (
       state: ListsState,
       action: PayloadAction<{
@@ -217,6 +232,7 @@ const listsSlice = createSlice({
 export const {
   listsLoaded,
   listCreated,
+  listLeft,
   listRenamed,
   listDeleted,
   listMemberAdded,

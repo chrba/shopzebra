@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '../../../app/createSlice'
-import { listDeleted } from '../../lists/domain/listsSlice'
+import { listDeleted, listLeft } from '../../lists/domain/listsSlice'
 import { recipeDeleted } from '../../recipes/domain/recipesSlice'
 import type { ListPreferences, RecipePreferences } from './preferencesDomain'
 
@@ -11,6 +11,19 @@ type PreferencesState = {
 const initialState: PreferencesState = {
   listPrefs: {},
   recipePrefs: {},
+}
+
+/** Preferences of one list, dropped — used when it is deleted or left. */
+function withoutList(
+  state: PreferencesState,
+  listId: string,
+): PreferencesState {
+  return {
+    ...state,
+    listPrefs: Object.fromEntries(
+      Object.entries(state.listPrefs).filter(([id]) => id !== listId),
+    ),
+  }
 }
 
 const preferencesSlice = createSlice({
@@ -70,14 +83,16 @@ const preferencesSlice = createSlice({
       reducer: (
         state: PreferencesState,
         action: PayloadAction<{ readonly listId: string }>,
-      ): PreferencesState => ({
-        ...state,
-        listPrefs: Object.fromEntries(
-          Object.entries(state.listPrefs).filter(
-            ([listId]) => listId !== action.payload.listId,
-          ),
-        ),
-      }),
+      ): PreferencesState => withoutList(state, action.payload.listId),
+    },
+    {
+      // Leaving drops the list from this device just as deleting does —
+      // its emoji and colour have nothing left to belong to.
+      creator: listLeft,
+      reducer: (
+        state: PreferencesState,
+        action: PayloadAction<{ readonly id: string }>,
+      ): PreferencesState => withoutList(state, action.payload.id),
     },
     {
       // Preferences of a deleted recipe are orphans — clean them up.

@@ -10,7 +10,7 @@ import {
   needsNameBeforeSharing,
 } from '../sharing/FirstShareNameSheet'
 import { selectIdentity } from '../auth/domain/authSlice'
-import { SwipeToDelete } from '../../components/SwipeToDelete'
+import { SwipeAction } from '../../components/SwipeAction'
 import { InviteIcon } from '../../components/InviteIcon'
 import { useToast } from '../../components/Toast'
 import { PageHeader } from '../../components/PageHeader'
@@ -112,15 +112,17 @@ export function FriendsPage() {
         {friends.map((friend) => {
           const name = friend.name ?? MEMBER_NAME_FALLBACK
           return (
-            <SwipeToDelete
+            <SwipeAction
               key={friend.id}
               isOpen={openSwipeId === friend.id}
               onOpen={() => setOpenSwipeId(friend.id)}
               onClose={() => setOpenSwipeId(null)}
-              onDelete={() => setPendingRemoval({ id: friend.id, name })}
+              label="Entfernen"
+              tone="destructive"
+              onTrigger={() => setPendingRemoval({ id: friend.id, name })}
             >
               <FriendCard id={friend.id} name={name} />
-            </SwipeToDelete>
+            </SwipeAction>
           )
         })}
       </div>

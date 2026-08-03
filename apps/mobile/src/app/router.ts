@@ -340,6 +340,18 @@ const indexRoute = createRoute({
 const listsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/lists',
+  loader: async () => {
+    if (!canReachServer()) return
+    // The overview names the owner of every shared list, and that name has
+    // no event to travel in — the owner never triggers a member-added
+    // event for themselves. Failing costs the name, not the screen.
+    try {
+      const projection = await fetchSharingProjection('list')
+      store.dispatch(ownerNamesLoaded({ ownerNames: projection.ownerNames }))
+    } catch (error: unknown) {
+      console.warn('reading the list projection failed', error)
+    }
+  },
   component: ListsPage,
 })
 

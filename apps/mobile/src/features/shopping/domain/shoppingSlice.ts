@@ -1,7 +1,7 @@
 import { createSelector } from '@reduxjs/toolkit'
 import { createSlice, type PayloadAction } from '../../../app/createSlice'
 import { identityAttached } from '../../auth/domain/authSlice'
-import { listDeleted } from '../../lists/domain/listsSlice'
+import { listDeleted, listLeft } from '../../lists/domain/listsSlice'
 import type { ListItem } from './shoppingDomain'
 
 type ItemsByListId = { readonly [listId: string]: readonly ListItem[] }
@@ -38,6 +38,20 @@ function withItems(
   return {
     ...state,
     itemsByListId: { ...state.itemsByListId, [listId]: items },
+  }
+}
+
+/** Everything belonging to one list, dropped — on delete and on leave. */
+function withoutList(state: ShoppingState, listId: string): ShoppingState {
+  return {
+    itemsByListId: Object.fromEntries(
+      Object.entries(state.itemsByListId).filter(([id]) => id !== listId),
+    ),
+    customVariantsByListId: Object.fromEntries(
+      Object.entries(state.customVariantsByListId).filter(
+        ([id]) => id !== listId,
+      ),
+    ),
   }
 }
 
@@ -231,18 +245,15 @@ const shoppingSlice = createSlice({
       reducer: (
         state: ShoppingState,
         action: PayloadAction<{ readonly listId: string }>,
-      ): ShoppingState => ({
-        itemsByListId: Object.fromEntries(
-          Object.entries(state.itemsByListId).filter(
-            ([listId]) => listId !== action.payload.listId,
-          ),
-        ),
-        customVariantsByListId: Object.fromEntries(
-          Object.entries(state.customVariantsByListId).filter(
-            ([listId]) => listId !== action.payload.listId,
-          ),
-        ),
-      }),
+      ): ShoppingState => withoutList(state, action.payload.listId),
+    },
+    {
+      // A list I left is gone from this device — its items too.
+      creator: listLeft,
+      reducer: (
+        state: ShoppingState,
+        action: PayloadAction<{ readonly id: string }>,
+      ): ShoppingState => withoutList(state, action.payload.id),
     },
     {
       // Docking: items a guest put on a list were authored by the local

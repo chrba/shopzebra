@@ -3,8 +3,9 @@ import { useNavigate } from '@tanstack/react-router'
 import { useAppDispatch, useAppSelector } from '../../../app/store'
 import { selectInitialSyncDone } from '../../../app/appSlice'
 import { listDeleted, selectAllLists } from '../domain/listsSlice'
+import { leaveList } from '../domain/leaveList'
 import { memberAvatarColor, memberInitial } from '../domain/memberAvatar'
-import { memberDisplayName } from '../../sharing/memberDisplayName'
+import { MEMBER_NAME_FALLBACK, memberDisplayName } from '../../sharing/memberDisplayName'
 import { selectFriendCount } from '../../friends/domain/friendsSlice'
 import { selectCurrentUserId, selectIdentity } from '../../auth/domain/authSlice'
 import { selectItemCountByListId } from '../../shopping/domain/shoppingSlice'
@@ -13,8 +14,9 @@ import type { AccentColor } from '../../preferences/domain/preferencesDomain'
 import { ListsHeader } from './ListsHeader'
 import { SummaryChips } from './SummaryChips'
 import { ListSummaryCard } from './ListSummaryCard'
-import { SwipeToDelete } from '../../../components/SwipeToDelete'
+import { SwipeAction } from '../../../components/SwipeAction'
 import { DangerConfirmDialog } from '../../../components/DangerConfirmDialog'
+import { useToast } from '../../../components/Toast'
 import { ListCardSkeleton } from './ListsPageSkeleton'
 import { Card } from '@/components/ui/card'
 
@@ -43,9 +45,11 @@ function defaultColor(id: string): AccentColor {
   return COLORS[hashOf(id) % COLORS.length] ?? 'green'
 }
 
-type DeleteTarget = {
+/** A list the user asked to get rid of — the verb depends on whose it is. */
+type PartingTarget = {
   readonly id: string
   readonly name: string
+  readonly isOwn: boolean
 }
 
 // --- Private components ---
@@ -78,27 +82,39 @@ function CreateListCard({ onClick }: { readonly onClick: () => void }) {
   )
 }
 
-/** Confirmation dialog shown before permanently deleting a list. */
-function DeleteListDialog({
+/**
+ * Confirmation before a list disappears — with the words of whichever act
+ * it is: deleting hits everyone, leaving only this device.
+ */
+function PartingDialog({
   target,
   onConfirm,
   onCancel,
 }: {
-  readonly target: DeleteTarget | null
+  readonly target: PartingTarget | null
   readonly onConfirm: () => void
   readonly onCancel: () => void
 }) {
+  const isOwn = target?.isOwn ?? true
   return (
     <DangerConfirmDialog
       open={target !== null}
-      title="Liste löschen?"
+      title={isOwn ? 'Liste löschen?' : 'Liste verlassen?'}
       message={
-        <>
-          Möchtest du &ldquo;{target?.name}&rdquo; wirklich löschen? Diese
-          Aktion kann nicht rückgängig gemacht werden.
-        </>
+        isOwn ? (
+          <>
+            &ldquo;{target?.name}&rdquo; wird für <strong>alle Mitglieder</strong>{' '}
+            gelöscht und kann nicht wiederhergestellt werden.
+          </>
+        ) : (
+          <>
+            &ldquo;{target?.name}&rdquo; verschwindet von deinem Gerät. Die
+            anderen behalten sie, und du kannst jederzeit wieder eingeladen
+            werden.
+          </>
+        )
       }
-      confirmLabel="Löschen"
+      confirmLabel={isOwn ? 'Löschen' : 'Verlassen'}
       onConfirm={onConfirm}
       onCancel={onCancel}
     />
@@ -118,12 +134,19 @@ export function ListsPage() {
   const me = useAppSelector(selectIdentity)
   const currentUserId = useAppSelector(selectCurrentUserId)
   const friendCount = useAppSelector(selectFriendCount)
+  const toast = useToast()
 
   const lists = shoppingLists.map((list) => {
     const prefs = preferences[list.id]
+    const isOwn = list.ownerId === currentUserId
     return {
       id: list.id,
       name: list.name,
+      isOwn,
+      // Only a foreign list names its owner; my own would state the obvious.
+      ownerName: isOwn
+        ? null
+        : (list.memberNames?.[list.ownerId] ?? MEMBER_NAME_FALLBACK),
       color: prefs?.color ?? defaultColor(list.id),
       emoji: prefs?.emoji ?? '\u{1F6D2}',
       itemCount: itemCountByListId[list.id] ?? 0,
@@ -147,22 +170,31 @@ export function ListsPage() {
   const showSyncSkeleton = lists.length === 0 && !initialSyncDone
 
   const [openSwipeId, setOpenSwipeId] = useState<string | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
+  const [partingTarget, setPartingTarget] = useState<PartingTarget | null>(null)
 
   const goToCreateList = () => navigate({ to: '/lists/new' })
   const goToProfile = () => navigate({ to: '/profile' })
 
-  const handleConfirmDelete = () => {
-    if (deleteTarget) {
-      dispatch(listDeleted({ listId: deleteTarget.id }))
-    }
-    setDeleteTarget(null)
+  const closeParting = () => {
+    setPartingTarget(null)
     setOpenSwipeId(null)
   }
 
-  const handleCancelDelete = () => {
-    setDeleteTarget(null)
-    setOpenSwipeId(null)
+  // Deleting is mine to do and takes the list from everyone; leaving only
+  // ends my own membership and needs the server's yes first.
+  const handleConfirmParting = () => {
+    const target = partingTarget
+    closeParting()
+    if (!target) return
+
+    if (target.isOwn) {
+      dispatch(listDeleted({ listId: target.id }))
+      return
+    }
+    void dispatch(leaveList(target.id)).catch((error: unknown) => {
+      console.warn('leaving the list failed', error)
+      toast.show('Verlassen fehlgeschlagen')
+    })
   }
 
   return (
@@ -184,12 +216,20 @@ export function ListsPage() {
             <ListCardSkeleton key={index} delayMs={index * 150} />
           ))}
         {lists.map((list) => (
-          <SwipeToDelete
+          <SwipeAction
             key={list.id}
             isOpen={openSwipeId === list.id}
             onOpen={() => setOpenSwipeId(list.id)}
             onClose={() => setOpenSwipeId(null)}
-            onDelete={() => setDeleteTarget({ id: list.id, name: list.name })}
+            label={list.isOwn ? 'Löschen' : 'Verlassen'}
+            tone={list.isOwn ? 'destructive' : 'parting'}
+            onTrigger={() =>
+              setPartingTarget({
+                id: list.id,
+                name: list.name,
+                isOwn: list.isOwn,
+              })
+            }
           >
             <ListSummaryCard
               list={list}
@@ -209,16 +249,18 @@ export function ListsPage() {
                 })
               }
             />
-          </SwipeToDelete>
+          </SwipeAction>
         ))}
         {!showSyncSkeleton && <CreateListCard onClick={goToCreateList} />}
       </div>
 
-      <DeleteListDialog
-        target={deleteTarget}
-        onConfirm={handleConfirmDelete}
-        onCancel={handleCancelDelete}
+      <PartingDialog
+        target={partingTarget}
+        onConfirm={handleConfirmParting}
+        onCancel={closeParting}
       />
+
+      {toast.element}
     </div>
   )
 }

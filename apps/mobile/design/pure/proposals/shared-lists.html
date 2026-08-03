@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopZebra – Geteilte Listen (Vorschläge)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ========================================
+     Geteilte Listen — Vorschläge
+     Zwei offene Fragen: Wie sieht man, dass eine Liste
+     jemand anderem gehört? Und was tut die Wisch-Geste dann?
+     Noch nicht entschieden.
+     ======================================== */
+
+  [data-theme="dark"] {
+    --body-bg: #0a0a0e;
+    --screen-bg: #121216;
+    --surface: rgba(255,255,255,0.04);
+    --surface-border: rgba(255,255,255,0.06);
+    --teal: #4E9DA6;
+    --orange: #E8923A;
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255,255,255,0.5);
+    --text-dim: rgba(255,255,255,0.35);
+    --card-bg: rgba(255,255,255,0.03);
+    --card-border: rgba(255,255,255,0.06);
+    --frame-shadow: 0 0 40px rgba(0,0,0,0.5);
+    --frame-border: 1px solid rgba(255,255,255,0.08);
+    --green: #6BBF6B;  --green-bg: rgba(107,191,107,0.15);
+    --blue: #5BA8D5;   --blue-bg: rgba(91,168,213,0.15);
+    --red: #E07B7B;    --red-bg: rgba(224,123,123,0.15);
+    --purple: #A07BCC; --purple-bg: rgba(160,123,204,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--body-bg);
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    color: var(--text-primary);
+    padding: 40px 32px 80px;
+  }
+
+  /* ===== Page chrome ===== */
+  .page-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 30px; font-weight: 800; margin-bottom: 6px; }
+  .page-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 14px; max-width: 820px; line-height: 1.6; }
+  .page-sub strong { color: var(--text-primary); font-weight: 700; }
+
+  .legend { display: flex; gap: 22px; margin-bottom: 40px; font-size: 12.5px; color: var(--text-dim); }
+  .legend span::before { content: '■'; margin-right: 6px; }
+  .legend .mine::before { color: var(--green); }
+  .legend .theirs::before { color: var(--orange); }
+
+  .section { margin-bottom: 60px; }
+  .section-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .section-desc { font-size: 13px; color: var(--text-secondary); max-width: 820px; line-height: 1.55; margin-bottom: 22px; }
+
+  .row { display: flex; gap: 26px; flex-wrap: wrap; align-items: flex-start; }
+
+  .variant { width: 300px; }
+  .variant-label { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+  .variant-label .pick { color: var(--teal); }
+  .variant-note { font-size: 11.5px; color: var(--text-dim); margin-bottom: 12px; line-height: 1.5; min-height: 62px; }
+
+  /* ===== Phone frame, scaled ===== */
+  .frame-scale { width: 300px; height: 439px; }
+  .phone-frame {
+    width: 390px; height: 570px;
+    background: var(--screen-bg);
+    border-radius: 44px; overflow: hidden; position: relative;
+    border: var(--frame-border); box-shadow: var(--frame-shadow);
+    transform: scale(0.769); transform-origin: top left;
+  }
+
+  /* ===== Status + header ===== */
+  .status-bar { display: flex; justify-content: space-between; padding: 14px 28px 8px; }
+  .status-time { font-size: 15px; font-weight: 700; }
+  .status-dots { display: flex; gap: 5px; align-items: center; }
+  .status-dots i { width: 15px; height: 9px; border-radius: 2px; background: rgba(255,255,255,0.55); display: block; }
+
+  .app-header { display: flex; align-items: center; justify-content: space-between; padding: 6px 22px 14px; }
+  .app-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 21px; font-weight: 800; }
+  .app-icon { width: 26px; height: 26px; color: var(--text-secondary); font-size: 22px; line-height: 1; text-align: center; }
+
+  .chips { display: flex; gap: 8px; padding: 0 22px 16px; }
+  .chip { background: var(--surface); border: 1px solid var(--surface-border); border-radius: 999px; padding: 6px 12px; font-size: 11.5px; font-weight: 600; color: var(--text-secondary); }
+
+  /* ===== Tile grid (mirrors lists.html) ===== */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 22px; }
+  .tile {
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 18px; padding: 14px; min-height: 148px;
+    display: flex; flex-direction: column; gap: 8px; position: relative; overflow: hidden;
+  }
+  .tile-icon-bg { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+  .tile-icon-bg.green { background: var(--green-bg); }
+  .tile-icon-bg.blue { background: var(--blue-bg); }
+  .tile-icon-bg.red { background: var(--red-bg); }
+  .tile-icon-bg.purple { background: var(--purple-bg); }
+  .tile-name { font-family: 'Bricolage Grotesque', sans-serif; font-size: 14.5px; font-weight: 700; line-height: 1.2; }
+  .tile-meta { font-size: 11.5px; color: var(--text-dim); font-weight: 500; margin-top: -2px; }
+  .tile-meta .owner { color: var(--text-secondary); font-weight: 600; }
+  .tile-avatars { display: flex; margin-top: auto; }
+  .avatar {
+    width: 22px; height: 22px; border-radius: 50%; font-size: 10px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; color: #fff;
+    border: 2px solid var(--screen-bg);
+  }
+  /* Members overlap each other — the invite circle never overlaps anything. */
+  .avatar + .avatar { margin-left: -6px; }
+  .avatar.ghost { background: rgba(255,255,255,0.06); color: var(--text-dim); font-weight: 600; }
+  .avatar.ghost + .avatar, .avatar + .avatar.ghost { margin-left: 6px; }
+  .avatar.owner-ring { box-shadow: 0 0 0 2px var(--teal); }
+
+  /* Variant-specific decorations */
+  .tile.shared-frame { border-color: rgba(78,157,166,0.35); }
+  .tile-badge {
+    position: absolute; top: 10px; right: 10px;
+    background: rgba(232,146,58,0.2); color: var(--orange);
+    font-size: 9.5px; font-weight: 700; padding: 3px 7px; border-radius: 10px;
+    border: 1px solid rgba(232,146,58,0.25);
+  }
+
+  .tile-add { align-items: center; justify-content: center; border-style: dashed; gap: 6px; }
+  .tile-add-icon { width: 38px; height: 38px; border-radius: 50%; background: var(--surface); border: 1px solid var(--surface-border); display: flex; align-items: center; justify-content: center; color: var(--teal); font-size: 20px; }
+  .tile-add-label { font-size: 11.5px; font-weight: 600; color: var(--text-dim); }
+
+  /* ===== Swipe reveal ===== */
+  .swipe { position: relative; border-radius: 18px; overflow: hidden; }
+  .swipe-action {
+    position: absolute; inset: 0; display: flex; align-items: center; padding-left: 16px;
+    border-radius: 18px;
+  }
+  .swipe-action.destructive { background: rgba(224,123,123,0.15); }
+  .swipe-action.neutral { background: rgba(78,157,166,0.15); }
+  .swipe-circle { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+  .swipe-action.destructive .swipe-circle { background: rgba(224,123,123,0.22); }
+  .swipe-action.neutral .swipe-circle { background: rgba(78,157,166,0.22); }
+  .swipe-word { font-size: 11px; font-weight: 700; margin-left: 9px; }
+  .swipe-action.destructive .swipe-word { color: var(--red); }
+  .swipe-action.neutral .swipe-word { color: var(--teal); }
+  .swipe .tile { transform: translateX(116px); position: relative; z-index: 1; background: var(--screen-bg); }
+
+  /* ===== Dialog ===== */
+  .dialog-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.55); z-index: 5; }
+  .dialog {
+    position: absolute; left: 26px; right: 26px; top: 50%; transform: translateY(-50%);
+    background: #1b1b21; border: 1px solid rgba(255,255,255,0.08); border-radius: 22px;
+    padding: 22px 20px 16px; z-index: 6;
+  }
+  .dialog-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+  .dialog-text { font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 18px; }
+  .dialog-actions { display: flex; flex-direction: column; gap: 8px; }
+  .dialog-btn { border-radius: 13px; padding: 12px; font-size: 14.5px; font-weight: 700; text-align: center; }
+  .dialog-btn.primary { background: var(--teal); color: #fff; }
+  .dialog-btn.danger { background: var(--red); color: #fff; }
+  .dialog-btn.ghost { background: var(--surface); border: 1px solid var(--surface-border); color: var(--text-secondary); }
+
+  /* ===== Notes ===== */
+  .note { max-width: 820px; font-size: 13px; color: var(--text-secondary); line-height: 1.6; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 16px 18px; margin-top: 6px; }
+  .note strong { color: var(--text-primary); }
+  .note + .note { margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<div class="page-title">Geteilte Listen — Vorschläge</div>
+<div class="page-sub">
+  Zwei Fragen, die heute keine Antwort haben: <strong>Woran sieht man, dass eine Liste
+  jemand anderem gehört?</strong> Und <strong>was soll die Wisch-Geste dann tun?</strong>
+  Löschen ist dort das falsche Verb — und der Server nimmt es heute trotzdem an, sodass ein
+  Gast die Liste für alle löschen kann.
+</div>
+<div class="legend">
+  <span class="mine">„Bäcker" und „Geburtstag" gehören mir</span>
+  <span class="theirs">„Wocheneinkauf" (Christian) und „Grillen" (Sarah) sind mit mir geteilt</span>
+</div>
+
+<!-- ============================================================
+     1. Darstellung
+     ============================================================ -->
+<div class="section">
+  <div class="section-title">1. Woran sieht man, wem die Liste gehört?</div>
+  <div class="section-desc">
+    Alle vier Varianten zeigen dasselbe Grid. Weder Bring! noch Listonic zeigen Besitz in der
+    Übersicht — hier gibt es also nichts abzuschauen, das ist eine eigene Entscheidung.
+  </div>
+
+  <div class="row">
+
+    <!-- Variante A -->
+    <div class="variant">
+      <div class="variant-label">A · Besitzer in der Meta-Zeile <span class="pick">— Empfehlung</span></div>
+      <div class="variant-note">
+        Nutzt den Platz, den das Wireframe schon vorsieht („4 Items · Papa"). Kein neues
+        UI-Element, ein Wort mehr. Eigene Listen bleiben unverändert.
+      </div>
+      <div class="frame-scale"><div class="phone-frame">
+        <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+        <div class="app-header"><div class="app-icon">☺</div><div class="app-title">Meine Listen</div><div class="app-icon">+</div></div>
+        <div class="chips"><div class="chip">4 Listen</div><div class="chip">27 Sachen</div><div class="chip">2 Freunde</div></div>
+        <div class="grid">
+          <div class="tile">
+            <div class="tile-icon-bg green">🛒</div>
+            <div class="tile-name">Wocheneinkauf</div>
+            <div class="tile-meta">12 Sachen · <span class="owner">von Christian</span></div>
+            <div class="tile-avatars"><div class="avatar" style="background:#6BBF6B">C</div><div class="avatar ghost">+</div></div>
+          </div>
+          <div class="tile">
+            <div class="tile-icon-bg blue">🥖</div>
+            <div class="tile-name">Bäcker</div>
+            <div class="tile-meta">3 Sachen</div>
+            <div class="tile-avatars"><div class="avatar ghost">+</div></div>
+          </div>
+          <div class="tile">
+            <div class="tile-icon-bg red">🔥</div>
+            <div class="tile-name">Grillen</div>
+            <div class="tile-meta">8 Sachen · <span class="owner">von Sarah</span></div>
+            <div class="tile-avatars"><div class="avatar" style="background:#E07B7B">S</div><div class="avatar ghost">+</div></div>
+          </div>
+          <div class="tile">
+            <div class="tile-icon-bg purple">🎉</div>
+            <div class="tile-name">Geburtstag</div>
+            <div class="tile-meta">4 Sachen</div>
+            <div class="tile-avatars"><div class="avatar ghost">+</div></div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- Variante B -->
+    <div class="variant">
+      <div class="variant-label">B · Owner-Avatar mit Ring</div>
+      <div class="variant-note">
+        Rein visuell: Der Besitzer steht vorn und bekommt einen Ring, die fremde Kachel einen
+        dezenten Rahmen. Ohne Text — man muss die Kreise lesen können.
+      </div>
+      <div class="frame-scale"><div class="phone-frame">
+        <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+        <div class="app-header"><div class="app-icon">☺</div><div class="app-title">Meine Listen</div><div class="app-icon">+</div></div>
+        <div class="chips"><div class="chip">4 Listen</div><div class="chip">27 Sachen</div><div class="chip">2 Freunde</div></div>
+        <div class="grid">
+          <div class="tile shared-frame">
+            <div class="tile-icon-bg green">🛒</div>
+            <div class="tile-name">Wocheneinkauf</div>
+            <div class="tile-meta">12 Sachen</div>
+            <div class="tile-avatars"><div class="avatar owner-ring" style="background:#6BBF6B">C</div><div class="avatar ghost">+</div></div>
+          </div>
+          <div class="tile">
+            <div class="tile-icon-bg blue">🥖</div>
+            <div class="tile-name">Bäcker</div>
+            <div class="tile-meta">3 Sachen</div>
+            <div class="tile-avatars"><div class="avatar ghost">+</div></div>
+          </div>
+          <div class="tile shared-frame">
+            <div class="tile-icon-bg red">🔥</div>
+            <div class="tile-name">Grillen</div>
+            <div class="tile-meta">8 Sachen</div>
+            <div class="tile-avatars"><div class="avatar owner-ring" style="background:#E07B7B">S</div><div class="avatar ghost">+</div></div>
+          </div>
+          <div class="tile">
+            <div class="tile-icon-bg purple">🎉</div>
+            <div class="tile-name">Geburtstag</div>
+            <div class="tile-meta">4 Sachen</div>
+            <div class="tile-avatars"><div class="avatar ghost">+</div></div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- Variante C -->
+    <div class="variant">
+      <div class="variant-label">C · Badge „Geteilt"</div>
+      <div class="variant-note">
+        Am lautesten, und das Badge gibt es im Design bereits. Sagt aber nur <em>dass</em>
+        geteilt wird, nicht <em>von wem</em> — und markiert auch eigene geteilte Listen.
+      </div>
+      <div class="frame-scale"><div class="phone-frame">
+        <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+        <div class="app-header"><div class="app-icon">☺</div><div class="app-title">Meine Listen</div><div class="app-icon">+</div></div>
+        <div class="chips"><div class="chip">4 Listen</div><div class="chip">27 Sachen</div><div class="chip">2 Freunde</div></div>
+        <div class="grid">
+          <div class="tile">
+            <div class="tile-badge">Geteilt</div>
+            <div class="tile-icon-bg green">🛒</div>
+            <div class="tile-name">Wocheneinkauf</div>
+            <div class="tile-meta">12 Sachen</div>
+            <div class="tile-avatars"><div class="avatar" style="background:#6BBF6B">C</div><div class="avatar ghost">+</div></div>
+          </div>
+          <div class="tile">
+            <div class="tile-icon-bg blue">🥖</div>
+            <div class="tile-name">Bäcker</div>
+            <div class="tile-meta">3 Sachen</div>
+            <div class="tile-avatars"><div class="avatar ghost">+</div></div>
+          </div>
+          <div class="tile">
+            <div class="tile-badge">Geteilt</div>
+            <div class="tile-icon-bg red">🔥</div>
+            <div class="tile-name">Grillen</div>
+            <div class="tile-meta">8 Sachen</div>
+            <div class="tile-avatars"><div class="avatar" style="background:#E07B7B">S</div><div class="avatar ghost">+</div></div>
+          </div>
+          <div class="tile">
+            <div class="tile-icon-bg purple">🎉</div>
+            <div class="tile-name">Geburtstag</div>
+            <div class="tile-meta">4 Sachen</div>
+            <div class="tile-avatars"><div class="avatar ghost">+</div></div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- Variante D -->
+    <div class="variant">
+      <div class="variant-label">D · Nichts (wie Bring!)</div>
+      <div class="variant-note">
+        Nur die Teilnehmer-Kreise verraten das Teilen, Besitz erfährt man erst beim Wischen.
+        So machen es beide Wettbewerber — und genau das hat dich gestört.
+      </div>
+      <div class="frame-scale"><div class="phone-frame">
+        <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+        <div class="app-header"><div class="app-icon">☺</div><div class="app-title">Meine Listen</div><div class="app-icon">+</div></div>
+        <div class="chips"><div class="chip">4 Listen</div><div class="chip">27 Sachen</div><div class="chip">2 Freunde</div></div>
+        <div class="grid">
+          <div class="tile">
+            <div class="tile-icon-bg green">🛒</div>
+            <div class="tile-name">Wocheneinkauf</div>
+            <div class="tile-meta">12 Sachen</div>
+            <div class="tile-avatars"><div class="avatar" style="background:#6BBF6B">C</div><div class="avatar ghost">+</div></div>
+          </div>
+          <div class="tile">
+            <div class="tile-icon-bg blue">🥖</div>
+            <div class="tile-name">Bäcker</div>
+            <div class="tile-meta">3 Sachen</div>
+            <div class="tile-avatars"><div class="avatar ghost">+</div></div>
+          </div>
+          <div class="tile">
+            <div class="tile-icon-bg red">🔥</div>
+            <div class="tile-name">Grillen</div>
+            <div class="tile-meta">8 Sachen</div>
+            <div class="tile-avatars"><div class="avatar" style="background:#E07B7B">S</div><div class="avatar ghost">+</div></div>
+          </div>
+          <div class="tile">
+            <div class="tile-icon-bg purple">🎉</div>
+            <div class="tile-name">Geburtstag</div>
+            <div class="tile-meta">4 Sachen</div>
+            <div class="tile-avatars"><div class="avatar ghost">+</div></div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     2. Wisch-Geste
+     ============================================================ -->
+<div class="section">
+  <div class="section-title">2. Was passiert beim Wischen?</div>
+  <div class="section-desc">
+    Bring! macht es rollenabhängig: derselbe Aufruf heißt „löschen" oder „verlassen", je nachdem
+    wem die Liste gehört. Der Endpunkt dafür existiert bei uns bereits — Selbstentfernung ist im
+    Mitglieder-Screen schon verdrahtet.
+  </div>
+
+  <div class="row">
+
+    <!-- E: fremde Liste verlassen -->
+    <div class="variant">
+      <div class="variant-label">E · Fremde Liste: „Verlassen" <span class="pick">— Empfehlung</span></div>
+      <div class="variant-note">
+        Gleiche Geste, anderes Verb und andere Farbe — nicht rot, weil nichts zerstört wird.
+        Die Liste verschwindet nur bei mir.
+      </div>
+      <div class="frame-scale"><div class="phone-frame">
+        <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+        <div class="app-header"><div class="app-icon">☺</div><div class="app-title">Meine Listen</div><div class="app-icon">+</div></div>
+        <div class="chips"><div class="chip">4 Listen</div><div class="chip">27 Sachen</div><div class="chip">2 Freunde</div></div>
+        <div class="grid">
+          <div class="swipe">
+            <div class="swipe-action neutral"><div class="swipe-circle">↩</div><div class="swipe-word">Verlassen</div></div>
+            <div class="tile">
+              <div class="tile-icon-bg green">🛒</div>
+              <div class="tile-name">Wocheneinkauf</div>
+              <div class="tile-meta">12 Sachen · <span class="owner">von Christian</span></div>
+              <div class="tile-avatars"><div class="avatar" style="background:#6BBF6B">C</div></div>
+            </div>
+          </div>
+          <div class="tile">
+            <div class="tile-icon-bg blue">🥖</div>
+            <div class="tile-name">Bäcker</div>
+            <div class="tile-meta">3 Sachen</div>
+            <div class="tile-avatars"><div class="avatar ghost">+</div></div>
+          </div>
+          <div class="tile">
+            <div class="tile-icon-bg red">🔥</div>
+            <div class="tile-name">Grillen</div>
+            <div class="tile-meta">8 Sachen · <span class="owner">von Sarah</span></div>
+            <div class="tile-avatars"><div class="avatar" style="background:#E07B7B">S</div><div class="avatar ghost">+</div></div>
+          </div>
+          <div class="tile">
+            <div class="tile-icon-bg purple">🎉</div>
+            <div class="tile-name">Geburtstag</div>
+            <div class="tile-meta">4 Sachen</div>
+            <div class="tile-avatars"><div class="avatar ghost">+</div></div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- F: Rückfrage -->
+    <div class="variant">
+      <div class="variant-label">F · Die Rückfrage dazu</div>
+      <div class="variant-note">
+        Sagt, was wirklich passiert — und was nicht passiert. Das nimmt der Geste die Angst,
+        die „Löschen" auslösen würde.
+      </div>
+      <div class="frame-scale"><div class="phone-frame">
+        <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+        <div class="app-header"><div class="app-icon">☺</div><div class="app-title">Meine Listen</div><div class="app-icon">+</div></div>
+        <div class="chips"><div class="chip">4 Listen</div><div class="chip">27 Sachen</div><div class="chip">2 Freunde</div></div>
+        <div class="grid">
+          <div class="tile">
+            <div class="tile-icon-bg green">🛒</div>
+            <div class="tile-name">Wocheneinkauf</div>
+            <div class="tile-meta">12 Sachen · <span class="owner">von Christian</span></div>
+            <div class="tile-avatars"><div class="avatar" style="background:#6BBF6B">C</div></div>
+          </div>
+          <div class="tile">
+            <div class="tile-icon-bg blue">🥖</div>
+            <div class="tile-name">Bäcker</div>
+            <div class="tile-meta">3 Sachen</div>
+            <div class="tile-avatars"><div class="avatar ghost">+</div></div>
+          </div>
+        </div>
+        <div class="dialog-backdrop"></div>
+        <div class="dialog">
+          <div class="dialog-title">Liste verlassen?</div>
+          <div class="dialog-text">
+            „Wocheneinkauf" verschwindet von deinem Gerät. Christian und die anderen behalten
+            sie. Du kannst jederzeit wieder eingeladen werden.
+          </div>
+          <div class="dialog-actions">
+            <div class="dialog-btn primary">Verlassen</div>
+            <div class="dialog-btn ghost">Abbrechen</div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- G: eigene Liste löschen -->
+    <div class="variant">
+      <div class="variant-label">G · Eigene Liste: „Löschen" (unverändert)</div>
+      <div class="variant-note">
+        Bleibt rot und bleibt endgültig — aber die Rückfrage sagt jetzt dazu, dass es alle
+        trifft. Nur der Besitzer kommt überhaupt hierhin.
+      </div>
+      <div class="frame-scale"><div class="phone-frame">
+        <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+        <div class="app-header"><div class="app-icon">☺</div><div class="app-title">Meine Listen</div><div class="app-icon">+</div></div>
+        <div class="chips"><div class="chip">4 Listen</div><div class="chip">27 Sachen</div><div class="chip">2 Freunde</div></div>
+        <div class="grid">
+          <div class="swipe">
+            <div class="swipe-action destructive"><div class="swipe-circle">🗑</div><div class="swipe-word">Löschen</div></div>
+            <div class="tile">
+              <div class="tile-icon-bg blue">🥖</div>
+              <div class="tile-name">Bäcker</div>
+              <div class="tile-meta">3 Sachen</div>
+              <div class="tile-avatars"><div class="avatar ghost">+</div></div>
+            </div>
+          </div>
+          <div class="tile">
+            <div class="tile-icon-bg green">🛒</div>
+            <div class="tile-name">Wocheneinkauf</div>
+            <div class="tile-meta">12 Sachen · <span class="owner">von Christian</span></div>
+            <div class="tile-avatars"><div class="avatar" style="background:#6BBF6B">C</div></div>
+          </div>
+        </div>
+        <div class="dialog-backdrop"></div>
+        <div class="dialog">
+          <div class="dialog-title">Liste löschen?</div>
+          <div class="dialog-text">
+            „Bäcker" wird für <strong style="color:#fff">alle Mitglieder</strong> gelöscht und
+            kann nicht wiederhergestellt werden.
+          </div>
+          <div class="dialog-actions">
+            <div class="dialog-btn danger">Löschen</div>
+            <div class="dialog-btn ghost">Abbrechen</div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Was noch dranhängt</div>
+  <div class="note">
+    <strong>Der Server muss mitziehen.</strong> Heute läuft <code>listDeleted</code> über den
+    generischen Klasse-1-Pfad, und der erlaubt jedem Mitglied das Anhängen — ein Gast kann die
+    Liste also für alle löschen, egal was die Oberfläche anbietet. Löschen gehört damit zu den
+    Owner-Aktionen (eigener Endpunkt, wie Anlegen), Verlassen zur schon vorhandenen
+    Selbstentfernung.
+  </div>
+  <div class="note">
+    <strong>Und der Grund, warum sich deine Liste nicht löschen ließ.</strong> Sie steht lokal
+    noch im Speicher, gehört serverseitig aber keiner deiner Mitgliedschaften mehr. Der
+    Catch-up räumt so etwas nie weg: Er holt die Listen, die der Server kennt, entfernt aber
+    nie eine, die dort verschwunden ist. Dazu kommt, dass die Ablehnung (403) stumm
+    zurückrollt — die Kachel taucht wieder auf, ohne dass jemand sagt warum.
+  </div>
+</div>
+
+</body>
+</html>
