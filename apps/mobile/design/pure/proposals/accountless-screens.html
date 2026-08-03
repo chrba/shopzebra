@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopZebra – Ohne Konto starten (Screen-Vorschläge)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ========================================
+     Ohne Konto starten — Screen-Vorschläge
+     Varianten zur Auswahl, noch nicht entschieden
+     ======================================== */
+
+  [data-theme="dark"] {
+    --body-bg: #0a0a0e;
+    --screen-bg: #121216;
+    --surface: rgba(255,255,255,0.04);
+    --surface-border: rgba(255,255,255,0.06);
+    --teal: #4E9DA6;
+    --orange: #E8923A;
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255,255,255,0.5);
+    --text-dim: rgba(255,255,255,0.35);
+    --card-bg: rgba(255,255,255,0.03);
+    --card-border: rgba(255,255,255,0.06);
+    --input-bg: rgba(255,255,255,0.04);
+    --input-border: rgba(255,255,255,0.08);
+    --frame-shadow: 0 0 40px rgba(0,0,0,0.5);
+    --frame-border: 1px solid rgba(255,255,255,0.08);
+    --green-bg: rgba(107,191,107,0.12);
+    --green: #6BBF6B;
+    --red: #E07B7B;
+    --red-bg: rgba(224,123,123,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--body-bg);
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    color: var(--text-primary);
+    padding: 40px 32px 80px;
+  }
+
+  /* ===== Page chrome ===== */
+  .page-title {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 30px; font-weight: 800; margin-bottom: 6px;
+  }
+  .page-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 40px; max-width: 760px; line-height: 1.5; }
+
+  .section { margin-bottom: 56px; }
+  .section-head { margin-bottom: 18px; }
+  .section-title {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 20px; font-weight: 700; margin-bottom: 4px;
+  }
+  .section-desc { font-size: 13px; color: var(--text-secondary); max-width: 780px; line-height: 1.5; }
+
+  .row { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
+
+  .variant { width: 300px; }
+  .variant-label {
+    font-size: 13px; font-weight: 700; margin-bottom: 2px;
+  }
+  .variant-note { font-size: 11.5px; color: var(--text-dim); margin-bottom: 12px; line-height: 1.45; min-height: 34px; }
+
+  /* ===== Phone frame, scaled ===== */
+  .frame-scale { width: 300px; height: 649px; }
+  .phone-frame {
+    width: 390px; height: 844px;
+    background: var(--screen-bg);
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    border: var(--frame-border);
+    box-shadow: var(--frame-shadow);
+    transform: scale(0.769);
+    transform-origin: top left;
+  }
+  .screen { height: 100%; overflow: hidden; background: var(--screen-bg); position: relative; }
+
+  /* ===== Status bar ===== */
+  .status-bar { display: flex; justify-content: space-between; padding: 14px 28px 8px; }
+  .status-time { font-size: 15px; font-weight: 700; }
+  .status-dots { display: flex; gap: 5px; align-items: center; }
+  .status-dots i { width: 15px; height: 9px; border-radius: 2px; background: rgba(255,255,255,0.55); display: block; }
+
+  /* ===== Nav header ===== */
+  .nav-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 24px 16px; }
+  .nav-back { display: flex; align-items: center; gap: 5px; color: var(--teal); font-size: 15px; font-weight: 600; }
+  .nav-back::before { content: '‹'; font-size: 24px; line-height: 1; margin-top: -3px; }
+  .nav-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 17px; font-weight: 700; }
+  .nav-spacer { width: 62px; }
+
+  /* ===== Content blocks ===== */
+  .pad { padding: 0 24px; }
+  .hero-title {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 26px; font-weight: 800; line-height: 1.2; margin-bottom: 10px;
+  }
+  .hero-text { font-size: 14px; color: var(--text-secondary); line-height: 1.55; }
+
+  .field-label { font-size: 12px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .input {
+    background: var(--input-bg); border: 1px solid var(--input-border);
+    border-radius: 14px; padding: 15px 16px; font-size: 16px; font-weight: 600;
+    color: var(--text-primary); width: 100%;
+  }
+  .input.placeholder { color: var(--text-dim); font-weight: 500; }
+  .input.focused { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(78,157,166,0.25); }
+  .input-hint { font-size: 12px; color: var(--text-dim); margin-top: 8px; line-height: 1.45; }
+
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 9px;
+    border-radius: 15px; padding: 16px; font-size: 16px; font-weight: 700; width: 100%;
+  }
+  .btn-primary { background: var(--teal); color: #fff; }
+  .btn-ghost { background: var(--surface); color: var(--text-primary); border: 1px solid var(--surface-border); }
+  .btn-text { color: var(--teal); font-size: 15px; font-weight: 600; text-align: center; padding: 14px; }
+  .btn-danger-text { color: var(--text-secondary); font-size: 15px; font-weight: 600; text-align: center; padding: 14px; }
+  .btn.sm { padding: 12px; font-size: 14px; border-radius: 13px; }
+  .btn-icon { width: 20px; height: 20px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; }
+  .g-icon { background: #fff; color: #4285F4; border-radius: 50%; }
+  .a-icon { color: #fff; font-size: 17px; }
+
+  /* ===== Cards / rows ===== */
+  .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 4px 16px; }
+  .card.pad { padding: 16px; }
+  .section-label { font-size: 12px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin: 0 0 8px 4px; }
+  .setting-row { display: flex; align-items: center; gap: 12px; padding: 14px 0; }
+  .setting-row:not(:last-child) { border-bottom: 1px solid var(--surface-border); }
+  .setting-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .setting-icon.teal { background: rgba(78,157,166,0.12); }
+  .setting-icon.orange { background: rgba(232,146,58,0.12); }
+  .setting-icon.green { background: var(--green-bg); }
+  .setting-content { flex: 1; min-width: 0; }
+  .setting-label-text { font-size: 15px; font-weight: 600; }
+  .setting-value { font-size: 12.5px; color: var(--text-dim); font-weight: 500; margin-top: 1px; }
+  .chevron { color: var(--text-dim); font-size: 20px; }
+
+  /* ===== Profile hero ===== */
+  .profile-hero { display: flex; flex-direction: column; align-items: center; padding: 8px 24px 24px; }
+  .avatar { width: 88px; height: 88px; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 800; margin-bottom: 12px; }
+  .avatar.guest { background: rgba(255,255,255,0.08); color: var(--text-secondary); font-size: 30px; }
+  .profile-name { font-family: 'Bricolage Grotesque', sans-serif; font-size: 21px; font-weight: 700; }
+  .profile-sub { font-size: 13px; color: var(--text-dim); margin-top: 3px; }
+
+  /* ===== Notice banners ===== */
+  .notice { border-radius: 16px; padding: 16px; display: flex; gap: 12px; }
+  .notice-orange { background: rgba(232,146,58,0.10); border: 1px solid rgba(232,146,58,0.22); }
+  .notice-red { background: var(--red-bg); border: 1px solid rgba(224,123,123,0.25); }
+  .notice-teal { background: rgba(78,157,166,0.10); border: 1px solid rgba(78,157,166,0.22); }
+  .notice-emoji { font-size: 19px; line-height: 1.2; }
+  .notice-title { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+  .notice-text { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
+
+  /* ===== Bottom sheet ===== */
+  .sheet-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.55); }
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: #1b1b21; border-radius: 28px 28px 0 0;
+    padding: 12px 24px 30px; border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .sheet-handle { width: 38px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.2); margin: 0 auto 18px; }
+  .sheet-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .sheet-text { font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 18px; }
+
+  /* ===== Code input ===== */
+  .code-row { display: flex; gap: 9px; }
+  .code-box { flex: 1; aspect-ratio: 1/1.15; border-radius: 13px; background: var(--input-bg); border: 1px solid var(--input-border); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; }
+  .code-box.filled { border-color: rgba(78,157,166,0.5); }
+  .code-box.cursor { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(78,157,166,0.2); }
+
+  /* ===== Faux list rows (background context) ===== */
+  .list-tile { display: flex; align-items: center; gap: 13px; padding: 14px 16px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; margin-bottom: 10px; }
+  .list-emoji { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .list-name { font-size: 15.5px; font-weight: 700; }
+  .list-meta { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+
+  .bottom-actions { position: absolute; left: 0; right: 0; bottom: 0; padding: 20px 24px 34px; background: linear-gradient(to top, var(--screen-bg) 70%, transparent); }
+  .mt8 { margin-top: 8px; } .mt12 { margin-top: 12px; } .mt16 { margin-top: 16px; }
+  .mt20 { margin-top: 20px; } .mt24 { margin-top: 24px; } .mt28 { margin-top: 28px; } .mt36 { margin-top: 36px; }
+  .mb10 { margin-bottom: 10px; } .mb16 { margin-bottom: 16px; } .mb20 { margin-bottom: 20px; }
+</style>
+</head>
+<body>
+
+<div class="page-title">Ohne Konto starten — Screen-Vorschläge</div>
+<div class="page-sub">
+  Varianten zur Auswahl, noch nichts entschieden. Grundlage: <b>architecture/accountless-first-planned.md</b> (Schattenkonto,
+  lokal bis zum ersten Teilen, binäre Sync-Regel) und der Spike-Befund vom 2026-08-02.
+  Was <b>nicht</b> neu gebaut wird: die Listen-Übersicht, das Einladen selbst, Sign-in und Sign-up — die existieren und bleiben.
+</div>
+
+<!-- ============ 1. NAME BEIM ERSTEN TEILEN ============ -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-title">1 · Name beim ersten Teilen</div>
+    <div class="section-desc">
+      Solo braucht niemand einen Namen. Erst wenn zum ersten Mal geteilt wird, muss klar sein, wie andere den Nutzer sehen.
+      Im selben Moment entsteht im Hintergrund das Schattenkonto und die Outbox wird zum Server geschrieben.
+    </div>
+  </div>
+  <div class="row">
+
+    <!-- 1A: Bottom Sheet -->
+    <div class="variant">
+      <div class="variant-label">1A · Bottom Sheet über der Liste</div>
+      <div class="variant-note">Kein Seitenwechsel, der Kontext bleibt sichtbar. Passt zum bestehenden ItemDetailSheet.</div>
+      <div class="frame-scale"><div class="phone-frame"><div class="screen">
+        <div class="status-bar"><span class="status-time">9:41</span><span class="status-dots"><i></i><i></i></span></div>
+        <div class="nav-header"><span class="nav-back">Zurück</span><span class="nav-title">Wocheneinkauf</span><span class="nav-spacer"></span></div>
+        <div class="pad">
+          <div class="list-tile"><div class="list-emoji" style="background:rgba(107,191,107,0.15)">🥦</div><div><div class="list-name">Wocheneinkauf</div><div class="list-meta">12 Sachen · nur auf diesem Gerät</div></div></div>
+          <div class="list-tile"><div class="list-emoji" style="background:rgba(232,146,58,0.15)">🍞</div><div><div class="list-name">Bäcker</div><div class="list-meta">3 Sachen</div></div></div>
+        </div>
+        <div class="sheet-backdrop"></div>
+        <div class="sheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-title">Wie sollen dich andere sehen?</div>
+          <div class="sheet-text">Der Name steht neben deinen Änderungen in geteilten Listen. Du kannst ihn jederzeit ändern.</div>
+          <div class="input focused mb16">Chris</div>
+          <div class="btn btn-primary">Weiter zum Einladen</div>
+        </div>
+      </div></div></div>
+    </div>
+
+    <!-- 1B: Eigene Page -->
+    <div class="variant">
+      <div class="variant-label">1B · Eigene Page vor dem Einladen</div>
+      <div class="variant-note">Ein Schritt, eine Seite — konsequent zur Design-Regel „Pages = Pages". Ein Sprung mehr im Flow.</div>
+      <div class="frame-scale"><div class="phone-frame"><div class="screen">
+        <div class="status-bar"><span class="status-time">9:41</span><span class="status-dots"><i></i><i></i></span></div>
+        <div class="nav-header"><span class="nav-back">Zurück</span><span class="nav-title">Teilen</span><span class="nav-spacer"></span></div>
+        <div class="pad mt24">
+          <div class="hero-title">Wie sollen dich<br>andere sehen?</div>
+          <div class="hero-text">Bevor du teilst, brauchen deine Mitglieder einen Namen für dich. Er steht neben deinen Änderungen.</div>
+          <div class="mt28">
+            <div class="field-label">Dein Name</div>
+            <div class="input focused">Chris</div>
+            <div class="input-hint">Jederzeit im Profil änderbar.</div>
+          </div>
+        </div>
+        <div class="bottom-actions">
+          <div class="btn btn-primary">Weiter</div>
+        </div>
+      </div></div></div>
+    </div>
+
+    <!-- 1C: Inline im Invite -->
+    <div class="variant">
+      <div class="variant-label">1C · Inline im Einladen-Screen</div>
+      <div class="variant-note">Kein zusätzlicher Schritt: Der Link ist erst scharf, wenn der Name steht. Dichter, aber zwei Dinge auf einem Screen.</div>
+      <div class="frame-scale"><div class="phone-frame"><div class="screen">
+        <div class="status-bar"><span class="status-time">9:41</span><span class="status-dots"><i></i><i></i></span></div>
+        <div class="nav-header"><span class="nav-back">Zurück</span><span class="nav-title">Einladen</span><span class="nav-spacer"></span></div>
+        <div class="pad">
+          <div class="notice notice-teal mb20">
+            <div class="notice-emoji">👋</div>
+            <div><div class="notice-title">Noch ein Schritt</div><div class="notice-text">Damit deine Mitglieder wissen, wer du bist.</div></div>
+          </div>
+          <div class="field-label">Dein Name</div>
+          <div class="input focused mb20">Chris</div>
+          <div class="field-label">Einladungslink</div>
+          <div class="card pad" style="opacity:0.4">
+            <div style="font-size:13px;color:var(--text-dim);font-weight:600">shopzebra.app/join/…</div>
+          </div>
+          <div class="input-hint">Wird erzeugt, sobald dein Name steht.</div>
+          <div class="btn btn-primary mt24">Link erstellen</div>
+        </div>
+      </div></div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ 2. PROFIL IM GAST-ZUSTAND ============ -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-title">2 · Profil im Gast-Zustand</div>
+    <div class="section-desc">
+      Der Einstieg zum freiwilligen Verknüpfen. Die Gratwanderung: ehrlich über das Risiko informieren (Gerät weg = Daten weg),
+      ohne zum Dauer-Nudge zu werden — kontenlos bleibt laut Entscheidung dauerhaft vollwertig.
+    </div>
+  </div>
+  <div class="row">
+
+    <!-- 2A: dezent -->
+    <div class="variant">
+      <div class="variant-label">2A · Dezent, als Zeile</div>
+      <div class="variant-note">Kein Drängeln. Wer es sucht, findet es — wer nicht, wird nie erinnert. Risiko: bleibt unentdeckt.</div>
+      <div class="frame-scale"><div class="phone-frame"><div class="screen">
+        <div class="status-bar"><span class="status-time">9:41</span><span class="status-dots"><i></i><i></i></span></div>
+        <div class="nav-header"><span class="nav-back">Zurück</span><span class="nav-title">Profil</span><span class="nav-spacer"></span></div>
+        <div class="profile-hero">
+          <div class="avatar">C</div>
+          <div class="profile-name">Chris</div>
+          <div class="profile-sub">Ohne Konto</div>
+        </div>
+        <div class="pad">
+          <div class="section-label">Konto</div>
+          <div class="card mb20">
+            <div class="setting-row">
+              <div class="setting-icon teal">🔒</div>
+              <div class="setting-content"><div class="setting-label-text">Daten sichern</div><div class="setting-value">Mit Konto verknüpfen</div></div>
+              <div class="chevron">›</div>
+            </div>
+          </div>
+          <div class="section-label">App</div>
+          <div class="card">
+            <div class="setting-row"><div class="setting-icon">🎨</div><div class="setting-content"><div class="setting-label-text">Darstellung</div></div><div class="chevron">›</div></div>
+            <div class="setting-row"><div class="setting-icon">🔔</div><div class="setting-content"><div class="setting-label-text">Mitteilungen</div></div><div class="chevron">›</div></div>
+          </div>
+        </div>
+      </div></div></div>
+    </div>
+
+    <!-- 2B: Karte -->
+    <div class="variant">
+      <div class="variant-label">2B · Hinweiskarte oben</div>
+      <div class="variant-note">Sagt klar, was auf dem Spiel steht, ohne zu blockieren. Empfohlen: ehrlich und trotzdem ignorierbar.</div>
+      <div class="frame-scale"><div class="phone-frame"><div class="screen">
+        <div class="status-bar"><span class="status-time">9:41</span><span class="status-dots"><i></i><i></i></span></div>
+        <div class="nav-header"><span class="nav-back">Zurück</span><span class="nav-title">Profil</span><span class="nav-spacer"></span></div>
+        <div class="profile-hero" style="padding-bottom:18px">
+          <div class="avatar">C</div>
+          <div class="profile-name">Chris</div>
+          <div class="profile-sub">Ohne Konto</div>
+        </div>
+        <div class="pad">
+          <div class="notice notice-orange mb20">
+            <div class="notice-emoji">📱</div>
+            <div>
+              <div class="notice-title">Nur auf diesem Gerät</div>
+              <div class="notice-text">Geht das Handy verloren, sind deine Listen weg. Mit einem Konto bleiben sie erhalten.</div>
+              <div class="btn btn-primary sm mt12" style="width:auto;padding-left:18px;padding-right:18px;display:inline-flex">Daten sichern</div>
+            </div>
+          </div>
+          <div class="section-label">App</div>
+          <div class="card">
+            <div class="setting-row"><div class="setting-icon">🎨</div><div class="setting-content"><div class="setting-label-text">Darstellung</div></div><div class="chevron">›</div></div>
+            <div class="setting-row"><div class="setting-icon">🔔</div><div class="setting-content"><div class="setting-label-text">Mitteilungen</div></div><div class="chevron">›</div></div>
+          </div>
+        </div>
+      </div></div></div>
+    </div>
+
+    <!-- 2C: Badge am Avatar -->
+    <div class="variant">
+      <div class="variant-label">2C · Zustand am Avatar</div>
+      <div class="variant-note">Der Gast-Status wird Teil der Identität statt einer Warnung. Am leisesten — und am leichtesten zu übersehen.</div>
+      <div class="frame-scale"><div class="phone-frame"><div class="screen">
+        <div class="status-bar"><span class="status-time">9:41</span><span class="status-dots"><i></i><i></i></span></div>
+        <div class="nav-header"><span class="nav-back">Zurück</span><span class="nav-title">Profil</span><span class="nav-spacer"></span></div>
+        <div class="profile-hero">
+          <div class="avatar guest">C</div>
+          <div class="profile-name">Chris</div>
+          <div class="profile-sub">Gast · nicht gesichert</div>
+          <div class="btn btn-ghost sm mt16" style="width:auto;padding-left:22px;padding-right:22px">🔒 Daten sichern</div>
+        </div>
+        <div class="pad mt8">
+          <div class="section-label">App</div>
+          <div class="card">
+            <div class="setting-row"><div class="setting-icon">🎨</div><div class="setting-content"><div class="setting-label-text">Darstellung</div></div><div class="chevron">›</div></div>
+            <div class="setting-row"><div class="setting-icon">🔔</div><div class="setting-content"><div class="setting-label-text">Mitteilungen</div></div><div class="chevron">›</div></div>
+            <div class="setting-row"><div class="setting-icon">👥</div><div class="setting-content"><div class="setting-label-text">Freunde</div></div><div class="chevron">›</div></div>
+          </div>
+        </div>
+      </div></div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ 3. DATEN SICHERN — AUSWAHL ============ -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-title">3 · Daten sichern — Auswahl der Konto-Art</div>
+    <div class="section-desc">
+      Google, Apple und E-Mail/Passwort. Wichtig: Es ist kein Registrieren-Formular — die Identität existiert schon,
+      sie bekommt nur einen Weg zurück. Die Texte sagen deshalb „sichern", nicht „Konto erstellen".
+    </div>
+  </div>
+  <div class="row">
+
+    <!-- 3A -->
+    <div class="variant">
+      <div class="variant-label">3A · Drei gleichwertige Wege</div>
+      <div class="variant-note">Alle Optionen sofort sichtbar, kein verstecktes „mehr". Drei Buttons untereinander.</div>
+      <div class="frame-scale"><div class="phone-frame"><div class="screen">
+        <div class="status-bar"><span class="status-time">9:41</span><span class="status-dots"><i></i><i></i></span></div>
+        <div class="nav-header"><span class="nav-back">Zurück</span><span class="nav-title">Daten sichern</span><span class="nav-spacer"></span></div>
+        <div class="pad mt16">
+          <div class="hero-title">Damit nichts<br>verloren geht</div>
+          <div class="hero-text">Deine Listen bleiben genau wie sie sind — du bekommst nur einen Weg zurück, wenn das Gerät wechselt.</div>
+          <div class="mt28">
+            <div class="btn btn-ghost mb10"><span class="btn-icon g-icon">G</span> Mit Google sichern</div>
+            <div class="btn btn-ghost mb10"><span class="btn-icon"><svg viewBox="0 0 384 512" width="15" height="15" fill="#fff"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg></span> Mit Apple sichern</div>
+            <div class="btn btn-ghost"><span class="btn-icon" style="font-size:15px">✉️</span> Mit E-Mail sichern</div>
+          </div>
+          <div class="input-hint mt20" style="text-align:center">Du bleibst derselbe Nutzer — nichts wird kopiert oder verschoben.</div>
+        </div>
+      </div></div></div>
+    </div>
+
+    <!-- 3B -->
+    <div class="variant">
+      <div class="variant-label">3B · Social zuerst, E-Mail als Nachsatz</div>
+      <div class="variant-note">Lenkt auf den Ein-Tap-Weg (kein Passwort, kein Postfach). E-Mail wirkt dadurch zweitrangig.</div>
+      <div class="frame-scale"><div class="phone-frame"><div class="screen">
+        <div class="status-bar"><span class="status-time">9:41</span><span class="status-dots"><i></i><i></i></span></div>
+        <div class="nav-header"><span class="nav-back">Zurück</span><span class="nav-title">Daten sichern</span><span class="nav-spacer"></span></div>
+        <div class="pad mt16">
+          <div class="hero-title">Damit nichts<br>verloren geht</div>
+          <div class="hero-text">Ein Tap genügt. Deine Listen bleiben genau wie sie sind.</div>
+          <div class="mt28">
+            <div class="btn btn-primary mb10"><span class="btn-icon g-icon">G</span> Weiter mit Google</div>
+            <div class="btn btn-ghost"><span class="btn-icon"><svg viewBox="0 0 384 512" width="15" height="15" fill="#fff"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg></span> Weiter mit Apple</div>
+          </div>
+          <div class="btn-text mt16">Lieber mit E-Mail und Passwort</div>
+        </div>
+        <div class="bottom-actions">
+          <div class="input-hint" style="text-align:center">Du bleibst derselbe Nutzer — nichts wird kopiert oder verschoben.</div>
+        </div>
+      </div></div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ 4. E-MAIL-WEG ============ -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-title">4 · Der E-Mail-Weg (drei Schritte)</div>
+    <div class="section-desc">
+      Adresse eingeben → Code aus dem Postfach → Passwort setzen. Technisch: <code>updateUserAttributes</code> +
+      <code>verifyUserAttribute</code> + Passwortwechsel am bestehenden Schattenkonto. Die <code>sub</code> bleibt gleich.
+    </div>
+  </div>
+  <div class="row">
+
+    <div class="variant">
+      <div class="variant-label">4.1 · Adresse</div>
+      <div class="variant-note">Ein Feld, ein Button. Der Hinweis nimmt die Sorge, hier entstehe ein zweites Konto.</div>
+      <div class="frame-scale"><div class="phone-frame"><div class="screen">
+        <div class="status-bar"><span class="status-time">9:41</span><span class="status-dots"><i></i><i></i></span></div>
+        <div class="nav-header"><span class="nav-back">Zurück</span><span class="nav-title">Mit E-Mail sichern</span><span class="nav-spacer"></span></div>
+        <div class="pad mt24">
+          <div class="hero-title">Deine E-Mail</div>
+          <div class="hero-text">Wir schicken dir einen sechsstelligen Code.</div>
+          <div class="mt28">
+            <div class="field-label">E-Mail</div>
+            <div class="input focused">chris@example.com</div>
+            <div class="input-hint">Deine Listen bleiben unverändert — die Adresse wird nur zu deinem Anmeldeweg.</div>
+          </div>
+        </div>
+        <div class="bottom-actions"><div class="btn btn-primary">Code anfordern</div></div>
+      </div></div></div>
+    </div>
+
+    <div class="variant">
+      <div class="variant-label">4.2 · Code</div>
+      <div class="variant-note">Sechs Felder, Auto-Advance. „Erneut senden" nach 30 s aktiv.</div>
+      <div class="frame-scale"><div class="phone-frame"><div class="screen">
+        <div class="status-bar"><span class="status-time">9:41</span><span class="status-dots"><i></i><i></i></span></div>
+        <div class="nav-header"><span class="nav-back">Zurück</span><span class="nav-title">Code eingeben</span><span class="nav-spacer"></span></div>
+        <div class="pad mt24">
+          <div class="hero-title">Code aus der<br>E-Mail</div>
+          <div class="hero-text">Gesendet an chris@example.com</div>
+          <div class="mt28 code-row">
+            <div class="code-box filled">3</div><div class="code-box filled">1</div><div class="code-box filled">2</div>
+            <div class="code-box cursor"></div><div class="code-box"></div><div class="code-box"></div>
+          </div>
+          <div class="btn-text mt20">Erneut senden (28 s)</div>
+        </div>
+        <div class="bottom-actions"><div class="btn btn-primary">Bestätigen</div></div>
+      </div></div></div>
+    </div>
+
+    <div class="variant">
+      <div class="variant-label">4.3 · Geschafft</div>
+      <div class="variant-note">Bestätigung mit konkreter Aussage statt „Erfolg!". Danach zurück ins Profil.</div>
+      <div class="frame-scale"><div class="phone-frame"><div class="screen">
+        <div class="status-bar"><span class="status-time">9:41</span><span class="status-dots"><i></i><i></i></span></div>
+        <div class="pad" style="padding-top:120px;text-align:center">
+          <div style="font-size:64px;margin-bottom:20px">🔒</div>
+          <div class="hero-title" style="font-size:27px">Deine Daten sind gesichert</div>
+          <div class="hero-text mt12">Du kannst dich jetzt auf jedem Gerät mit <b>chris@example.com</b> anmelden. Deine 4 Listen und 6 Rezepte sind dabei.</div>
+        </div>
+        <div class="bottom-actions"><div class="btn btn-primary">Fertig</div></div>
+      </div></div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ 5. E-MAIL SCHON VERGEBEN ============ -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-title">5 · Die E-Mail gehört schon zu einem Konto <span style="color:var(--orange)">← direkt aus dem Spike-Befund</span></div>
+    <div class="section-desc">
+      Der Spike hat gezeigt: Cognito lehnt eine bereits vergebene E-Mail <b>nicht</b> ab, sondern hängt den Alias still um —
+      der Erstbesitzer verlöre seinen E-Mail-Login. Die App muss den Konflikt deshalb selbst erkennen (<code>ListUsers</code>)
+      und in den Einloggen-plus-Merge-Weg führen. Ohne diesen Screen gäbe es einen stillen Defekt.
+    </div>
+  </div>
+  <div class="row">
+
+    <!-- 5A -->
+    <div class="variant">
+      <div class="variant-label">5A · Inline im E-Mail-Screen</div>
+      <div class="variant-note">Fehler dort, wo er entsteht — der Nutzer kann die Adresse einfach korrigieren. Der Ausweg steht als Button darunter.</div>
+      <div class="frame-scale"><div class="phone-frame"><div class="screen">
+        <div class="status-bar"><span class="status-time">9:41</span><span class="status-dots"><i></i><i></i></span></div>
+        <div class="nav-header"><span class="nav-back">Zurück</span><span class="nav-title">Mit E-Mail sichern</span><span class="nav-spacer"></span></div>
+        <div class="pad mt24">
+          <div class="hero-title">Deine E-Mail</div>
+          <div class="mt24">
+            <div class="field-label">E-Mail</div>
+            <div class="input" style="border-color:rgba(224,123,123,0.5)">chris@example.com</div>
+            <div class="input-hint" style="color:var(--red)">Zu dieser Adresse gibt es schon ein ShopZebra-Konto.</div>
+          </div>
+          <div class="notice notice-teal mt20">
+            <div class="notice-emoji">↩️</div>
+            <div><div class="notice-title">Ist das dein Konto?</div>
+            <div class="notice-text">Melde dich an — deine 4 Listen von diesem Gerät kommen mit.</div></div>
+          </div>
+          <div class="btn btn-primary mt16">Stattdessen anmelden</div>
+          <div class="btn-danger-text">Andere Adresse verwenden</div>
+        </div>
+      </div></div></div>
+    </div>
+
+    <!-- 5B -->
+    <div class="variant">
+      <div class="variant-label">5B · Eigener Zwischen-Screen</div>
+      <div class="variant-note">Nimmt den Fall ernst und erklärt ihn ganz. Kostet einen Sprung — und der Fall ist selten.</div>
+      <div class="frame-scale"><div class="phone-frame"><div class="screen">
+        <div class="status-bar"><span class="status-time">9:41</span><span class="status-dots"><i></i><i></i></span></div>
+        <div class="nav-header"><span class="nav-back">Zurück</span><span class="nav-title"></span><span class="nav-spacer"></span></div>
+        <div class="pad" style="padding-top:60px;text-align:center">
+          <div style="font-size:56px;margin-bottom:18px">👤</div>
+          <div class="hero-title" style="font-size:25px">Dieses Konto<br>gibt es schon</div>
+          <div class="hero-text mt12">Zu <b>chris@example.com</b> existiert bereits ein ShopZebra-Konto.</div>
+        </div>
+        <div class="pad mt24">
+          <div class="notice notice-teal">
+            <div class="notice-emoji">📥</div>
+            <div><div class="notice-title">Nichts geht verloren</div>
+            <div class="notice-text">Meldest du dich an, wandern deine 4 Listen von diesem Gerät in das Konto.</div></div>
+          </div>
+        </div>
+        <div class="bottom-actions">
+          <div class="btn btn-primary">Anmelden</div>
+          <div class="btn-danger-text">Andere Adresse verwenden</div>
+        </div>
+      </div></div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ 6. MERGE-BESTÄTIGUNG ============ -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-title">6 · Bestätigung vor dem Zusammenführen</div>
+    <div class="section-desc">
+      Entschieden ist: automatisch zusammenführen, <b>kein</b> „lokal oder remote?"-Dialog — aber ein Hinweis vorher,
+      mit Abbrechen als Ausweg. Erscheint beim Anmelden, wenn auf dem Gerät Gast-Daten liegen.
+    </div>
+  </div>
+  <div class="row">
+
+    <!-- 6A -->
+    <div class="variant">
+      <div class="variant-label">6A · Sheet mit Zahl</div>
+      <div class="variant-note">Kurz und beiläufig, unterbricht den Login-Fluss kaum. Der Nutzer sieht nicht, welche Listen gemeint sind.</div>
+      <div class="frame-scale"><div class="phone-frame"><div class="screen">
+        <div class="status-bar"><span class="status-time">9:41</span><span class="status-dots"><i></i><i></i></span></div>
+        <div class="nav-header"><span class="nav-back">Zurück</span><span class="nav-title">Anmelden</span><span class="nav-spacer"></span></div>
+        <div class="pad" style="opacity:0.5">
+          <div class="field-label">E-Mail</div><div class="input mb16">chris@example.com</div>
+          <div class="field-label">Passwort</div><div class="input">••••••••••</div>
+        </div>
+        <div class="sheet-backdrop"></div>
+        <div class="sheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-title">Deine Listen kommen mit</div>
+          <div class="sheet-text">Auf diesem Gerät liegen <b>4 Listen</b> und <b>6 Rezepte</b>. Sie werden deinem Konto hinzugefügt — nichts wird ersetzt oder gelöscht.</div>
+          <div class="btn btn-primary">Weiter</div>
+          <div class="btn-danger-text">Abbrechen</div>
+        </div>
+      </div></div></div>
+    </div>
+
+    <!-- 6B -->
+    <div class="variant">
+      <div class="variant-label">6B · Seite mit Auflistung</div>
+      <div class="variant-note">Zeigt konkret, was mitkommt — am ehrlichsten bei einer nicht umkehrbaren Aktion. Empfohlen, wenn der Fall selten ist.</div>
+      <div class="frame-scale"><div class="phone-frame"><div class="screen">
+        <div class="status-bar"><span class="status-time">9:41</span><span class="status-dots"><i></i><i></i></span></div>
+        <div class="nav-header"><span class="nav-back">Zurück</span><span class="nav-title">Anmelden</span><span class="nav-spacer"></span></div>
+        <div class="pad mt8">
+          <div class="hero-title" style="font-size:24px">Diese Listen<br>kommen mit</div>
+          <div class="hero-text mt8">Sie werden deinem Konto hinzugefügt. Nichts wird ersetzt oder gelöscht.</div>
+          <div class="mt24">
+            <div class="list-tile"><div class="list-emoji" style="background:rgba(107,191,107,0.15)">🥦</div><div><div class="list-name">Wocheneinkauf</div><div class="list-meta">12 Sachen</div></div></div>
+            <div class="list-tile"><div class="list-emoji" style="background:rgba(232,146,58,0.15)">🍞</div><div><div class="list-name">Bäcker</div><div class="list-meta">3 Sachen</div></div></div>
+            <div class="list-tile"><div class="list-emoji" style="background:rgba(78,157,166,0.15)">🎉</div><div><div class="list-name">Geburtstag</div><div class="list-meta">8 Sachen</div></div></div>
+            <div class="list-tile" style="opacity:0.55"><div class="list-emoji" style="background:rgba(255,255,255,0.06)">📖</div><div><div class="list-name">und 6 Rezepte</div><div class="list-meta">Sammlung</div></div></div>
+          </div>
+        </div>
+        <div class="bottom-actions">
+          <div class="btn btn-primary">Weiter</div>
+          <div class="btn-danger-text">Abbrechen</div>
+        </div>
+      </div></div></div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
