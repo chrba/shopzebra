@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopZebra – Welche Liste teile ich hier? (Vorschläge)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ========================================
+     Welche Liste teile ich hier? — Vorschläge
+     Mitglieder- und Einladen-Screen nennen die Liste heute nirgends.
+     Drei Varianten, noch nicht entschieden.
+     ======================================== */
+
+  [data-theme="dark"] {
+    --body-bg: #0a0a0e;
+    --screen-bg: #121216;
+    --surface: rgba(255,255,255,0.04);
+    --surface-border: rgba(255,255,255,0.07);
+    --teal: #4E9DA6;
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255,255,255,0.5);
+    --text-dim: rgba(255,255,255,0.35);
+    --card-bg: rgba(255,255,255,0.03);
+    --card-border: rgba(255,255,255,0.06);
+    --green: #6BBF6B; --green-bg: rgba(107,191,107,0.15);
+    --blue: #5BA8D5;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--body-bg);
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    color: var(--text-primary);
+    padding: 40px 32px 80px;
+  }
+
+  .page-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 30px; font-weight: 800; margin-bottom: 6px; }
+  .page-sub { font-size: 14px; color: var(--text-secondary); max-width: 840px; line-height: 1.6; margin-bottom: 38px; }
+  .page-sub strong { color: var(--text-primary); }
+
+  .section { margin-bottom: 56px; }
+  .section-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .section-desc { font-size: 13px; color: var(--text-secondary); max-width: 840px; line-height: 1.55; margin-bottom: 22px; }
+
+  .row { display: flex; gap: 26px; flex-wrap: wrap; align-items: flex-start; }
+  .variant { width: 300px; }
+  .variant-label { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+  .variant-label .pick { color: var(--teal); }
+  .variant-note { font-size: 11.5px; color: var(--text-dim); margin-bottom: 12px; line-height: 1.5; min-height: 56px; }
+
+  .frame-scale { width: 300px; height: 439px; }
+  .phone-frame {
+    width: 390px; height: 570px; background: var(--screen-bg);
+    border-radius: 44px; overflow: hidden; position: relative;
+    border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 0 40px rgba(0,0,0,0.5);
+    transform: scale(0.769); transform-origin: top left;
+  }
+
+  .status-bar { display: flex; justify-content: space-between; padding: 14px 28px 8px; }
+  .status-time { font-size: 15px; font-weight: 700; }
+  .status-dots { display: flex; gap: 5px; align-items: center; }
+  .status-dots i { width: 15px; height: 9px; border-radius: 2px; background: rgba(255,255,255,0.55); display: block; }
+
+  /* ===== Nav header, mit optionalem Untertitel ===== */
+  .nav-header { display: flex; align-items: center; justify-content: space-between; padding: 6px 24px 16px; }
+  .nav-back { color: var(--teal); font-size: 15px; font-weight: 600; white-space: nowrap; }
+  .nav-back::before { content: '‹'; font-size: 22px; margin-right: 4px; vertical-align: -2px; }
+  .nav-titles { text-align: center; }
+  .nav-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 17px; font-weight: 700; }
+  .nav-sub { font-size: 12px; color: var(--text-dim); font-weight: 600; margin-top: 1px; }
+  .nav-spacer { width: 62px; }
+
+  /* ===== Kontextzeile (Variante B) ===== */
+  .context-row {
+    display: flex; align-items: center; gap: 11px; margin: 0 22px 16px;
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 16px; padding: 11px 14px;
+  }
+  .context-emoji {
+    width: 38px; height: 38px; border-radius: 12px; background: var(--green-bg);
+    display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;
+  }
+  .context-name { font-family: 'Bricolage Grotesque', sans-serif; font-size: 15px; font-weight: 700; }
+  .context-meta { font-size: 11.5px; color: var(--text-dim); font-weight: 500; margin-top: 1px; }
+
+  /* ===== Mitglieder ===== */
+  .members { padding: 0 22px; display: flex; flex-direction: column; gap: 10px; }
+  .member-card { background: var(--card-bg); display: flex; align-items: center; gap: 12px; border-radius: 16px; padding: 13px 15px; }
+  .member-avatar { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; color: #fff; flex-shrink: 0; }
+  .member-name { font-size: 15px; font-weight: 600; }
+  .member-role { font-size: 12.5px; color: var(--text-secondary); font-weight: 500; }
+  .member-role.admin { color: var(--teal); }
+
+  .invite-cta {
+    margin: 10px 22px 0; background: var(--card-bg); border-radius: 16px;
+    padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 5px;
+  }
+  .invite-cta-icon { width: 42px; height: 42px; border-radius: 50%; background: rgba(78,157,166,0.1); color: var(--teal); display: flex; align-items: center; justify-content: center; font-size: 19px; margin-bottom: 3px; }
+  .invite-cta-title { font-size: 15px; font-weight: 600; }
+  .invite-cta-sub { font-size: 12.5px; color: var(--text-secondary); }
+
+  /* ===== Einladen ===== */
+  .qr-wrap { display: flex; flex-direction: column; align-items: center; padding: 4px 22px 0; }
+  .qr { width: 168px; height: 168px; background: #fff; border-radius: 16px; display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(7, 1fr); padding: 14px; gap: 3px; }
+  .qr i { background: #0a0a0e; border-radius: 2px; }
+  .qr i.off { background: transparent; }
+  .qr-caption { font-size: 13.5px; font-weight: 600; margin-top: 12px; }
+  .qr-hint { font-size: 12px; color: var(--text-dim); margin-top: 3px; text-align: center; line-height: 1.45; }
+  .qr-hint strong { color: var(--text-secondary); font-weight: 700; }
+  .link-row {
+    margin: 14px 22px 0; background: var(--surface); border: 1px solid var(--surface-border);
+    border-radius: 14px; padding: 13px 15px; font-size: 12.5px; color: var(--text-secondary);
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  }
+  .share-label { font-size: 11px; font-weight: 700; color: var(--text-dim); letter-spacing: 1px; margin: 16px 22px 8px; }
+  .share-btn { margin: 0 22px 8px; background: var(--card-bg); border-radius: 14px; padding: 13px 15px; font-size: 14.5px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+  .share-dot { width: 22px; height: 22px; border-radius: 50%; background: rgba(107,191,107,0.25); }
+
+  .note { max-width: 840px; font-size: 13px; color: var(--text-secondary); line-height: 1.6; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 16px 18px; }
+  .note strong { color: var(--text-primary); }
+</style>
+</head>
+<body>
+
+<div class="page-title">Welche Liste teile ich hier?</div>
+<div class="page-sub">
+  Beide Sharing-Screens nennen die Liste heute <strong>nirgends</strong> — im Kopf steht
+  „Mitglieder" bzw. „Einladen", sonst nichts. Wer zwei Listen teilt, weiß nicht, welche gerade
+  gemeint ist. Auch das Original-Mockup (<code>design/pure/invite.html</code>) hat den Namen
+  nicht, das ist also keine vergessene Umsetzung, sondern eine offene Frage.
+</div>
+
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-title">Mitglieder-Screen</div>
+  <div class="section-desc">Der Einstieg ins Teilen — von hier führt die Karte weiter zum Einladen.</div>
+
+  <div class="row">
+
+    <!-- A -->
+    <div class="variant">
+      <div class="variant-label">A · Untertitel im Kopf <span class="pick">— Empfehlung</span></div>
+      <div class="variant-note">
+        Zweck oben, Liste klein darunter. Kostet keine Höhe, funktioniert auf beiden Screens
+        gleich und lässt sich in einem Zug für Rezepte mitnehmen.
+      </div>
+      <div class="frame-scale"><div class="phone-frame">
+        <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+        <div class="nav-header">
+          <div class="nav-back">Zurück</div>
+          <div class="nav-titles">
+            <div class="nav-title">Mitglieder</div>
+            <div class="nav-sub">Wocheneinkauf</div>
+          </div>
+          <div class="nav-spacer"></div>
+        </div>
+        <div class="members">
+          <div class="member-card"><div class="member-avatar" style="background:#6BBF6B">C</div><div><div class="member-name">Christian</div><div class="member-role admin">Admin · Du</div></div></div>
+          <div class="member-card"><div class="member-avatar" style="background:#5BA8D5">S</div><div><div class="member-name">Sarah</div><div class="member-role">Mitglied</div></div></div>
+        </div>
+        <div class="invite-cta"><div class="invite-cta-icon">&#43;</div><div class="invite-cta-title">Neues Mitglied einladen</div><div class="invite-cta-sub">Per QR-Code, Link, WhatsApp oder E-Mail</div></div>
+      </div></div>
+    </div>
+
+    <!-- B -->
+    <div class="variant">
+      <div class="variant-label">B · Kontextzeile unter dem Kopf</div>
+      <div class="variant-note">
+        Die Liste als vertraute Kachel — gleiches Emoji, gleiche Farbe wie in der Übersicht.
+        Am eindeutigsten wiederzuerkennen, kostet aber eine Zeile Höhe.
+      </div>
+      <div class="frame-scale"><div class="phone-frame">
+        <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+        <div class="nav-header">
+          <div class="nav-back">Zurück</div>
+          <div class="nav-titles"><div class="nav-title">Mitglieder</div></div>
+          <div class="nav-spacer"></div>
+        </div>
+        <div class="context-row">
+          <div class="context-emoji">&#128722;</div>
+          <div><div class="context-name">Wocheneinkauf</div><div class="context-meta">12 Sachen · 2 Mitglieder</div></div>
+        </div>
+        <div class="members">
+          <div class="member-card"><div class="member-avatar" style="background:#6BBF6B">C</div><div><div class="member-name">Christian</div><div class="member-role admin">Admin · Du</div></div></div>
+          <div class="member-card"><div class="member-avatar" style="background:#5BA8D5">S</div><div><div class="member-name">Sarah</div><div class="member-role">Mitglied</div></div></div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- C -->
+    <div class="variant">
+      <div class="variant-label">C · Liste ist der Titel</div>
+      <div class="variant-note">
+        Der Name steht groß im Kopf, der Zweck verschwindet. Man sieht sofort welche Liste —
+        aber nicht mehr, auf welchem Screen man ist.
+      </div>
+      <div class="frame-scale"><div class="phone-frame">
+        <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+        <div class="nav-header">
+          <div class="nav-back">Zurück</div>
+          <div class="nav-titles"><div class="nav-title">Wocheneinkauf</div></div>
+          <div class="nav-spacer"></div>
+        </div>
+        <div class="members">
+          <div class="member-card"><div class="member-avatar" style="background:#6BBF6B">C</div><div><div class="member-name">Christian</div><div class="member-role admin">Admin · Du</div></div></div>
+          <div class="member-card"><div class="member-avatar" style="background:#5BA8D5">S</div><div><div class="member-name">Sarah</div><div class="member-role">Mitglied</div></div></div>
+        </div>
+        <div class="invite-cta"><div class="invite-cta-icon">&#43;</div><div class="invite-cta-title">Neues Mitglied einladen</div><div class="invite-cta-sub">Per QR-Code, Link, WhatsApp oder E-Mail</div></div>
+      </div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-title">Einladen-Screen</div>
+  <div class="section-desc">
+    Hier zählt es am meisten: Wer den QR-Code zeigt oder den Link verschickt, gibt Zugriff —
+    und sollte wissen, worauf.
+  </div>
+
+  <div class="row">
+
+    <!-- A -->
+    <div class="variant">
+      <div class="variant-label">A · Untertitel im Kopf <span class="pick">— Empfehlung</span></div>
+      <div class="variant-note">
+        Dieselbe Stelle wie beim Mitglieder-Screen. Dazu der Satz unter dem Code, der aus dem
+        Namen einen Satz macht — er stand ohnehin schon im verschickten Text.
+      </div>
+      <div class="frame-scale"><div class="phone-frame">
+        <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+        <div class="nav-header">
+          <div class="nav-back">Zurück</div>
+          <div class="nav-titles">
+            <div class="nav-title">Einladen</div>
+            <div class="nav-sub">Wocheneinkauf</div>
+          </div>
+          <div class="nav-spacer"></div>
+        </div>
+        <div class="qr-wrap">
+          <div class="qr"><i></i><i></i><i class="off"></i><i></i><i class="off"></i><i></i><i></i><i></i><i class="off"></i><i></i><i class="off"></i><i></i><i class="off"></i><i></i><i class="off"></i><i></i><i></i><i></i><i></i><i class="off"></i><i></i><i></i><i class="off"></i><i></i><i class="off"></i><i></i><i></i><i class="off"></i><i class="off"></i><i></i><i class="off"></i><i></i><i></i><i class="off"></i><i></i><i></i><i></i><i></i><i class="off"></i><i></i><i></i><i class="off"></i><i></i><i class="off"></i><i></i><i></i><i class="off"></i><i></i><i></i></div>
+          <div class="qr-caption">QR-Code scannen</div>
+          <div class="qr-hint">Wer das scannt, kommt in <strong>Wocheneinkauf</strong></div>
+        </div>
+        <div class="link-row">shopzebra.app/join/9f3a…</div>
+      </div></div>
+    </div>
+
+    <!-- B -->
+    <div class="variant">
+      <div class="variant-label">B · Kontextzeile unter dem Kopf</div>
+      <div class="variant-note">
+        Wie beim Mitglieder-Screen die Kachel. Verbraucht hier aber Platz, den QR-Code und
+        Link brauchen — der Screen wird schnell eng.
+      </div>
+      <div class="frame-scale"><div class="phone-frame">
+        <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+        <div class="nav-header">
+          <div class="nav-back">Zurück</div>
+          <div class="nav-titles"><div class="nav-title">Einladen</div></div>
+          <div class="nav-spacer"></div>
+        </div>
+        <div class="context-row">
+          <div class="context-emoji">&#128722;</div>
+          <div><div class="context-name">Wocheneinkauf</div><div class="context-meta">12 Sachen · 2 Mitglieder</div></div>
+        </div>
+        <div class="qr-wrap">
+          <div class="qr"><i></i><i></i><i class="off"></i><i></i><i class="off"></i><i></i><i></i><i></i><i class="off"></i><i></i><i class="off"></i><i></i><i class="off"></i><i></i><i class="off"></i><i></i><i></i><i></i><i></i><i class="off"></i><i></i><i></i><i class="off"></i><i></i><i class="off"></i><i></i><i></i><i class="off"></i><i class="off"></i><i></i><i class="off"></i><i></i><i></i><i class="off"></i><i></i><i></i><i></i><i></i><i class="off"></i><i></i><i></i><i class="off"></i><i></i><i class="off"></i><i></i><i></i><i class="off"></i><i></i><i></i></div>
+          <div class="qr-caption">QR-Code scannen</div>
+        </div>
+        <div class="link-row">shopzebra.app/join/9f3a…</div>
+      </div></div>
+    </div>
+
+    <!-- C -->
+    <div class="variant">
+      <div class="variant-label">C · Liste ist der Titel</div>
+      <div class="variant-note">
+        Groß und eindeutig, aber „Einladen" fällt weg — auf einem Screen voller Teilen-Wege
+        verzichtbar, im Zurück-Weg aber verwirrend.
+      </div>
+      <div class="frame-scale"><div class="phone-frame">
+        <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+        <div class="nav-header">
+          <div class="nav-back">Zurück</div>
+          <div class="nav-titles"><div class="nav-title">Wocheneinkauf</div></div>
+          <div class="nav-spacer"></div>
+        </div>
+        <div class="qr-wrap">
+          <div class="qr"><i></i><i></i><i class="off"></i><i></i><i class="off"></i><i></i><i></i><i></i><i class="off"></i><i></i><i class="off"></i><i></i><i class="off"></i><i></i><i class="off"></i><i></i><i></i><i></i><i></i><i class="off"></i><i></i><i></i><i class="off"></i><i></i><i class="off"></i><i></i><i></i><i class="off"></i><i class="off"></i><i></i><i class="off"></i><i></i><i></i><i class="off"></i><i></i><i></i><i></i><i></i><i class="off"></i><i></i><i></i><i class="off"></i><i></i><i class="off"></i><i></i><i></i><i class="off"></i><i></i><i></i></div>
+          <div class="qr-caption">QR-Code scannen</div>
+          <div class="qr-hint">oder Einladungslink teilen</div>
+        </div>
+        <div class="link-row">shopzebra.app/join/9f3a…</div>
+        <div class="share-label">EINLADUNG SENDEN</div>
+        <div class="share-btn"><span class="share-dot"></span>Per WhatsApp</div>
+      </div></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Was dranhängt</div>
+  <div class="note">
+    <strong>Alle Varianten gelten für Rezepte mit.</strong> Beide Screens sind schon
+    aggregat-generisch (<code>MembersPage</code>, <code>InvitePage</code>) — sie bekommen den
+    Namen als Prop, genau wie heute schon die Wortlaute. Variante A braucht dafür einen
+    optionalen Untertitel am gemeinsamen <code>PageHeader</code>, den auch Profil, Bearbeiten
+    und Freunde erben würden; B und C kommen ohne Änderung an gemeinsamen Bausteinen aus.
+  </div>
+</div>
+
+</body>
+</html>

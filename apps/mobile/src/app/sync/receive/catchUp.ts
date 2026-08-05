@@ -72,8 +72,14 @@ async function advanceCursorPast(
  * Called at engine start, on app resume and on network reconnect. Pulls
  * every aggregate the caller may see, whatever its kind.
  * Failures are isolated per aggregate — one broken list never blocks the rest.
+ *
+ * Returns what the server showed. That set is authoritative about access:
+ * anything held locally and missing from it is no longer ours. Acting on
+ * that is the caller's business — this file knows nothing about slices.
  */
-export async function catchUp(deps: CatchUpDeps): Promise<void> {
+export async function catchUp(
+  deps: CatchUpDeps,
+): Promise<readonly Aggregate[]> {
   const aggregates = await deps.fetchAggregates()
   for (const aggregate of aggregates) {
     try {
@@ -85,4 +91,5 @@ export async function catchUp(deps: CatchUpDeps): Promise<void> {
       console.warn(`sync: catch-up for ${cursorKeyOf(aggregate)} failed`, error)
     }
   }
+  return aggregates
 }

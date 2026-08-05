@@ -74,11 +74,18 @@ export async function loadShadowCredentials(): Promise<ShadowCredentials | null>
 export async function ensureShadowAccount(name?: string): Promise<string> {
   const existing = await loadShadowCredentials()
   const credentials = existing ?? generateShadowCredentials()
+  const displayName = name?.trim() ?? ''
 
   if (existing === null) {
+    // The name travels with the sign-up: the account carries it from the
+    // moment it exists, before the first sign-in and long before the join
+    // that reads it back. One round trip less, and one race less.
     await signUp({
       username: credentials.username,
       password: credentials.password,
+      ...(displayName === ''
+        ? {}
+        : { options: { userAttributes: { name: displayName } } }),
     })
     // Persisted only after Cognito accepted them — credentials that belong
     // to no account would lock the device out of its own identity.
@@ -89,8 +96,10 @@ export async function ensureShadowAccount(name?: string): Promise<string> {
     username: credentials.username,
     password: credentials.password,
   })
-  if (name !== undefined && name !== '') {
-    await updateUserAttributes({ userAttributes: { name } })
+
+  // An account that already existed carries no name from this share yet.
+  if (displayName !== '' && existing !== null) {
+    await updateUserAttributes({ userAttributes: { name: displayName } })
   }
   const { userId } = await getCurrentUser()
   return userId

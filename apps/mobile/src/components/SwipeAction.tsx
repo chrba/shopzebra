@@ -211,7 +211,7 @@ export function SwipeAction({
     <div className="relative flex flex-col overflow-hidden rounded-2xl">
       {/* Background: the action on the left, revealed on swipe right */}
       <div
-        className={`absolute inset-0 z-0 flex items-center justify-start pl-5 ${
+        className={`absolute inset-0 z-0 flex items-center justify-start ${
           tone === 'destructive' ? 'bg-destructive/15' : 'bg-teal/15'
         }`}
         onClick={(e) => {
@@ -219,24 +219,34 @@ export function SwipeAction({
           onTrigger()
         }}
       >
+        {/* Exactly as wide as the foreground travels — icon and word beside
+            each other ran past that edge, and the sliding card cut the word
+            two pixels in, leaving a stray glyph on its edge. Stacked they
+            fit, and the width comes from the same constant as the gesture
+            so the two can never drift apart again. */}
         <div
-          className={`flex size-10 items-center justify-center rounded-full ${
-            tone === 'destructive' ? 'bg-destructive/20' : 'bg-teal/20'
-          }`}
+          className="flex shrink-0 flex-col items-center justify-center gap-1"
+          style={{ width: ACTION_ZONE_WIDTH }}
         >
-          {tone === 'destructive' ? (
-            <Trash2 className="text-destructive size-5" />
-          ) : (
-            <LogOut className="text-teal size-5" />
-          )}
+          <div
+            className={`flex size-9 items-center justify-center rounded-full ${
+              tone === 'destructive' ? 'bg-destructive/20' : 'bg-teal/20'
+            }`}
+          >
+            {tone === 'destructive' ? (
+              <Trash2 className="text-destructive size-[18px]" />
+            ) : (
+              <LogOut className="text-teal size-[18px]" />
+            )}
+          </div>
+          <span
+            className={`text-[10px] leading-none font-bold ${
+              tone === 'destructive' ? 'text-destructive' : 'text-teal'
+            }`}
+          >
+            {label}
+          </span>
         </div>
-        <span
-          className={`ml-2 text-[11px] font-bold ${
-            tone === 'destructive' ? 'text-destructive' : 'text-teal'
-          }`}
-        >
-          {label}
-        </span>
       </div>
 
       {/* Foreground: Slides right to reveal delete.

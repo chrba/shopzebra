@@ -6,7 +6,7 @@
 // lives one file over, in identityThunks.ts.
 
 import { signOut, updateUserAttributes } from 'aws-amplify/auth'
-import type { AppDispatch } from '../../../app/store'
+import type { AppDispatch, RootState } from '../../../app/store'
 import { removeItem } from '../../../app/clientStorage'
 import { stopSync } from '../../../app/sync/startSync'
 import { listsLoaded } from '../../lists/domain/listsSlice'
@@ -30,7 +30,8 @@ import { RECIPE_PREFS_KEY } from '../../preferences/domain/preferencesClientStor
 import { recipesLoaded } from '../../recipes/domain/recipesSlice'
 import { RECIPES_KEY } from '../../recipes/domain/recipesClientStorageHandler'
 import { SHADOW_CREDENTIALS_KEY } from './shadowAccount'
-import { displayNameChanged, identityCleared } from './authSlice'
+import { rememberDeviceName } from './deviceName'
+import { displayNameChanged, identityCleared, selectHasIdentity } from './authSlice'
 
 // Mirrors router.ts's bootstrap keys — per-user storage purged on
 // sign-out so a shared device never leaks one user's data to the next.
@@ -81,18 +82,26 @@ export const performSignOut = () => async (dispatch: AppDispatch) => {
 }
 
 /**
- * Persists the display name. Called when the profile's name field loses
- * focus. Without this the attribute never reaches Cognito, and every
- * member on the members screen would show a fallback instead of a name.
+ * Renames this device. Called when the profile's name field loses focus.
+ *
+ * The device is the owner of its name — it had one before any account
+ * existed, so the local write comes first and always happens. Cognito only
+ * gets told when there is an account to tell; otherwise the name travels
+ * with the account when it is created.
  */
 export const performChangeDisplayName =
-  (args: { readonly name: string }) => async (dispatch: AppDispatch) => {
+  (args: { readonly name: string }) =>
+  async (dispatch: AppDispatch, getState: () => RootState) => {
     const name = args.name.trim()
     if (name === '') return
+
+    await rememberDeviceName(name)
+    dispatch(displayNameChanged({ name }))
+
+    if (!selectHasIdentity(getState())) return
     try {
       await updateUserAttributes({ userAttributes: { name } })
-      dispatch(displayNameChanged({ name }))
     } catch (error: unknown) {
-      console.warn('changing the display name failed', error)
+      console.warn('telling Cognito the new name failed', error)
     }
   }

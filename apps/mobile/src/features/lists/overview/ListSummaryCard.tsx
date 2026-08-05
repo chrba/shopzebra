@@ -43,6 +43,17 @@ export type ListSummaryViewModel = {
    * a shared list says whose it is before anyone taps it.
    */
   readonly ownerName: string | null
+  /**
+   * Only the owner may invite (owner model, domain-model.md §2). On a list
+   * somebody else owns the plus would open a screen that can only refuse.
+   */
+  readonly canInvite: boolean
+  /**
+   * Renaming a list belongs to whoever owns it — a member may only fill it.
+   * Without the pencil the corner stays empty, which is the difference one
+   * sees between one's own tiles and somebody else's.
+   */
+  readonly canEdit: boolean
 }
 
 type ListSummaryCardProps = {
@@ -88,18 +99,20 @@ export function ListSummaryCard({
         if (e.key === 'Enter') onClick()
       }}
     >
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        className="absolute right-3 bottom-3 z-3 opacity-60 transition-opacity duration-200 active:opacity-100"
-        onClick={(e) => {
-          e.stopPropagation()
-          onEdit()
-        }}
-        aria-label="Liste bearbeiten"
-      >
-        <EditIcon />
-      </Button>
+      {list.canEdit && (
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          className="absolute right-3 bottom-3 z-3 opacity-60 transition-opacity duration-200 active:opacity-100"
+          onClick={(e) => {
+            e.stopPropagation()
+            onEdit()
+          }}
+          aria-label="Liste bearbeiten"
+        >
+          <EditIcon />
+        </Button>
+      )}
 
       <CardContent className="flex flex-col gap-2.5 px-0 py-0">
         <div
@@ -112,7 +125,9 @@ export function ListSummaryCard({
           {list.name}
         </CardTitle>
 
-        <CardDescription className="text-xs font-medium">
+        {/* Never wraps: with a long owner name a second line would make the
+            foreign tile taller than one's own, right next to it in the grid. */}
+        <CardDescription className="truncate text-xs font-medium">
           {list.itemCount} Items
           {list.ownerName !== null && ` · von ${list.ownerName}`}
         </CardDescription>
@@ -146,9 +161,11 @@ export function ListSummaryCard({
               +{list.members.length - VISIBLE_AVATARS}
             </span>
           )}
-          <span className="border-border ml-1 flex size-6 items-center justify-center rounded-full border border-dashed">
-            <InviteIcon className="text-teal size-3.5 fill-current" />
-          </span>
+          {list.canInvite && (
+            <span className="border-border ml-1 flex size-6 items-center justify-center rounded-full border border-dashed">
+              <InviteIcon className="text-teal size-3.5 fill-current" />
+            </span>
+          )}
         </button>
       </CardContent>
     </Card>

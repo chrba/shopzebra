@@ -1,11 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { useAppDispatch, useAppSelector } from '../../app/store'
-import { selectIdentity } from '../auth/domain/authSlice'
-import {
-  FirstShareNameSheet,
-  needsNameBeforeSharing,
-} from '../sharing/FirstShareNameSheet'
+import { useAppDispatch } from '../../app/store'
+import { ensureIdentity } from '../auth/domain/identityThunks'
 import { friendIntentCleared } from '../lists/join/joinIntentSlice'
 import { friendsLoaded } from './domain/friendsSlice'
 import { acceptFriendInvite, fetchFriends } from './friendCommands'
@@ -28,10 +24,9 @@ type AcceptFriendPageProps = {
 export function AcceptFriendPage({ token }: AcceptFriendPageProps) {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
-  const identity = useAppSelector(selectIdentity)
-  const [state, setState] = useState<
-    'asking' | 'naming' | 'accepting' | 'failed'
-  >('asking')
+  const [state, setState] = useState<'asking' | 'accepting' | 'failed'>(
+    'asking',
+  )
 
   const finish = (to: '/friends' | '/lists') => {
     dispatch(friendIntentCleared())
@@ -40,6 +35,9 @@ export function AcceptFriendPage({ token }: AcceptFriendPageProps) {
 
   const accept = async () => {
     setState('accepting')
+    // Becoming somebody's contact needs an account; it is made here rather
+    // than asked for — this device has had a name since its first start.
+    await dispatch(ensureIdentity())
     try {
       await acceptFriendInvite(token)
     } catch (error: unknown) {
@@ -56,15 +54,7 @@ export function AcceptFriendPage({ token }: AcceptFriendPageProps) {
     finish('/friends')
   }
 
-  // Becoming someone's contact is a shared act: it needs an account and a
-  // name, so a device without one is asked first.
-  const handleAccept = () => {
-    if (needsNameBeforeSharing(identity)) {
-      setState('naming')
-      return
-    }
-    void accept()
-  }
+  const handleAccept = () => void accept()
 
 
   if (state === 'failed') {
@@ -120,10 +110,6 @@ export function AcceptFriendPage({ token }: AcceptFriendPageProps) {
           Ablehnen
         </Button>
       </div>
-
-      {state === 'naming' && (
-        <FirstShareNameSheet confirmLabel="Annehmen" onDone={accept} />
-      )}
     </div>
   )
 }

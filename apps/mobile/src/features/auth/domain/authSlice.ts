@@ -16,9 +16,13 @@ export type AuthProvider = 'email' | 'google' | 'apple'
  * email or a social account was attached to that same Cognito user. The
  * userId never changes between guest and linked — linking upgrades the
  * account, it does not migrate anything.
+ *
+ * A name exists in **every** state, drawn at the very first start. Nobody
+ * is ever asked for it, so there is no state in which we do not know what
+ * to call this device.
  */
 export type Identity =
-  | { readonly kind: 'none' }
+  | { readonly kind: 'none'; readonly name: string }
   | { readonly kind: 'guest'; readonly userId: string; readonly name: string }
   | {
       readonly kind: 'linked'
@@ -38,13 +42,27 @@ type AuthState = {
 // --- Slice ---
 
 const initialState: AuthState = {
-  identity: { kind: 'none' },
+  // Empty only until the boot hands the drawn name over — see deviceName.ts.
+  identity: { kind: 'none', name: '' },
 }
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
+    /**
+     * The name this device goes by, drawn once at the first start and
+     * restored from storage on every later one. Dispatched before the
+     * identity is restored, so a name that Cognito knows still wins.
+     */
+    deviceNamed: (
+      state: AuthState,
+      action: PayloadAction<{ readonly name: string }>,
+    ): AuthState => ({
+      ...state,
+      identity: { ...state.identity, name: action.payload.name },
+    }),
+
     // The shadow account exists from now on. Dispatched by ensureIdentity
     // after Cognito confirmed it, and at boot for a restored session.
     guestIdentityCreated: (
@@ -58,7 +76,8 @@ const authSlice = createSlice({
       identity: {
         kind: 'guest',
         userId: action.payload.userId,
-        name: action.payload.name,
+        // Accounts from before the naming carry none — the drawn name stands.
+        name: action.payload.name || state.identity.name,
       },
     }),
 
@@ -93,7 +112,11 @@ const authSlice = createSlice({
       }>,
     ): AuthState => ({
       ...state,
-      identity: { kind: 'linked', ...action.payload },
+      identity: {
+        kind: 'linked',
+        ...action.payload,
+        name: action.payload.name || state.identity.name,
+      },
     }),
 
     // Announces the docking. Folded by lists/recipes via extraReducers —
@@ -119,9 +142,10 @@ const authSlice = createSlice({
             identity: { ...state.identity, name: action.payload.name },
           },
 
+    // Signing out ends the account, not the device — the name stays.
     identityCleared: (state: AuthState): AuthState => ({
       ...state,
-      identity: { kind: 'none' },
+      identity: { kind: 'none', name: state.identity.name },
     }),
   },
 })
@@ -129,6 +153,7 @@ const authSlice = createSlice({
 // --- Actions ---
 
 export const {
+  deviceNamed,
   guestIdentityCreated,
   identityLinked,
   linkedIdentityRestored,
@@ -153,8 +178,9 @@ export const selectHasIdentity = (state: StateWithAuth): boolean =>
 export const selectIsGuest = (state: StateWithAuth): boolean =>
   state.auth.identity.kind === 'guest'
 
+/** What this device is called — never empty once the boot has run. */
 export const selectDisplayName = (state: StateWithAuth): string =>
-  state.auth.identity.kind === 'none' ? '' : state.auth.identity.name
+  state.auth.identity.name
 
 /** The author of everything this device writes — sentinel until attached. */
 export const selectCurrentUserId = (state: StateWithAuth): string =>

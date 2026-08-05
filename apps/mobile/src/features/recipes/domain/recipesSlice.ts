@@ -108,6 +108,20 @@ const recipesSlice = createSlice({
       }),
     }),
 
+    /**
+     * Local-only: this device stops holding the recipe — left, or removed
+     * by its owner. The payload names the id `id` and not `recipeId` on
+     * purpose: a recipeId at the root would put this into the outbox, where
+     * it would be posted to a recipe we are no longer a member of.
+     */
+    recipeLeft: (
+      state: RecipesState,
+      action: PayloadAction<{ readonly id: string }>,
+    ): RecipesState => ({
+      ...state,
+      recipes: state.recipes.filter((recipe) => recipe.id !== action.payload.id),
+    }),
+
     recipeDeleted: (
       state: RecipesState,
       action: PayloadAction<{ readonly recipeId: string }>,
@@ -224,6 +238,7 @@ export const {
   recipeUpdated,
   recipeDeleted,
   recipeMemberAdded,
+  recipeLeft,
   recipeMemberRemoved,
   recipeOwnerNamesLoaded,
 } = recipesSlice.actions

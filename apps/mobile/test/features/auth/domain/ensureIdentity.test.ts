@@ -24,6 +24,7 @@ vi.mock('@/app/clientStorage', () => ({
 import { store } from '@/app/store'
 import { ensureIdentity } from '@/features/auth/domain/identityThunks'
 import {
+  deviceNamed,
   identityCleared,
   selectCurrentUserId,
   selectIsGuest,
@@ -36,14 +37,17 @@ describe('ensureIdentity', () => {
     rewriteQueuedAuthor.mockClear()
     startSync.mockClear()
     store.dispatch(identityCleared())
+    // The device named itself at its first start; the account inherits it.
+    store.dispatch(deviceNamed({ name: 'Naschzebra' }))
   })
 
   // The whole point: the account appears at the first share, not at install —
-  // and the queue is rewritten BEFORE the engine may flush it.
+  // and the queue is rewritten BEFORE the engine may flush it. The name is
+  // never asked for; the account is born with the one the device carries.
   test('creates the account, rewrites the queue, then starts syncing', async () => {
-    await store.dispatch(ensureIdentity('Chris'))
+    await store.dispatch(ensureIdentity())
 
-    expect(ensureShadowAccount).toHaveBeenCalledWith('Chris')
+    expect(ensureShadowAccount).toHaveBeenCalledWith('Naschzebra')
     expect(rewriteQueuedAuthor).toHaveBeenCalledWith('local-user', 'sub-123')
     expect(selectIsGuest(store.getState())).toBe(true)
     expect(selectCurrentUserId(store.getState())).toBe('sub-123')
@@ -61,14 +65,14 @@ describe('ensureIdentity', () => {
       listCreated({ listId: 'l1', name: 'Einkauf', ownerId: 'local-user' }),
     )
 
-    await store.dispatch(ensureIdentity('Chris'))
+    await store.dispatch(ensureIdentity())
 
     expect(selectListById(store.getState(), 'l1')?.ownerId).toBe('sub-123')
   })
 
   test('is idempotent — a second call creates no second account', async () => {
-    await store.dispatch(ensureIdentity('Chris'))
-    await store.dispatch(ensureIdentity('Chris'))
+    await store.dispatch(ensureIdentity())
+    await store.dispatch(ensureIdentity())
     expect(ensureShadowAccount).toHaveBeenCalledTimes(1)
   })
 })

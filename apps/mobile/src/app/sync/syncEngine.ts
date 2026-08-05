@@ -7,6 +7,8 @@
 import type { PayloadAction } from '../createSlice'
 import { getItem, setItem } from '../clientStorage'
 import { Outbox, type OutboxEntry, type SyncStorage } from './outbox'
+import { cursorsGuardedByFoldedState } from './receive/guardedCursors'
+import { cursorKeyOf, type Aggregate } from './aggregate'
 import { withRewrittenAuthor } from './authorRewrite'
 import { drainOutbox } from './send/drainOutbox'
 import { toOutboxEntry } from './send/toOutboxEntry'
@@ -40,6 +42,13 @@ export class SyncEngine {
   // Backoff for a blocked queue (offline/5xx): 1s → 30s, reset on success.
   private failedAttempts = 0
   private retryTimer: ReturnType<typeof setTimeout> | null = null
+
+  // What this device currently holds, and how to let go of one — both
+  // installed by start(), because the engine must not know about Redux.
+  // The empty default is the careful one: no cursor is resumed until
+  // somebody vouches for the fold behind it, and nothing is dropped.
+  private heldAggregates: () => readonly Aggregate[] = () => []
+  private dropAggregate: (aggregate: Aggregate) => void = () => {}
 
   constructor(
     private readonly storage: SyncStorage,
@@ -88,7 +97,17 @@ export class SyncEngine {
    * yet, allows server contact from now on, and resolves when the first
    * sync cycle is done.
    */
-  async start(dispatch: Dispatch): Promise<void> {
+  async start(
+    dispatch: Dispatch,
+    local?: {
+      readonly heldAggregates: () => readonly Aggregate[]
+      readonly dropAggregate: (aggregate: Aggregate) => void
+    },
+  ): Promise<void> {
+    if (local) {
+      this.heldAggregates = local.heldAggregates
+      this.dropAggregate = local.dropAggregate
+    }
     if (!this.outbox) await this.openLocalLog(dispatch)
     this.mayContactServer = true
     return this.requestSync()
@@ -170,12 +189,40 @@ export class SyncEngine {
     } else {
       this.failedAttempts = 0
     }
-    await catchUp({
-      ledger: outbox,
+    const held = this.heldAggregates()
+    const heldKeys = new Set(held.map(cursorKeyOf))
+    const visible = await catchUp({
+      ledger: cursorsGuardedByFoldedState(outbox, (aggregate) =>
+        heldKeys.has(cursorKeyOf(aggregate)),
+      ),
       dispatch,
       fetchAggregates: this.transport.fetchAggregates,
       fetchEventsSince: this.transport.fetchEventsSince,
     })
+    this.dropWhatIsNoLongerOurs(outbox, held, visible)
+  }
+
+  /**
+   * Lets go of aggregates the server no longer shows us. Being removed from
+   * a list is the one membership change whose event never reaches the
+   * removed device — access ends with it — so absence from the collection
+   * is the only signal there is.
+   *
+   * Guarded by the cursor: an aggregate the server never confirmed was
+   * written here and has not been sent yet. Dropping those would delete a
+   * guest's own lists on their first cycle.
+   */
+  private dropWhatIsNoLongerOurs(
+    outbox: Outbox,
+    held: readonly Aggregate[],
+    visible: readonly Aggregate[],
+  ): void {
+    const visibleKeys = new Set(visible.map(cursorKeyOf))
+    for (const aggregate of held) {
+      if (visibleKeys.has(cursorKeyOf(aggregate))) continue
+      if (outbox.cursorFor(aggregate) === null) continue
+      this.dropAggregate(aggregate)
+    }
   }
 
   // The retry timer is just another requestSync trigger.

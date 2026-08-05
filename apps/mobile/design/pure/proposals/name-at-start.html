@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopZebra – Name beim ersten Start (3 Vorschläge)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ========================================
+     Name beim ersten Start — 3 Vorschläge
+     Statt beim ersten Teilen. Die drei unterscheiden sich nicht im
+     Aussehen, sondern darin, wie viel sie vor die App stellen.
+     ======================================== */
+
+  [data-theme="dark"] {
+    --body-bg: #0a0a0e;
+    --screen-bg: #121216;
+    --surface: rgba(255,255,255,0.04);
+    --surface-border: rgba(255,255,255,0.08);
+    --teal: #4E9DA6;
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255,255,255,0.5);
+    --text-dim: rgba(255,255,255,0.35);
+    --card-bg: rgba(255,255,255,0.03);
+    --card-border: rgba(255,255,255,0.06);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--body-bg);
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    color: var(--text-primary);
+    padding: 34px 30px 60px;
+  }
+
+  .page-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 26px; font-weight: 800; margin-bottom: 5px; }
+  .page-sub { font-size: 13.5px; color: var(--text-secondary); max-width: 900px; line-height: 1.6; margin-bottom: 28px; }
+  .page-sub strong { color: var(--text-primary); }
+
+  .row { display: flex; gap: 26px; flex-wrap: wrap; align-items: flex-start; }
+  .variant { width: 300px; }
+  .variant-label { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+  .variant-label .pick { color: var(--teal); }
+  .variant-note { font-size: 11.5px; color: var(--text-dim); margin-bottom: 11px; line-height: 1.5; min-height: 72px; }
+
+  .frame-scale { width: 300px; height: 470px; }
+  .phone-frame {
+    width: 390px; height: 620px; background: var(--screen-bg);
+    border-radius: 42px; overflow: hidden; position: relative;
+    border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 0 36px rgba(0,0,0,0.5);
+    transform: scale(0.769); transform-origin: top left;
+  }
+
+  .status-bar { display: flex; justify-content: space-between; padding: 14px 28px 8px; }
+  .status-time { font-size: 15px; font-weight: 700; }
+  .status-dots { display: flex; gap: 5px; align-items: center; }
+  .status-dots i { width: 15px; height: 9px; border-radius: 2px; background: rgba(255,255,255,0.55); display: block; }
+
+  /* ===== Onboarding-Inhalt ===== */
+  .hero { display: flex; flex-direction: column; align-items: center; padding: 0 30px; height: calc(100% - 46px); }
+  .hero.centered { justify-content: center; }
+  .logo {
+    width: 78px; height: 78px; border-radius: 26px;
+    background: rgba(78,157,166,0.13); display: flex; align-items: center;
+    justify-content: center; font-size: 38px; margin-bottom: 22px;
+  }
+  .hero-title {
+    font-family: 'Bricolage Grotesque', sans-serif; font-size: 24px; font-weight: 800;
+    line-height: 1.2; text-align: center; margin-bottom: 10px;
+  }
+  .hero-text { font-size: 14px; color: var(--text-secondary); line-height: 1.55; text-align: center; margin-bottom: 26px; }
+  .input {
+    background: var(--surface); border: 1px solid var(--surface-border);
+    border-radius: 15px; padding: 15px 16px; font-size: 16px; font-weight: 600;
+    color: var(--text-primary); width: 100%; text-align: center;
+  }
+  .input.filled { border-color: rgba(78,157,166,0.5); }
+  .input.empty { color: var(--text-dim); font-weight: 500; }
+  .btn {
+    margin-top: 12px; border-radius: 15px; padding: 16px; width: 100%;
+    font-size: 16px; font-weight: 700; text-align: center;
+    background: var(--teal); color: #fff;
+  }
+  .btn.muted { background: var(--surface); color: var(--text-dim); }
+  .btn-text { margin-top: 10px; color: var(--text-secondary); font-size: 14.5px; font-weight: 600; text-align: center; width: 100%; }
+  .hint { font-size: 12px; color: var(--text-dim); text-align: center; margin-top: 14px; line-height: 1.5; }
+
+  /* ===== Variante 3: Listen-Übersicht mit Karte ===== */
+  .app-header { display: flex; align-items: center; justify-content: space-between; padding: 4px 22px 14px; }
+  .app-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 21px; font-weight: 800; }
+  .app-icon { color: var(--text-secondary); font-size: 21px; line-height: 1; }
+  .chips { display: flex; gap: 8px; padding: 0 22px 14px; }
+  .chip { background: var(--surface); border: 1px solid var(--surface-border); border-radius: 999px; padding: 6px 12px; font-size: 11.5px; font-weight: 600; color: var(--text-secondary); }
+
+  .name-card {
+    margin: 0 22px 14px; background: rgba(78,157,166,0.08);
+    border: 1px solid rgba(78,157,166,0.22); border-radius: 18px; padding: 15px;
+  }
+  .name-card-title { font-size: 14.5px; font-weight: 700; margin-bottom: 3px; }
+  .name-card-text { font-size: 12px; color: var(--text-secondary); line-height: 1.45; margin-bottom: 12px; }
+  .name-card-row { display: flex; gap: 8px; }
+  .name-card-row .input { text-align: left; font-size: 14px; padding: 11px 13px; border-radius: 12px; }
+  .name-card-row .go {
+    background: var(--teal); border-radius: 12px; width: 46px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 17px; color: #fff;
+  }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 22px; }
+  .tile-add {
+    border: 1px dashed var(--surface-border); background: rgba(255,255,255,0.02);
+    border-radius: 18px; min-height: 140px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 7px;
+  }
+  .tile-add-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--surface); border: 1px solid var(--surface-border); color: var(--teal); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .tile-add-label { font-size: 12px; font-weight: 600; color: var(--text-dim); }
+
+  .note { max-width: 900px; font-size: 13px; color: var(--text-secondary); line-height: 1.6; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 15px 17px; margin-top: 28px; }
+  .note strong { color: var(--text-primary); }
+  .note + .note { margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<div class="page-title">Name beim ersten Start</div>
+<div class="page-sub">
+  Statt beim ersten Teilen. Die drei unterscheiden sich kaum im Aussehen, sondern darin,
+  <strong>wie viel sie vor die App stellen</strong> — und ob man vorbeikommt, ohne zu antworten.
+  Zur Erinnerung: Ein Konto entsteht dabei nicht. Der Name liegt erst nur auf dem Gerät und
+  wandert später zum Schattenkonto, wenn das erste Teilen eines anlegt.
+</div>
+
+<div class="row">
+
+  <!-- ============ Variante 1 ============ -->
+  <div class="variant">
+    <div class="variant-label">1 · Begrüßung mit Namensfeld</div>
+    <div class="variant-note">
+      Ein richtiger Willkommens-Screen, kein Weg daran vorbei. Danach hat jeder einen Namen,
+      und die Frage beim Teilen entfällt für immer. Preis: Vor der ersten Liste steht ein
+      Formular — genau das, was „in dreißig Sekunden ausprobieren" verhindern sollte.
+    </div>
+    <div class="frame-scale"><div class="phone-frame">
+      <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+      <div class="hero centered">
+        <div class="logo">&#128722;</div>
+        <div class="hero-title">Willkommen bei<br>ShopZebra</div>
+        <div class="hero-text">
+          Wie sollen dich andere sehen? Der Name steht später neben deinen Änderungen in
+          geteilten Listen.
+        </div>
+        <div class="input empty">Dein Name</div>
+        <div class="btn muted">Los geht’s</div>
+        <div class="hint">Kein Konto, keine E-Mail — nur ein Name.</div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ============ Variante 2 ============ -->
+  <div class="variant">
+    <div class="variant-label">2 · Dieselbe Frage, aber überspringbar <span class="pick">— Empfehlung</span></div>
+    <div class="variant-note">
+      Gleicher Screen, ein Textlink mehr. Wer antwortet, wird nie wieder gefragt; wer
+      weitertippt, ist sofort in der App und bekommt die Frage erst beim ersten Teilen. Die
+      Entscheidung liegt beim Nutzer statt bei uns.
+    </div>
+    <div class="frame-scale"><div class="phone-frame">
+      <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+      <div class="hero centered">
+        <div class="logo">&#128722;</div>
+        <div class="hero-title">Wie sollen dich<br>andere sehen?</div>
+        <div class="hero-text">
+          Der Name steht neben deinen Änderungen, sobald du eine Liste teilst. Du kannst ihn
+          jederzeit ändern.
+        </div>
+        <div class="input filled">Christian</div>
+        <div class="btn">Weiter</div>
+        <div class="btn-text">Später</div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ============ Variante 3 ============ -->
+  <div class="variant">
+    <div class="variant-label">3 · Karte in der leeren Übersicht</div>
+    <div class="variant-note">
+      Gar kein eigener Screen: Die App startet wie immer, und über der leeren Übersicht liegt
+      eine Karte mit dem Feld. Nichts blockiert, die Frage ist trotzdem das Erste, was man
+      sieht — verschwindet nach dem Ausfüllen oder beim Wegwischen.
+    </div>
+    <div class="frame-scale"><div class="phone-frame">
+      <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+      <div class="app-header"><div class="app-icon">&#9786;</div><div class="app-title">Meine Listen</div><div class="app-icon">+</div></div>
+      <div class="chips"><div class="chip">0 Listen</div><div class="chip">0 Sachen</div></div>
+
+      <div class="name-card">
+        <div class="name-card-title">Wie sollen dich andere sehen?</div>
+        <div class="name-card-text">
+          Nur nötig, wenn du eine Liste teilst — dann steht der Name neben deinen Änderungen.
+        </div>
+        <div class="name-card-row">
+          <div class="input empty">Dein Name</div>
+          <div class="go">&rarr;</div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="tile-add">
+          <div class="tile-add-icon">+</div>
+          <div class="tile-add-label">Neue Liste</div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+</div>
+
+<div class="note">
+  <strong>Was in allen dreien bleibt:</strong> Wer über einen Einladungslink kommt, sieht
+  weiterhin den Beitritts-Screen mit Namensfeld — dort ist die Frage nicht vorgezogen, sondern
+  der Anfang. Und wer beim Start überspringt (2 und 3), wird beim ersten Teilen gefragt wie
+  bisher. Nur Variante 1 macht die spätere Frage überflüssig.
+</div>
+<div class="note">
+  <strong>Was es kostet:</strong> Die Entscheidung vom 2. August lautete „Anzeigename wird erst
+  beim ersten Teilen erfragt — solo völlig anonym", damit vor dem ersten Nutzen nichts steht.
+  Variante 1 kippt das, 2 weicht es auf, 3 hält es ein. Wenn die Wahl fällt, gehört die
+  Begründung in <code>architecture/accountless-first-planned.md</code>, sonst widersprechen
+  sich Doku und App.
+</div>
+
+</body>
+</html>

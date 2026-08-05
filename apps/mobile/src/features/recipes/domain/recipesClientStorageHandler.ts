@@ -1,6 +1,7 @@
 import { setItem } from '../../../app/clientStorage'
 import { isEventsConfirmed } from '../../../app/sync/withSync'
 import { identityAttached } from '../../auth/domain/authSlice'
+import { recipeLeft, recipeOwnerNamesLoaded } from './recipesSlice'
 import type { Recipe } from './recipesDomain'
 
 type RecipesState = {
@@ -20,8 +21,17 @@ export function recipesClientStorageHandler(
   getState: () => unknown,
 ): void {
   // Docking rewrites the confirmed tree in place; without this the
-  // sentinel would come back on the next start.
-  if (!isEventsConfirmed(action) && !identityAttached.match(action)) return
+  // sentinel would come back on the next start. Owner names come from
+  // GET /recipes rather than from an event, and are just as needed on
+  // disk — otherwise a restart shows "Mitglied" until the network answers.
+  if (
+    !isEventsConfirmed(action) &&
+    !identityAttached.match(action) &&
+    !recipeLeft.match(action) &&
+    !recipeOwnerNamesLoaded.match(action)
+  ) {
+    return
+  }
   const state = getState() as {
     readonly sync: { readonly confirmed: { readonly recipes: RecipesState } }
   }

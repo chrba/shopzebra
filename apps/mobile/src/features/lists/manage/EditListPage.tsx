@@ -14,7 +14,7 @@ import { ShareWithRow } from '../../sharing/ShareWithRow'
 import { memberDisplayName } from '../../sharing/memberDisplayName'
 import {
   selectCurrentUserId,
-  selectIdentity,
+  selectDisplayName,
 } from '../../auth/domain/authSlice'
 
 type EditListPageProps = {
@@ -35,8 +35,11 @@ export function EditListPage({ listId }: EditListPageProps) {
     selectListPreferences(state, listId),
   )
   const members = useAppSelector((state) => selectListMembers(state, listId))
-  const me = useAppSelector(selectIdentity)
   const currentUserId = useAppSelector(selectCurrentUserId)
+  const viewer = {
+    id: currentUserId,
+    name: useAppSelector(selectDisplayName),
+  }
 
   if (!list) {
     return (
@@ -61,7 +64,7 @@ export function EditListPage({ listId }: EditListPageProps) {
             .filter((member) => member.id !== currentUserId)
             .map((member) => ({
               id: member.id,
-              label: memberDisplayName(member, me),
+              label: memberDisplayName(member, viewer),
             }))}
           onInvite={() =>
             void navigate({

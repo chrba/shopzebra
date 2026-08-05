@@ -20,15 +20,17 @@ export type RecipeTileMember = {
 }
 
 /**
- * Who this recipe is shared with, and the way to share it further. The whole
- * row is the tap target — a lone 24px plus would be far below the 44px
- * minimum on a two-column grid.
+ * Who this recipe is shared with, and — for its owner — the way to share it
+ * further. The whole row is the tap target: a lone 24px plus would be far
+ * below the 44px minimum on a two-column grid.
  */
 function MembersRow({
   members,
+  canInvite,
   onManageMembers,
 }: {
   readonly members: readonly RecipeTileMember[]
+  readonly canInvite: boolean
   readonly onManageMembers: () => void
 }) {
   return (
@@ -55,9 +57,11 @@ function MembersRow({
           +{members.length - VISIBLE_AVATARS}
         </span>
       )}
-      <span className="border-border ml-1 flex size-6 items-center justify-center rounded-full border border-dashed">
-        <InviteIcon className="text-teal size-3.5 fill-current" />
-      </span>
+      {canInvite && (
+        <span className="border-border ml-1 flex size-6 items-center justify-center rounded-full border border-dashed">
+          <InviteIcon className="text-teal size-3.5 fill-current" />
+        </span>
+      )}
     </button>
   )
 }
@@ -71,6 +75,13 @@ type RecipeTileProps = {
   readonly durationMinutes: number | undefined
   /** Everyone but the signed-in user — their own membership is a given. */
   readonly members: readonly RecipeTileMember[]
+  /**
+   * Who this recipe belongs to — null for one's own. Named in the meta line,
+   * so a shared recipe says whose it is before anyone taps it.
+   */
+  readonly ownerName: string | null
+  /** Only the owner may invite (owner model, sharing-model.md). */
+  readonly canInvite: boolean
 }
 
 /**
@@ -86,12 +97,15 @@ export function RecipeTile({
   portions,
   durationMinutes,
   members,
+  ownerName,
+  canInvite,
 }: RecipeTileProps) {
   const navigate = useNavigate()
 
   const meta = [
     `${portions} Portionen`,
     ...(durationMinutes === undefined ? [] : [`${durationMinutes} Min`]),
+    ...(ownerName === null ? [] : [`von ${ownerName}`]),
   ].join(' · ')
 
   return (
@@ -116,10 +130,15 @@ export function RecipeTile({
       <div className="font-display text-[15px] leading-tight font-bold">
         {name}
       </div>
-      <div className="text-muted-foreground text-xs font-medium">{meta}</div>
+      {/* Never wraps: with a long owner name a second line would make the
+          foreign tile taller than one's own, right next to it in the grid. */}
+      <div className="text-muted-foreground truncate text-xs font-medium">
+        {meta}
+      </div>
 
       <MembersRow
         members={members}
+        canInvite={canInvite}
         onManageMembers={() =>
           void navigate({
             to: '/recipes/$recipeId/members',

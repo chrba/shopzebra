@@ -1,7 +1,7 @@
 import { setItem } from '../../../app/clientStorage'
 import { isEventsConfirmed } from '../../../app/sync/withSync'
 import { identityAttached } from '../../auth/domain/authSlice'
-import { listLeft } from './listsSlice'
+import { listLeft, listRestored, ownerNamesLoaded } from './listsSlice'
 import type { ShoppingList } from './listsDomain'
 
 type ListsState = {
@@ -22,10 +22,17 @@ export function listsClientStorageHandler(
 ): void {
   // Docking rewrites the confirmed tree in place and leaving drops a
   // list from it; without these the old state returns on the next start.
+  //
+  // Owner names belong here too, even though no event carries them: they
+  // come from GET /lists and fold into the confirmed tree like everything
+  // else. Left out, a restart shows "Mitglied" on every shared list until
+  // the network answers — the name would flash in seconds later.
   if (
     !isEventsConfirmed(action) &&
     !identityAttached.match(action) &&
-    !listLeft.match(action)
+    !listLeft.match(action) &&
+    !listRestored.match(action) &&
+    !ownerNamesLoaded.match(action)
   ) {
     return
   }

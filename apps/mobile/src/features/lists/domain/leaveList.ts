@@ -5,8 +5,9 @@
 import type { AppDispatch, RootState } from '../../../app/store'
 import { selectDeviceId } from '../../../app/appSlice'
 import { selectCurrentUserId } from '../../auth/domain/authSlice'
+import { authFetch, type Fetcher } from '../../../app/authFetch'
 import { removeMember } from '../../sharing/memberCommands'
-import { listLeft } from './listsSlice'
+import { listLeft, listRestored, selectListById } from './listsSlice'
 
 /**
  * True when the server refuses because it does not count us as a member.
@@ -20,26 +21,34 @@ function alreadyNotAMember(error: unknown): boolean {
 }
 
 /**
- * Removes this device's own membership, then drops the list locally.
+ * Drops the list from this device at once, then tells the server.
  *
- * Not optimistic, and not an event: the server owns membership, and once
- * it accepts the removal nobody will ever send this device the matching
- * event — leaving ends access to that log. So the local removal only
- * happens after the server confirmed it. Rejects on failure so the caller
- * can say so; the list stays until then.
+ * Optimistic on purpose: a tap must not wait for the network, and the
+ * membership the server owns is the only thing that needs its yes. If it
+ * refuses, the list comes back and the caller is told so it can say what
+ * happened — the promise rejects in that case.
+ * @param listId Which list to leave.
+ * @param fetcher Injected in tests; the app uses the authenticated one.
  */
 export const leaveList =
-  (listId: string) =>
+  (listId: string, fetcher: Fetcher = authFetch) =>
   async (dispatch: AppDispatch, getState: () => RootState): Promise<void> => {
     const state = getState()
+    const left = selectListById(state, listId)
+    dispatch(listLeft({ id: listId }))
+
     try {
       await removeMember(
         { kind: 'list', id: listId },
         selectCurrentUserId(state),
         { eventId: crypto.randomUUID(), deviceId: selectDeviceId(state) },
+        fetcher,
       )
     } catch (error: unknown) {
-      if (!alreadyNotAMember(error)) throw error
+      // Already not a member: leaving had happened before, so the list has
+      // no business coming back. Anything else is a real failure.
+      if (alreadyNotAMember(error)) return
+      if (left) dispatch(listRestored({ list: left }))
+      throw error
     }
-    dispatch(listLeft({ id: listId }))
   }

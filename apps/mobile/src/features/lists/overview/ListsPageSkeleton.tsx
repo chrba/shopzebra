@@ -48,7 +48,13 @@ export function ListsPageSkeleton() {
   return (
     <>
       <div className="min-h-screen pb-[100px]">
-        <ListsHeader title="Meine Listen" onAdd={noop} onProfile={noop} />
+        <ListsHeader
+          title="Meine Listen"
+          profileName=""
+          profileUserId=""
+          onAdd={noop}
+          onProfile={noop}
+        />
 
         <div className="flex justify-center gap-2 px-5 pb-[18px]">
           <Shimmer className="h-[30px] w-[72px] rounded-md" />

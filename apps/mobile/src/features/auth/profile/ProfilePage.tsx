@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useAppDispatch, useAppSelector } from '../../../app/store'
 import { selectIdentity } from '../domain/authSlice'
+import { isDrawnName } from '../domain/zebraNames'
 import { performChangeDisplayName, performSignOut } from '../domain/authThunks'
 import { PageHeader } from '@/components/PageHeader'
 import { DangerConfirmDialog } from '@/components/DangerConfirmDialog'
@@ -32,15 +33,6 @@ function LockIcon() {
   return (
     <svg viewBox="0 0 24 24" className="size-[18px] fill-current">
       <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
-    </svg>
-  )
-}
-
-/** Notification bell for the push-notifications toggle row. */
-function BellIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-[18px] fill-current">
-      <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
     </svg>
   )
 }
@@ -88,13 +80,13 @@ export function ProfilePage() {
   // name to show either: it is asked for one at the first share.
   const linked = identity.kind === 'linked' ? identity : null
   const email = linked?.email ?? ''
-  const displayName = identity.kind === 'none' ? '' : identity.name
+  // Never empty: the device named itself at its first start.
+  const displayName = identity.name
   const isFederated = linked !== null && linked.provider !== 'email'
   const initial = (displayName || email).charAt(0).toUpperCase() || '?'
 
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState(displayName)
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   const handleSignOut = () => {
@@ -131,8 +123,8 @@ export function ProfilePage() {
         </span>
       </div>
 
-      {/* Personal data — a nameless device is asked at its first share */}
-      {identity.kind !== 'none' && (
+      {/* Personal data — the name exists from the first start, so this
+          section is never empty. */}
       <div className="mx-5 mb-4">
         <div className="text-muted-foreground mb-2 pl-1 text-xs font-semibold uppercase tracking-wider">
           Persönliche Daten
@@ -158,9 +150,18 @@ export function ProfilePage() {
                   className="h-auto rounded-xl border-input px-3.5 py-2.5 text-[15px] font-semibold focus:border-teal focus:ring-[rgba(78,157,166,0.3)]"
                 />
               ) : (
-                <div className="text-[15px] font-semibold">
-                  {displayName || 'Name'}
-                </div>
+                <>
+                  <div className="text-[15px] font-semibold">
+                    {displayName || 'Name'}
+                  </div>
+                  {/* A drawn name is a placeholder with a face, not a
+                      choice — say so, or people take it for their own. */}
+                  {isDrawnName(displayName) && (
+                    <div className="text-muted-foreground text-[13px] font-medium">
+                      Automatisch vergeben
+                    </div>
+                  )}
+                </>
               )}
             </div>
             {!editingName && <ChevronRightIcon />}
@@ -193,37 +194,6 @@ export function ProfilePage() {
               <ChevronRightIcon />
             </button>
           )}
-        </div>
-      </div>
-      )}
-
-      {/* Notifications */}
-      <div className="mx-5 mb-4">
-        <div className="text-muted-foreground mb-2 pl-1 text-xs font-semibold uppercase tracking-wider">
-          Benachrichtigungen
-        </div>
-        <div className="bg-card overflow-hidden rounded-2xl border">
-          <div className="flex items-center gap-3 px-4 py-3.5">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-[rgba(232,146,58,0.12)] text-[#E8923A]">
-              <BellIcon />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-[15px] font-semibold">Push-Benachrichtigungen</div>
-              <div className="text-muted-foreground text-[13px] font-medium">
-                Listen-Updates, Einladungen
-              </div>
-            </div>
-            <button
-              className="relative h-7 w-12 shrink-0 rounded-full transition-colors duration-300"
-              style={{ background: notificationsEnabled ? 'var(--teal)' : 'rgba(255,255,255,0.06)' }}
-              onClick={() => setNotificationsEnabled(!notificationsEnabled)}
-            >
-              <div
-                className="absolute top-[3px] left-[3px] size-[22px] rounded-full bg-white shadow-[0_1px_4px_rgba(0,0,0,0.2)] transition-transform duration-300"
-                style={{ transform: notificationsEnabled ? 'translateX(20px)' : 'translateX(0)' }}
-              />
-            </button>
-          </div>
         </div>
       </div>
 

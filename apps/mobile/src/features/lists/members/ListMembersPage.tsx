@@ -5,7 +5,10 @@ import {
   selectListMembers,
   selectMaxMembers,
 } from '../domain/listsSlice'
+import { selectListPreferences } from '../../preferences/domain/preferencesSlice'
 import { MembersPage } from '../../sharing/MembersPage'
+
+const DEFAULT_LIST_EMOJI = '\u{1F6D2}'
 
 type ListMembersPageProps = {
   readonly listId: string
@@ -22,17 +25,25 @@ export function ListMembersPage({ listId }: ListMembersPageProps) {
   const list = useAppSelector((state) => selectListById(state, listId))
   const members = useAppSelector((state) => selectListMembers(state, listId))
   const maxMembers = useAppSelector(selectMaxMembers)
+  const preferences = useAppSelector((state) =>
+    selectListPreferences(state, listId),
+  )
 
   return (
     <MembersPage
       aggregate={{ kind: 'list', id: listId }}
+      subject={{
+        name: list?.name ?? '',
+        // The same emoji the overview tile wears, so the header reads as
+        // that list and not as a new thing.
+        emoji: preferences?.emoji ?? DEFAULT_LIST_EMOJI,
+      }}
       ownerId={list?.ownerId ?? null}
       members={members}
       maxMembers={maxMembers}
       wording={{
         missing: 'Diese Liste gibt es nicht mehr.',
         full: 'Liste ist voll',
-        accessTo: 'diese Einkaufsliste',
       }}
       onBack={() => void navigate({ to: '/lists' })}
       onInvite={() =>

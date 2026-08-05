@@ -5,9 +5,15 @@ import { recipeDeleted, selectAllRecipes } from '../domain/recipesSlice'
 import { SwipeAction } from '../../../components/SwipeAction'
 import { DangerConfirmDialog } from '../../../components/DangerConfirmDialog'
 import { selectAllRecipePreferences } from '../../preferences/domain/preferencesSlice'
-import { selectCurrentUserId, selectIdentity } from '../../auth/domain/authSlice'
+import {
+  selectCurrentUserId,
+  selectDisplayName,
+} from '../../auth/domain/authSlice'
 import { memberAvatarColor, memberInitial } from '../../lists/domain/memberAvatar'
-import { memberDisplayName } from '../../sharing/memberDisplayName'
+import {
+  MEMBER_NAME_FALLBACK,
+  memberDisplayName,
+} from '../../sharing/memberDisplayName'
 import { DEFAULT_RECIPE_EMOJI } from '../manage/recipeEmojiCatalog'
 import { Input } from '@/components/ui/input'
 import { RecipeTile } from './RecipeTile'
@@ -94,8 +100,8 @@ export function RecipesPage() {
   const dispatch = useAppDispatch()
   const recipes = useAppSelector(selectAllRecipes)
   const preferences = useAppSelector(selectAllRecipePreferences)
-  const me = useAppSelector(selectIdentity)
   const currentUserId = useAppSelector(selectCurrentUserId)
+  const displayName = useAppSelector(selectDisplayName)
   // Ephemeral UI state — search term, which tile is swiped open and which
   // deletion is waiting for a confirmation all belong to this screen only.
   const [search, setSearch] = useState('')
@@ -137,6 +143,15 @@ export function RecipesPage() {
                 color={preferences[recipe.id]?.color ?? 'green'}
                 portions={recipe.portions}
                 durationMinutes={recipe.durationMinutes}
+                // Only a foreign recipe names its owner; one's own would
+                // state the obvious.
+                ownerName={
+                  recipe.ownerId === currentUserId
+                    ? null
+                    : (recipe.memberNames?.[recipe.ownerId] ??
+                      MEMBER_NAME_FALLBACK)
+                }
+                canInvite={recipe.ownerId === currentUserId}
                 members={recipe.memberIds
                   .filter((memberId) => memberId !== currentUserId)
                   .map((memberId) => {
@@ -145,7 +160,7 @@ export function RecipesPage() {
                         id: memberId,
                         name: recipe.memberNames?.[memberId] ?? null,
                       },
-                      me,
+                      { id: currentUserId, name: displayName },
                     )
                     return {
                       id: memberId,

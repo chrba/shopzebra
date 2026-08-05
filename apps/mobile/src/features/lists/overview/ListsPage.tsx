@@ -7,10 +7,13 @@ import { leaveList } from '../domain/leaveList'
 import { memberAvatarColor, memberInitial } from '../domain/memberAvatar'
 import { MEMBER_NAME_FALLBACK, memberDisplayName } from '../../sharing/memberDisplayName'
 import { selectFriendCount } from '../../friends/domain/friendsSlice'
-import { selectCurrentUserId, selectIdentity } from '../../auth/domain/authSlice'
+import {
+  selectCurrentUserId,
+  selectDisplayName,
+} from '../../auth/domain/authSlice'
 import { selectItemCountByListId } from '../../shopping/domain/shoppingSlice'
 import { selectAllListPreferences } from '../../preferences/domain/preferencesSlice'
-import type { AccentColor } from '../../preferences/domain/preferencesDomain'
+import { defaultAccentColor } from '../../preferences/domain/preferencesDomain'
 import { ListsHeader } from './ListsHeader'
 import { SummaryChips } from './SummaryChips'
 import { ListSummaryCard } from './ListSummaryCard'
@@ -21,29 +24,6 @@ import { ListCardSkeleton } from './ListsPageSkeleton'
 import { Card } from '@/components/ui/card'
 
 // --- Helpers ---
-
-const COLORS: readonly AccentColor[] = [
-  'green',
-  'blue',
-  'red',
-  'purple',
-  'yellow',
-]
-
-function hashOf(id: string): number {
-  let hash = 0
-  for (const character of id) {
-    hash = (hash * 31 + character.charCodeAt(0)) | 0
-  }
-  return Math.abs(hash)
-}
-
-// Deterministic defaults derived from the id — no stored state, no null checks
-// (architecture/domain-model.md §3). Member display names arrive later via
-// server-written listMemberAdded events; until then the id provides the letter.
-function defaultColor(id: string): AccentColor {
-  return COLORS[hashOf(id) % COLORS.length] ?? 'green'
-}
 
 /** A list the user asked to get rid of — the verb depends on whose it is. */
 type PartingTarget = {
@@ -131,8 +111,8 @@ export function ListsPage() {
   const preferences = useAppSelector(selectAllListPreferences)
   const itemCountByListId = useAppSelector(selectItemCountByListId)
   const initialSyncDone = useAppSelector(selectInitialSyncDone)
-  const me = useAppSelector(selectIdentity)
   const currentUserId = useAppSelector(selectCurrentUserId)
+  const displayName = useAppSelector(selectDisplayName)
   const friendCount = useAppSelector(selectFriendCount)
   const toast = useToast()
 
@@ -143,11 +123,14 @@ export function ListsPage() {
       id: list.id,
       name: list.name,
       isOwn,
+      canInvite: isOwn,
+      // Only the owner renames a list; a member fills it (sharing-model.md).
+      canEdit: isOwn,
       // Only a foreign list names its owner; my own would state the obvious.
       ownerName: isOwn
         ? null
         : (list.memberNames?.[list.ownerId] ?? MEMBER_NAME_FALLBACK),
-      color: prefs?.color ?? defaultColor(list.id),
+      color: prefs?.color ?? defaultAccentColor(list.id),
       emoji: prefs?.emoji ?? '\u{1F6D2}',
       itemCount: itemCountByListId[list.id] ?? 0,
       // Own membership is a given — the circles show who else is on the
@@ -159,7 +142,7 @@ export function ListsPage() {
         initial: memberInitial(
           memberDisplayName(
             { id: memberId, name: list.memberNames?.[memberId] ?? null },
-            me,
+            { id: currentUserId, name: displayName },
           ),
         ),
         color: memberAvatarColor(memberId),
@@ -181,7 +164,8 @@ export function ListsPage() {
   }
 
   // Deleting is mine to do and takes the list from everyone; leaving only
-  // ends my own membership and needs the server's yes first.
+  // ends my own membership. Both take effect at once — the leave thunk
+  // puts the list back if the server refuses.
   const handleConfirmParting = () => {
     const target = partingTarget
     closeParting()
@@ -201,6 +185,8 @@ export function ListsPage() {
     <div className="min-h-screen pb-[100px]">
       <ListsHeader
         title="Meine Listen"
+        profileName={displayName}
+        profileUserId={currentUserId}
         onAdd={goToCreateList}
         onProfile={goToProfile}
       />

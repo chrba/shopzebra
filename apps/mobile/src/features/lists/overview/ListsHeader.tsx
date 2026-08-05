@@ -1,11 +1,25 @@
 import { Button } from '@/components/ui/button'
+import { memberAvatarColor, memberInitial } from '../domain/memberAvatar'
 
-/** Silhouette avatar used for the profile button. */
-function PersonIcon() {
+/**
+ * You, as the others see you: the same circle, colour and letter that your
+ * name wears next to your changes in a shared list. It stands here from
+ * the first start, because the device names itself instead of asking.
+ */
+function ProfileAvatar({
+  name,
+  userId,
+}: {
+  readonly name: string
+  readonly userId: string
+}) {
   return (
-    <svg viewBox="0 0 24 24" className="size-5 fill-current">
-      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-    </svg>
+    <span
+      className="flex size-8 items-center justify-center rounded-full text-[13px] font-bold text-white"
+      style={{ backgroundColor: memberAvatarColor(userId) }}
+    >
+      {memberInitial(name)}
+    </span>
   )
 }
 
@@ -20,6 +34,10 @@ function PlusIcon() {
 
 type ListsHeaderProps = {
   readonly title: string
+  /** Shown in the avatar — this device's name. */
+  readonly profileName: string
+  /** Decides the avatar's colour, exactly as it does for every member. */
+  readonly profileUserId: string
   readonly onAdd: () => void
   readonly onProfile: () => void
 }
@@ -30,7 +48,13 @@ type ListsHeaderProps = {
  * @param props.onAdd Called when the "+" button is tapped.
  * @param props.onProfile Called when the profile avatar is tapped.
  */
-export function ListsHeader({ title, onAdd, onProfile }: ListsHeaderProps) {
+export function ListsHeader({
+  title,
+  profileName,
+  profileUserId,
+  onAdd,
+  onProfile,
+}: ListsHeaderProps) {
   return (
     <header className="relative flex items-center justify-between px-5 pt-4 pb-5">
       <Button
@@ -40,7 +64,7 @@ export function ListsHeader({ title, onAdd, onProfile }: ListsHeaderProps) {
         onClick={onProfile}
         aria-label="Profil"
       >
-        <PersonIcon />
+        <ProfileAvatar name={profileName} userId={profileUserId} />
       </Button>
 
       <h1 className="font-display text-foreground text-2xl font-extrabold tracking-[-0.3px]">

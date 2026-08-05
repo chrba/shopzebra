@@ -1,29 +1,24 @@
 import { useState } from 'react'
 import { store, useAppSelector } from '../../app/store'
 import { selectDeviceId } from '../../app/appSlice'
-import { selectCurrentUserId, selectIdentity } from '../auth/domain/authSlice'
+import {
+  selectCurrentUserId,
+  selectDisplayName,
+} from '../auth/domain/authSlice'
 import { selectFriends } from '../friends/domain/friendsSlice'
 import { memberAvatarColor, memberInitial } from '../lists/domain/memberAvatar'
 import { MEMBER_NAME_FALLBACK, memberDisplayName } from './memberDisplayName'
 import {
-  FirstShareNameSheet,
-  needsNameBeforeSharing,
-} from './FirstShareNameSheet'
-import { addMember, removeMember } from './memberCommands'
+  addMember,
+  memberAddedLocally,
+  memberRemovedLocally,
+  removeMember,
+} from './memberCommands'
 import type { Aggregate } from '../../app/sync/aggregate'
 import { useToast } from '../../components/Toast'
 import { InviteIcon } from '../../components/InviteIcon'
 import { PageHeader } from '../../components/PageHeader'
-import { DangerConfirmDialog } from '../../components/DangerConfirmDialog'
-import { syncEngine } from '../../app/sync/syncEngine'
-
-function RemoveIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-4 fill-current">
-      <path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-    </svg>
-  )
-}
+import { SwipeAction } from '../../components/SwipeAction'
 
 /** Coloured circle with the person's initial — the avatar of every row. */
 function AvatarCircle({ id, name }: { readonly id: string; readonly name: string }) {
@@ -37,17 +32,24 @@ function AvatarCircle({ id, name }: { readonly id: string; readonly name: string
   )
 }
 
+/** Introduces a group of rows, e.g. "Geteilt mit" or "Deine Freunde". */
+function SectionLabel({ children }: { readonly children: string }) {
+  return (
+    <div className="text-muted-foreground mb-0.5 pl-1 text-xs font-semibold tracking-wider uppercase">
+      {children}
+    </div>
+  )
+}
+
 type MemberCardProps = {
   readonly name: string
   readonly memberId: string
   readonly role: string
   readonly isOwnerRole: boolean
-  /** Present only when the viewer may remove this member. */
-  readonly onRemove: (() => void) | null
 }
 
-/** One member of the list: avatar, name, role line, optional remove button. */
-function MemberCard({ name, memberId, role, isOwnerRole, onRemove }: MemberCardProps) {
+/** One member of the list: avatar, name, role line. */
+function MemberCard({ name, memberId, role, isOwnerRole }: MemberCardProps) {
   return (
     <div className="bg-card flex items-center gap-3 rounded-2xl px-4 py-3.5">
       <AvatarCircle id={memberId} name={name} />
@@ -61,15 +63,6 @@ function MemberCard({ name, memberId, role, isOwnerRole, onRemove }: MemberCardP
           {role}
         </div>
       </div>
-      {onRemove && (
-        <button
-          className="bg-destructive/10 text-destructive flex size-9 shrink-0 items-center justify-center rounded-full active:scale-[0.92]"
-          aria-label={`${name} entfernen`}
-          onClick={onRemove}
-        >
-          <RemoveIcon />
-        </button>
-      )}
     </div>
   )
 }
@@ -116,6 +109,14 @@ function InviteCta({ onClick }: { readonly onClick: () => void }) {
   )
 }
 
+/**
+ * "1 Mitglied" / "3 Mitglieder". Currently unused: variant B names the list
+ * in the header and no longer carries a count line.
+ */
+export function memberCountLabel(count: number): string {
+  return `${count} ${count === 1 ? 'Mitglied' : 'Mitglieder'}`
+}
+
 /** One person on the aggregate, as the screen needs them. */
 export type SharedMember = {
   readonly id: string
@@ -132,12 +133,18 @@ export type SharingWording = {
   readonly missing: string
   /** Shown when the cap is reached, e.g. "Liste ist voll". */
   readonly full: string
-  /** What a removed member loses, e.g. "diese Einkaufsliste". */
-  readonly accessTo: string
+}
+
+/** The list or recipe this screen belongs to, as the header names it. */
+export type SharedSubject = {
+  readonly name: string
+  /** The one from the overview tile, so the header reads as that thing. */
+  readonly emoji: string
 }
 
 type MembersPageProps = {
   readonly aggregate: Aggregate
+  readonly subject: SharedSubject
   /** Who owns it, or null when it no longer exists on this device. */
   readonly ownerId: string | null
   readonly members: readonly SharedMember[]
@@ -158,6 +165,7 @@ type MembersPageProps = {
  */
 export function MembersPage({
   aggregate,
+  subject,
   ownerId,
   members,
   maxMembers,
@@ -165,72 +173,54 @@ export function MembersPage({
   onBack,
   onInvite,
 }: MembersPageProps) {
-  const me = useAppSelector(selectIdentity)
   const currentUserId = useAppSelector(selectCurrentUserId)
+  const displayName = useAppSelector(selectDisplayName)
+  const viewer = { id: currentUserId, name: displayName }
   const friends = useAppSelector(selectFriends)
   const isFull = maxMembers !== null && members.length >= maxMembers
   const toast = useToast()
-  const [addingId, setAddingId] = useState<string | null>(null)
-  const [askingForName, setAskingForName] = useState(false)
-  const [pendingRemoval, setPendingRemoval] = useState<{
-    readonly id: string
-    readonly name: string
-  } | null>(null)
+  // Which row currently shows its action zone — ephemeral UI state, so it
+  // stays local (react-best-practices.md).
+  const [openSwipeId, setOpenSwipeId] = useState<string | null>(null)
 
   const isOwner = ownerId === currentUserId
-
-  // Screen 1A: sharing is the first thing that needs an account and a name
-  // (accountless-first-planned.md). The sheet opens over this screen; once
-  // it is done, the invite route mints a token as the freshly named owner.
-  const handleInvite = () => {
-    if (needsNameBeforeSharing(me)) {
-      setAskingForName(true)
-      return
-    }
-    onInvite()
-  }
 
   // Friends who are not on this list yet — the one-tap candidates.
   const candidates = friends.filter(
     (friend) => !members.some((member) => member.id === friend.id),
   )
 
+  // The row appears on the tap; the command travels afterwards. If the
+  // server refuses — full, or no longer friends — it is taken back off.
   const handleAddFriend = (friendId: string, name: string) => {
-    setAddingId(friendId)
+    store.dispatch(memberAddedLocally(aggregate, friendId, name))
     void addMember(aggregate, friendId, {
       eventId: crypto.randomUUID(),
       deviceId: selectDeviceId(store.getState()),
+    }).catch((error: unknown) => {
+      console.warn('adding the friend failed', error)
+      store.dispatch(memberRemovedLocally(aggregate, friendId))
+      toast.show(
+        String(error).includes('409')
+          ? wording.full
+          : 'Hinzufügen fehlgeschlagen',
+      )
     })
-      .then(async () => {
-        // The server wrote the member event; the fold arrives with the pull.
-        await syncEngine.requestSync()
-        toast.show(`${name} hinzugefügt`)
-      })
-      .catch((error: unknown) => {
-        console.warn('adding the friend failed', error)
-        toast.show(
-          String(error).includes('409')
-            ? wording.full
-            : 'Hinzufügen fehlgeschlagen',
-        )
-      })
-      .finally(() => setAddingId(null))
   }
 
-  const handleConfirmRemoval = () => {
-    const target = pendingRemoval
-    setPendingRemoval(null)
-    if (!target) return
-
-    void removeMember(aggregate, target.id, {
+  // No confirmation: removing somebody destroys nothing — the aggregate and
+  // everything on it stay, that person just stops taking part.
+  const handleRemove = (memberId: string, name: string) => {
+    setOpenSwipeId(null)
+    void removeMember(aggregate, memberId, {
       eventId: crypto.randomUUID(),
       deviceId: selectDeviceId(store.getState()),
     })
-      .then(async () => {
-        // The server writes the member-removed event; the fold arrives with the
-        // next pull, so the card disappears once sync confirms it.
-        await syncEngine.requestSync()
-        toast.show(`${target.name} wurde entfernt`)
+      .then(() => {
+        // The server wrote the event; folding it here is what makes the row
+        // disappear now instead of one round trip later.
+        store.dispatch(memberRemovedLocally(aggregate, memberId))
+        toast.show(`${name} wurde entfernt`)
       })
       .catch((error: unknown) => {
         console.warn('removing the member failed', error)
@@ -249,35 +239,50 @@ export function MembersPage({
   return (
     <div className="flex min-h-screen flex-col pb-10">
       <PageHeader
-        title="Mitglieder"
+        title={subject.name}
+        titleEmoji={subject.emoji}
         backLabel="Zurück"
         onBack={onBack}
       />
 
       <div className="mx-5 flex flex-col gap-2.5">
+        <SectionLabel>Geteilt mit</SectionLabel>
+
         {members.map((member) => {
-          const name = memberDisplayName(member, me)
+          const name = memberDisplayName(member, viewer)
           const isMe = member.id === currentUserId
-          return (
+          const card = (
             <MemberCard
-              key={member.id}
               memberId={member.id}
               name={name}
               role={`${member.isOwner ? 'Admin' : 'Mitglied'}${isMe ? ' · Du' : ''}`}
               isOwnerRole={member.isOwner}
-              onRemove={
-                isOwner && !isMe
-                  ? () => setPendingRemoval({ id: member.id, name })
-                  : null
-              }
             />
+          )
+
+          // Only the owner removes anybody, and never themselves — leaving
+          // is a different act and lives on the overview.
+          if (!isOwner || isMe) return <div key={member.id}>{card}</div>
+
+          return (
+            <SwipeAction
+              key={member.id}
+              isOpen={openSwipeId === member.id}
+              onOpen={() => setOpenSwipeId(member.id)}
+              onClose={() => setOpenSwipeId(null)}
+              label="Entfernen"
+              tone="destructive"
+              onTrigger={() => handleRemove(member.id, name)}
+            >
+              {card}
+            </SwipeAction>
           )
         })}
 
         {isOwner && candidates.length > 0 && (
           <>
-            <div className="text-muted-foreground mt-4 mb-0.5 pl-1 text-xs font-semibold tracking-wider uppercase">
-              Deine Freunde
+            <div className="mt-4">
+              <SectionLabel>Deine Freunde</SectionLabel>
             </div>
             {candidates.map((friend) => {
               const name = friend.name ?? MEMBER_NAME_FALLBACK
@@ -286,7 +291,7 @@ export function MembersPage({
                   key={friend.id}
                   friendId={friend.id}
                   name={name}
-                  disabled={isFull || addingId !== null}
+                  disabled={isFull}
                   onAdd={() => handleAddFriend(friend.id, name)}
                 />
               )
@@ -301,27 +306,9 @@ export function MembersPage({
         )}
 
         {isOwner && !isFull && (
-          <InviteCta onClick={handleInvite} />
+          <InviteCta onClick={onInvite} />
         )}
       </div>
-
-      {askingForName && (
-        <FirstShareNameSheet
-          onDone={() => {
-            setAskingForName(false)
-            onInvite()
-          }}
-        />
-      )}
-
-      <DangerConfirmDialog
-        open={pendingRemoval !== null}
-        title={`${pendingRemoval?.name} entfernen?`}
-        message={`${pendingRemoval?.name} hat dann keinen Zugriff mehr auf ${wording.accessTo}.`}
-        confirmLabel="Entfernen"
-        onConfirm={handleConfirmRemoval}
-        onCancel={() => setPendingRemoval(null)}
-      />
 
       {toast.element}
     </div>

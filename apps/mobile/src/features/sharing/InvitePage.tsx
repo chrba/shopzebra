@@ -1,16 +1,51 @@
+import { useRouter } from '@tanstack/react-router'
 import { InviteShare } from '../../components/InviteShare'
 import { PageHeader } from '../../components/PageHeader'
 import { Button } from '../../components/ui/button'
 import type { Invite } from './memberCommands'
 
+/**
+ * Why this screen has a link — or why it has none. The two reasons need
+ * different words and different exits: not being the owner is final, a
+ * failed request is worth another try.
+ */
+export type InviteState =
+  | { readonly status: 'ready'; readonly invite: Invite }
+  | { readonly status: 'notOwner' }
+  | { readonly status: 'unreachable' }
+
 type InvitePageProps = {
-  /** Null when the token could not be minted — usually: not the owner. */
-  readonly invite: Invite | null
+  readonly state: InviteState
   /** The sentence sent along with the link, e.g. "Komm in meine Liste …". */
   readonly invitationText: (link: string) => string
-  /** Why no link could be shown, in the words of this aggregate kind. */
-  readonly deniedMessage: string
+  /** Why only the owner may invite, in the words of this aggregate kind. */
+  readonly notOwnerMessage: string
   readonly onBack: () => void
+}
+
+/** Centred message with a way out — both dead ends share this shape. */
+function InviteNotice({
+  message,
+  actionLabel,
+  onAction,
+}: {
+  readonly message: string
+  readonly actionLabel: string
+  readonly onAction: () => void
+}) {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-8 text-center">
+      <p className="text-muted-foreground text-[15px] leading-relaxed">
+        {message}
+      </p>
+      <Button
+        className="h-auto rounded-2xl px-6 py-3 text-[15px] font-semibold"
+        onClick={onAction}
+      >
+        {actionLabel}
+      </Button>
+    </div>
+  )
 }
 
 /**
@@ -18,32 +53,34 @@ type InvitePageProps = {
  * tab toggle was dropped. Reached from the members screen's CTA card, and
  * shared by every aggregate kind — only the wording differs.
  *
- * Reached only with an identity: the members screen asks a nameless device
- * for a name first, and that is what creates the account.
+ * Reached only with an identity: the route creates the account on the way,
+ * while the pending skeleton is up.
  */
 export function InvitePage({
-  invite,
+  state,
   invitationText,
-  deniedMessage,
+  notOwnerMessage,
   onBack,
 }: InvitePageProps) {
-  if (!invite) {
+  const router = useRouter()
+
+  if (state.status === 'notOwner') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-8 text-center">
-        <p className="text-muted-foreground text-[15px] leading-relaxed">
-          {deniedMessage}
-        </p>
-        <Button
-          className="h-auto rounded-2xl px-6 py-3 text-[15px] font-semibold"
-          onClick={onBack}
-        >
-          Zurück
-        </Button>
-      </div>
+      <InviteNotice message={notOwnerMessage} actionLabel="Zurück" onAction={onBack} />
     )
   }
 
-  const inviteLink = `${window.location.origin}/join/${invite.token}`
+  if (state.status === 'unreachable') {
+    return (
+      <InviteNotice
+        message="Der Einladungslink konnte nicht geladen werden. Prüf deine Verbindung und versuch es noch einmal."
+        actionLabel="Erneut versuchen"
+        onAction={() => void router.invalidate()}
+      />
+    )
+  }
+
+  const inviteLink = `${window.location.origin}/join/${state.invite.token}`
 
   return (
     <div className="flex min-h-screen flex-col pb-10">

@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopZebra – Fremde Liste erkennen: alle Varianten</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  [data-theme="dark"] {
+    --body-bg: #0a0a0e; --screen-bg: #121216; --teal: #4E9DA6;
+    --text-primary: #ffffff; --text-secondary: rgba(255,255,255,0.5);
+    --text-dim: rgba(255,255,255,0.35);
+    --card-bg: rgba(255,255,255,0.03); --card-border: rgba(255,255,255,0.06);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--body-bg); font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; color: var(--text-primary); padding: 32px 28px 60px; }
+
+  .page-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 26px; font-weight: 800; margin-bottom: 5px; }
+  .page-sub { font-size: 13.5px; color: var(--text-secondary); max-width: 980px; line-height: 1.6; margin-bottom: 12px; }
+  .page-sub strong { color: var(--text-primary); }
+  .section-head { font-family: 'Bricolage Grotesque', sans-serif; font-size: 19px; font-weight: 700; margin: 44px 0 4px; }
+  .section-sub { font-size: 13px; color: var(--text-secondary); max-width: 980px; line-height: 1.6; margin-bottom: 20px; }
+  .section-sub strong { color: var(--text-primary); }
+
+  .row { display: flex; gap: 26px; flex-wrap: wrap; align-items: flex-start; }
+  .variant { width: 390px; }
+  .column-label { font-family: 'Bricolage Grotesque', sans-serif; font-size: 15.5px; font-weight: 700; margin-bottom: 4px; }
+  .column-hint { font-size: 11.5px; color: var(--text-dim); margin-bottom: 12px; line-height: 1.5; height: 50px; }
+  .verdict { font-size: 11.5px; color: var(--text-secondary); line-height: 1.55; margin-top: 12px; }
+  .verdict .good { color: #6BBF6B; }
+  .verdict .bad { color: #E0A45B; }
+
+  .phone-frame {
+    width: 390px; background: var(--screen-bg); border-radius: 40px; overflow: hidden;
+    position: relative; border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 0 34px rgba(0,0,0,0.5); padding-bottom: 26px;
+  }
+  .status-bar { display: flex; justify-content: space-between; padding: 13px 26px 6px; }
+  .status-time { font-size: 14px; font-weight: 700; }
+  .status-dots { display: flex; gap: 4px; align-items: center; }
+  .status-dots i { width: 14px; height: 8px; border-radius: 2px; background: rgba(255,255,255,0.55); display: block; }
+  .overview-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 20px 14px; }
+  .overview-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 22px; font-weight: 800; }
+  .overview-avatar { width: 34px; height: 34px; border-radius: 50%; background: #E07B7B; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; }
+
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 0 20px; align-items: start; }
+  .tile { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 18px; padding: 18px 15px; position: relative; }
+
+  /* Nur Fläche, kein Rand — der Rand bleibt derselbe wie bei eigenen Kacheln */
+  .tile.surface-1 { background: rgba(78,157,166,0.05); }
+  .tile.surface-2 { background: rgba(78,157,166,0.10); }
+  .tile.surface-3 { background: rgba(78,157,166,0.16); }
+
+  .tile-emoji { width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; margin-bottom: 9px; position: relative; }
+  .tint-green  { background: rgba(107,191,107,0.15); box-shadow: 0 0 20px rgba(107,191,107,0.35); }
+  .tint-blue   { background: rgba(91,168,213,0.15);  box-shadow: 0 0 20px rgba(91,168,213,0.35); }
+  .tint-purple { background: rgba(160,123,204,0.15); box-shadow: 0 0 20px rgba(160,123,204,0.35); }
+  .tint-yellow { background: rgba(232,196,74,0.15);  box-shadow: 0 0 20px rgba(232,196,74,0.35); }
+  .tile-name { font-family: 'Bricolage Grotesque', sans-serif; font-size: 15px; font-weight: 700; }
+  .tile-meta { font-size: 11.5px; color: var(--text-dim); font-weight: 500; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 4px; }
+  .meta-icon { display: inline-flex; flex-shrink: 0; }
+  .tile-pencil { position: absolute; right: 12px; bottom: 12px; font-size: 11px; opacity: 0.45; }
+
+
+  /* Nackter Glyph — kein Container, deshalb kein Knopf */
+
+
+  /* Der Platz unten rechts: eigene Liste Stift, fremde Liste Teilen-Zeichen */
+
+  .tile-meta.one-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .corner-slot.owner-name {
+    font-size: 10px; font-weight: 700; color: var(--text-dim);
+    max-width: 96px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;
+  }
+  .corner-slot { position: absolute; right: 12px; bottom: 12px; display: flex; }
+  .corner-slot.pencil { font-size: 11px; opacity: 0.45; }
+  .corner-slot.shared { color: var(--teal); }
+  .zoom-row { display: flex; gap: 54px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 10px; }
+  .zoom-case { text-align: center; }
+  .zoom-name { font-size: 12px; font-weight: 700; margin-bottom: 14px; }
+  .zoom-pair { display: flex; align-items: center; gap: 22px; }
+  .glyph-real, .glyph-big { color: var(--teal); display: flex; }
+  .flat-corner { position: absolute; top: 14px; right: 13px; display: flex; }
+  .flat-corner.teal { color: var(--teal); }
+  .flat-corner.dim { color: rgba(255,255,255,0.42); }
+  .name-glyph { color: var(--text-dim); display: inline-flex; vertical-align: -1px; margin-right: 5px; }
+  .shared-corner { position: absolute; top: 12px; right: 12px; width: 22px; height: 22px; border-radius: 50%; background: rgba(78,157,166,0.16); color: var(--teal); display: flex; align-items: center; justify-content: center; }
+  .member-row { display: flex; align-items: center; margin-top: 9px; }
+  .row-marker { color: var(--teal); display: flex; align-items: center; margin-right: 7px; flex-shrink: 0; }
+  .avatars { display: flex; }
+  .avatars span { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #17171c; margin-right: -8px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; }
+  .avatars span:last-child { margin-right: 0; }
+  .invite-circle { width: 24px; height: 24px; border-radius: 50%; margin-left: 9px; border: 1.5px dashed rgba(255,255,255,0.25); color: var(--text-dim); display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+
+  .note { max-width: 980px; font-size: 13px; color: var(--text-secondary); line-height: 1.65; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 16px 18px; margin-top: 34px; }
+  .note strong { color: var(--text-primary); }
+</style>
+</head>
+<body>
+
+<div class="page-title">Woran man eine fremde Liste erkennt</div>
+<div class="page-sub">
+  Drei fremde Listen, „Getränke" ist die eigene. Unter jeder Variante die zwei Maße:
+  <strong>Fällt es auf?</strong> und <strong>Sieht es aus wie etwas zum Antippen?</strong>
+</div>
+
+
+
+
+
+<div class="section-head">Name statt Zeichen</div>
+<div class="section-sub">
+  Für „ist geteilt" gibt es in gängigen Icon-Sätzen praktisch nur Personen, Teilen-Knoten und
+  Teilen-Pfeil — alle drei ausgeschlossen. Zeichen, die wirklich einen Zustand meinen (Schloss,
+  Globus, Auge), bedeuten etwas anderes. Deshalb hier dein zweiter Gedanke: <strong>der Name als
+  Text</strong>, an zwei Stellen, plus das übriggebliebene Kettenglied zum Vergleich.
+</div>
+<div class="section-sub">
+  In allen dreien gilt deine Regel: <strong>kein Stift auf fremden Listen.</strong> „Getränke" ist
+  die eigene und behält ihn.
+</div>
+
+<div class="row">
+  <div class="variant">
+    <div class="column-label">N1 · Name in der Zeile, Ecke bleibt leer</div>
+    <div class="column-hint">Der Stift verschwindet ersatzlos, der Name steht in der Zeile unter dem Listennamen. Unten rechts ist bei fremden Listen einfach nichts.</div>
+    <div class="phone-frame">
+      <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+      <div class="overview-head"><div class="overview-title">Meine Listen</div><div class="overview-avatar">NI</div></div>
+      <div class="grid">
+        <div class="tile">
+          <div class="tile-emoji tint-green">&#128722;</div>
+          <div class="tile-name">Wocheneinkauf</div>
+          <div class="tile-meta one-line">6 Items · von Eiszebra</div>
+          <div class="member-row"><div class="avatars"><span style="background:#5BA8D5">EI</span><span style="background:#6BBF6B">NI</span></div></div>
+          
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-purple">&#129380;</div>
+          <div class="tile-name">Drogerie</div>
+          <div class="tile-meta one-line">3 Items · von Kicherzebra</div>
+          <div class="member-row"><div class="avatars"><span style="background:#A07BCC">KI</span><span style="background:#6BBF6B">NI</span></div></div>
+          
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-yellow">&#128736;</div>
+          <div class="tile-name">Baumarkt</div>
+          <div class="tile-meta one-line">11 Items · von Pfannkuchenzebra</div>
+          <div class="member-row"><div class="avatars"><span style="background:#E8C44A">PF</span><span style="background:#6BBF6B">NI</span></div></div>
+          
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-blue">&#127866;</div>
+          <div class="tile-name">Getränke</div>
+          <div class="tile-meta one-line">4 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#6BBF6B">NI</span></div><div class="invite-circle">&#43;</div></div>
+          <div class="corner-slot pencil">&#9998;</div>
+        </div>
+      </div>
+    </div>
+    <div class="verdict">Text ist nie ein Knopf — die Verwechslung ist ausgeschlossen. Und der leere Platz unten rechts sagt selbst schon etwas: <b class="good">hier kann ich nichts bearbeiten</b>.</div>
+  </div>
+  <div class="variant">
+    <div class="column-label">N2 · Name dort, wo der Stift war</div>
+    <div class="column-hint">Der Name steht rechtsbündig genau an der Stelle des Stifts, in kleiner gedimmter Schrift.</div>
+    <div class="phone-frame">
+      <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+      <div class="overview-head"><div class="overview-title">Meine Listen</div><div class="overview-avatar">NI</div></div>
+      <div class="grid">
+        <div class="tile">
+          <div class="tile-emoji tint-green">&#128722;</div>
+          <div class="tile-name">Wocheneinkauf</div>
+          <div class="tile-meta one-line">6 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#5BA8D5">EI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="corner-slot owner-name">von Eiszebra</div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-purple">&#129380;</div>
+          <div class="tile-name">Drogerie</div>
+          <div class="tile-meta one-line">3 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#A07BCC">KI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="corner-slot owner-name">von Kicherzebra</div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-yellow">&#128736;</div>
+          <div class="tile-name">Baumarkt</div>
+          <div class="tile-meta one-line">11 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#E8C44A">PF</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="corner-slot owner-name">von Pfannkuchenzebra</div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-blue">&#127866;</div>
+          <div class="tile-name">Getränke</div>
+          <div class="tile-meta one-line">4 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#6BBF6B">NI</span></div><div class="invite-circle">&#43;</div></div>
+          <div class="corner-slot pencil">&#9998;</div>
+        </div>
+      </div>
+    </div>
+    <div class="verdict">Der Tausch ist am deutlichsten sichtbar. Dafür ist der Platz schmal — lange Namen werden gekürzt, und der Text sitzt dicht an den Avataren.</div>
+  </div>
+  <div class="variant">
+    <div class="column-label">N3 · Kettenglied dort, wo der Stift war</div>
+    <div class="column-hint">Das einzige Teilen-Zeichen, das du nicht ausgeschlossen hast.</div>
+    <div class="phone-frame">
+      <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+      <div class="overview-head"><div class="overview-title">Meine Listen</div><div class="overview-avatar">NI</div></div>
+      <div class="grid">
+        <div class="tile">
+          <div class="tile-emoji tint-green">&#128722;</div>
+          <div class="tile-name">Wocheneinkauf</div>
+          <div class="tile-meta one-line">6 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#5BA8D5">EI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="corner-slot shared"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg></div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-purple">&#129380;</div>
+          <div class="tile-name">Drogerie</div>
+          <div class="tile-meta one-line">3 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#A07BCC">KI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="corner-slot shared"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg></div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-yellow">&#128736;</div>
+          <div class="tile-name">Baumarkt</div>
+          <div class="tile-meta one-line">11 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#E8C44A">PF</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="corner-slot shared"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg></div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-blue">&#127866;</div>
+          <div class="tile-name">Getränke</div>
+          <div class="tile-meta one-line">4 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#6BBF6B">NI</span></div><div class="invite-circle">&#43;</div></div>
+          <div class="corner-slot pencil">&#9998;</div>
+        </div>
+      </div>
+    </div>
+    <div class="verdict">Klar lesbar in klein. Bleibt aber ein Zeichen, das man lernen muss — und „Link" legt nahe, dass ein Tap etwas kopiert.</div>
+  </div>
+</div>
+
+<div class="section-head">Der Stift wird zum Teilen-Zeichen</div>
+<div class="section-sub">
+  Deine Idee, und sie räumt gleich zwei Probleme ab: Auf einer fremden Liste hat der Stift nichts
+  zu suchen, und der freigewordene Platz ist genau der, an dem schon ein Zeichen sitzt. Kein neues
+  Element, keine neue Stelle — nur ein <strong>Tausch</strong>. Eigene Liste: Stift, gedimmt, führt
+  zum Bearbeiten. Fremde Liste: Teilen-Zeichen, türkis, führt zu den Mitgliedern.
+</div>
+<div class="section-sub">
+  Damit ist auch deine ursprüngliche Frage beantwortet: Der Platz war schon immer ein Knopf, er
+  bleibt einer, er tut nur etwas anderes. Kein Element, das aussieht wie Bedienung und keine ist.
+</div>
+
+<div class="row">
+  <div class="variant">
+    <div class="column-label">Teilen-Knoten statt Stift</div>
+    <div class="column-hint">Unten rechts sitzt jetzt der Teilen-Knoten statt des Stifts. Ein Tap führt zu den Mitgliedern.</div>
+    <div class="phone-frame">
+      <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+      <div class="overview-head"><div class="overview-title">Meine Listen</div><div class="overview-avatar">NI</div></div>
+      <div class="grid">
+        <div class="tile">
+          <div class="tile-emoji tint-green">&#128722;</div>
+          <div class="tile-name">Wocheneinkauf</div>
+          <div class="tile-meta">6 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#5BA8D5">EI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="corner-slot shared"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg></div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-purple">&#129380;</div>
+          <div class="tile-name">Drogerie</div>
+          <div class="tile-meta">3 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#A07BCC">KI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="corner-slot shared"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg></div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-yellow">&#128736;</div>
+          <div class="tile-name">Baumarkt</div>
+          <div class="tile-meta">11 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#E8C44A">PF</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="corner-slot shared"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg></div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-blue">&#127866;</div>
+          <div class="tile-name">Getränke</div>
+          <div class="tile-meta">4 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#6BBF6B">NI</span></div><div class="invite-circle">&#43;</div></div>
+          <div class="corner-slot pencil">&#9998;</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="variant">
+    <div class="column-label">Kettenglied statt Stift</div>
+    <div class="column-hint">Dasselbe mit dem Link-Zeichen — bei uns wörtlich richtig, geteilt wird per Einladungslink.</div>
+    <div class="phone-frame">
+      <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+      <div class="overview-head"><div class="overview-title">Meine Listen</div><div class="overview-avatar">NI</div></div>
+      <div class="grid">
+        <div class="tile">
+          <div class="tile-emoji tint-green">&#128722;</div>
+          <div class="tile-name">Wocheneinkauf</div>
+          <div class="tile-meta">6 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#5BA8D5">EI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="corner-slot shared"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg></div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-purple">&#129380;</div>
+          <div class="tile-name">Drogerie</div>
+          <div class="tile-meta">3 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#A07BCC">KI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="corner-slot shared"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg></div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-yellow">&#128736;</div>
+          <div class="tile-name">Baumarkt</div>
+          <div class="tile-meta">11 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#E8C44A">PF</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="corner-slot shared"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg></div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-blue">&#127866;</div>
+          <div class="tile-name">Getränke</div>
+          <div class="tile-meta">4 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#6BBF6B">NI</span></div><div class="invite-circle">&#43;</div></div>
+          <div class="corner-slot pencil">&#9998;</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="variant">
+    <div class="column-label">Personen statt Stift</div>
+    <div class="column-hint">Zum Vergleich das alte Zeichen an der neuen Stelle.</div>
+    <div class="phone-frame">
+      <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+      <div class="overview-head"><div class="overview-title">Meine Listen</div><div class="overview-avatar">NI</div></div>
+      <div class="grid">
+        <div class="tile">
+          <div class="tile-emoji tint-green">&#128722;</div>
+          <div class="tile-name">Wocheneinkauf</div>
+          <div class="tile-meta">6 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#5BA8D5">EI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="corner-slot shared"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-purple">&#129380;</div>
+          <div class="tile-name">Drogerie</div>
+          <div class="tile-meta">3 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#A07BCC">KI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="corner-slot shared"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-yellow">&#128736;</div>
+          <div class="tile-name">Baumarkt</div>
+          <div class="tile-meta">11 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#E8C44A">PF</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="corner-slot shared"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-blue">&#127866;</div>
+          <div class="tile-name">Getränke</div>
+          <div class="tile-meta">4 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#6BBF6B">NI</span></div><div class="invite-circle">&#43;</div></div>
+          <div class="corner-slot pencil">&#9998;</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-head">Welches Zeichen sagt „geteilt"?</div>
+<div class="section-sub">
+  Alle als nackter Glyph in der Ecke, türkis — also Variante S1, nur mit unterschiedlichem Zeichen.
+  Die beiden echten Teilen-Zeichen (Knoten, Pfeil) hatte ich vorher aussortiert, weil sie
+  „jetzt teilen" bedeuten. Das galt, solange sie in einem Kreis saßen und wie ein Knopf aussahen —
+  <strong>ohne Container wiegt der Einwand deutlich weniger</strong>.
+</div>
+
+<div class="row">
+  <div class="variant">
+    <div class="column-label">Teilen-Knoten</div>
+    <div class="column-hint">&nbsp;</div>
+    <div class="phone-frame">
+      <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+      <div class="overview-head"><div class="overview-title">Meine Listen</div><div class="overview-avatar">NI</div></div>
+      <div class="grid">
+        <div class="tile">
+          <div class="flat-corner teal"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg></div>
+          <div class="tile-emoji tint-green">&#128722;</div>
+          <div class="tile-name">Wocheneinkauf</div>
+          <div class="tile-meta">6 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#5BA8D5">EI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="flat-corner teal"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg></div>
+          <div class="tile-emoji tint-purple">&#129380;</div>
+          <div class="tile-name">Drogerie</div>
+          <div class="tile-meta">3 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#A07BCC">KI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="flat-corner teal"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg></div>
+          <div class="tile-emoji tint-yellow">&#128736;</div>
+          <div class="tile-name">Baumarkt</div>
+          <div class="tile-meta">11 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#E8C44A">PF</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-blue">&#127866;</div>
+          <div class="tile-name">Getränke</div>
+          <div class="tile-meta">4 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#6BBF6B">NI</span></div><div class="invite-circle">&#43;</div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+      </div>
+    </div>
+    <div class="verdict">Das meistgesehene Teilen-Zeichen auf Android. <b class="good">Sagt „geteilt", nicht „Menschen"</b> — drei verbundene Punkte zeigen wörtlich eine Sache, die an anderen hängt. Bleibt auch bei 14 px scharf.</div>
+  </div>
+  <div class="variant">
+    <div class="column-label">Kettenglied</div>
+    <div class="column-hint">&nbsp;</div>
+    <div class="phone-frame">
+      <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+      <div class="overview-head"><div class="overview-title">Meine Listen</div><div class="overview-avatar">NI</div></div>
+      <div class="grid">
+        <div class="tile">
+          <div class="flat-corner teal"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg></div>
+          <div class="tile-emoji tint-green">&#128722;</div>
+          <div class="tile-name">Wocheneinkauf</div>
+          <div class="tile-meta">6 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#5BA8D5">EI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="flat-corner teal"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg></div>
+          <div class="tile-emoji tint-purple">&#129380;</div>
+          <div class="tile-name">Drogerie</div>
+          <div class="tile-meta">3 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#A07BCC">KI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="flat-corner teal"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg></div>
+          <div class="tile-emoji tint-yellow">&#128736;</div>
+          <div class="tile-name">Baumarkt</div>
+          <div class="tile-meta">11 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#E8C44A">PF</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-blue">&#127866;</div>
+          <div class="tile-name">Getränke</div>
+          <div class="tile-meta">4 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#6BBF6B">NI</span></div><div class="invite-circle">&#43;</div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+      </div>
+    </div>
+    <div class="verdict">Sehr gut lesbar, und bei uns sogar wörtlich richtig: Geteilt wird über einen <b class="good">Einladungslink</b>. Kann als „Link kopieren" missverstanden werden.</div>
+  </div>
+  <div class="variant">
+    <div class="column-label">Teilen-Pfeil (iOS)</div>
+    <div class="column-hint">&nbsp;</div>
+    <div class="phone-frame">
+      <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+      <div class="overview-head"><div class="overview-title">Meine Listen</div><div class="overview-avatar">NI</div></div>
+      <div class="grid">
+        <div class="tile">
+          <div class="flat-corner teal"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M16 5l-1.42 1.42-1.59-1.59V16h-1.98V4.83L9.42 6.42 8 5l4-4 4 4zm4 5v11c0 1.1-.9 2-2 2H6c-1.11 0-2-.9-2-2V10c0-1.11.89-2 2-2h3v2H6v11h12V10h-3V8h3c1.1 0 2 .9 2 2z"/></svg></div>
+          <div class="tile-emoji tint-green">&#128722;</div>
+          <div class="tile-name">Wocheneinkauf</div>
+          <div class="tile-meta">6 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#5BA8D5">EI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="flat-corner teal"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M16 5l-1.42 1.42-1.59-1.59V16h-1.98V4.83L9.42 6.42 8 5l4-4 4 4zm4 5v11c0 1.1-.9 2-2 2H6c-1.11 0-2-.9-2-2V10c0-1.11.89-2 2-2h3v2H6v11h12V10h-3V8h3c1.1 0 2 .9 2 2z"/></svg></div>
+          <div class="tile-emoji tint-purple">&#129380;</div>
+          <div class="tile-name">Drogerie</div>
+          <div class="tile-meta">3 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#A07BCC">KI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="flat-corner teal"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M16 5l-1.42 1.42-1.59-1.59V16h-1.98V4.83L9.42 6.42 8 5l4-4 4 4zm4 5v11c0 1.1-.9 2-2 2H6c-1.11 0-2-.9-2-2V10c0-1.11.89-2 2-2h3v2H6v11h12V10h-3V8h3c1.1 0 2 .9 2 2z"/></svg></div>
+          <div class="tile-emoji tint-yellow">&#128736;</div>
+          <div class="tile-name">Baumarkt</div>
+          <div class="tile-meta">11 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#E8C44A">PF</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-blue">&#127866;</div>
+          <div class="tile-name">Getränke</div>
+          <div class="tile-meta">4 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#6BBF6B">NI</span></div><div class="invite-circle">&#43;</div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+      </div>
+    </div>
+    <div class="verdict">Das iOS-Pendant, ebenfalls sofort als „teilen" erkannt. Wird bei 14 px aber schnell zur <b class="bad">Kiste mit Strich</b> — die schwächste Form im Feld.</div>
+  </div>
+  <div class="variant">
+    <div class="column-label">Personen (bisher)</div>
+    <div class="column-hint">&nbsp;</div>
+    <div class="phone-frame">
+      <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+      <div class="overview-head"><div class="overview-title">Meine Listen</div><div class="overview-avatar">NI</div></div>
+      <div class="grid">
+        <div class="tile">
+          <div class="flat-corner teal"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div>
+          <div class="tile-emoji tint-green">&#128722;</div>
+          <div class="tile-name">Wocheneinkauf</div>
+          <div class="tile-meta">6 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#5BA8D5">EI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="flat-corner teal"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div>
+          <div class="tile-emoji tint-purple">&#129380;</div>
+          <div class="tile-name">Drogerie</div>
+          <div class="tile-meta">3 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#A07BCC">KI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="flat-corner teal"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div>
+          <div class="tile-emoji tint-yellow">&#128736;</div>
+          <div class="tile-name">Baumarkt</div>
+          <div class="tile-meta">11 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#E8C44A">PF</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-blue">&#127866;</div>
+          <div class="tile-name">Getränke</div>
+          <div class="tile-meta">4 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#6BBF6B">NI</span></div><div class="invite-circle">&#43;</div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+      </div>
+    </div>
+    <div class="verdict">Zum Vergleich stehengelassen: sagt „mehrere Leute", <b class="bad">nicht „geteilt"</b>. Genau dein Einwand.</div>
+  </div>
+</div>
+
+<div class="section-sub" style="margin-top:34px">Dieselben Zeichen in echter Größe und fünffach:</div>
+<div class="zoom-row">
+  <div class="zoom-case">
+    <div class="zoom-name">Teilen-Knoten</div>
+    <div class="zoom-pair">
+      <span class="glyph-real"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg></span>
+      <span class="glyph-big"><svg viewBox="0 0 24 24" fill="currentColor" width="70" height="70"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg></span>
+    </div>
+  </div>
+  <div class="zoom-case">
+    <div class="zoom-name">Kettenglied</div>
+    <div class="zoom-pair">
+      <span class="glyph-real"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg></span>
+      <span class="glyph-big"><svg viewBox="0 0 24 24" fill="currentColor" width="70" height="70"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg></span>
+    </div>
+  </div>
+  <div class="zoom-case">
+    <div class="zoom-name">Teilen-Pfeil (iOS)</div>
+    <div class="zoom-pair">
+      <span class="glyph-real"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M16 5l-1.42 1.42-1.59-1.59V16h-1.98V4.83L9.42 6.42 8 5l4-4 4 4zm4 5v11c0 1.1-.9 2-2 2H6c-1.11 0-2-.9-2-2V10c0-1.11.89-2 2-2h3v2H6v11h12V10h-3V8h3c1.1 0 2 .9 2 2z"/></svg></span>
+      <span class="glyph-big"><svg viewBox="0 0 24 24" fill="currentColor" width="70" height="70"><path d="M16 5l-1.42 1.42-1.59-1.59V16h-1.98V4.83L9.42 6.42 8 5l4-4 4 4zm4 5v11c0 1.1-.9 2-2 2H6c-1.11 0-2-.9-2-2V10c0-1.11.89-2 2-2h3v2H6v11h12V10h-3V8h3c1.1 0 2 .9 2 2z"/></svg></span>
+    </div>
+  </div>
+  <div class="zoom-case">
+    <div class="zoom-name">Personen (bisher)</div>
+    <div class="zoom-pair">
+      <span class="glyph-real"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span>
+      <span class="glyph-big"><svg viewBox="0 0 24 24" fill="currentColor" width="70" height="70"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span>
+    </div>
+  </div>
+</div>
+
+<div class="section-head">Symbol ohne Kreis</div>
+<div class="section-sub">
+  Der Fehler war nicht das Symbol, sondern der <strong>gefüllte Kreis dahinter</strong>. Ein
+  Container in Akzentfarbe ist das, woran man einen Knopf erkennt — Google Drive, Dropbox, Finder
+  und Apple Notizen setzen alle einen <strong>nackten Glyph</strong> ans Objekt, ohne Fläche
+  darunter. Dieselbe Ecke wie vorher, nur ohne Kreis.
+</div>
+
+<div class="row">
+  <div class="variant">
+    <div class="column-label">S1 · Nackter Glyph, türkis</div>
+    <div class="column-hint">Dasselbe wie dein Favorit — nur ohne den gefüllten Kreis dahinter. Türkis, damit er auffällt.</div>
+    <div class="phone-frame">
+      <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+      <div class="overview-head"><div class="overview-title">Meine Listen</div><div class="overview-avatar">NI</div></div>
+      <div class="grid">
+        <div class="tile">
+          <div class="flat-corner teal"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div>
+          <div class="tile-emoji tint-green">&#128722;</div>
+          <div class="tile-name">Wocheneinkauf</div>
+          <div class="tile-meta">6 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#5BA8D5">EI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="flat-corner teal"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div>
+          <div class="tile-emoji tint-purple">&#129380;</div>
+          <div class="tile-name">Drogerie</div>
+          <div class="tile-meta">3 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#A07BCC">KI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="flat-corner teal"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div>
+          <div class="tile-emoji tint-yellow">&#128736;</div>
+          <div class="tile-name">Baumarkt</div>
+          <div class="tile-meta">11 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#E8C44A">PF</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-blue">&#127866;</div>
+          <div class="tile-name">Getränke</div>
+          <div class="tile-meta">4 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#6BBF6B">NI</span></div><div class="invite-circle">&#43;</div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+      </div>
+    </div>
+    <div class="verdict">Fällt fast so gut auf wie vorher. Ohne Container fehlt aber die wichtigste Knopf-Eigenschaft: <b class="good">sieht nicht mehr nach Bedienung aus</b>.</div>
+  </div>
+  <div class="variant">
+    <div class="column-label">S2 · Nackter Glyph, gedimmt</div>
+    <div class="column-hint">Dasselbe in der gedämpften Textfarbe statt Akzentfarbe — so wie Google Drive es macht.</div>
+    <div class="phone-frame">
+      <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+      <div class="overview-head"><div class="overview-title">Meine Listen</div><div class="overview-avatar">NI</div></div>
+      <div class="grid">
+        <div class="tile">
+          <div class="flat-corner dim"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div>
+          <div class="tile-emoji tint-green">&#128722;</div>
+          <div class="tile-name">Wocheneinkauf</div>
+          <div class="tile-meta">6 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#5BA8D5">EI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="flat-corner dim"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div>
+          <div class="tile-emoji tint-purple">&#129380;</div>
+          <div class="tile-name">Drogerie</div>
+          <div class="tile-meta">3 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#A07BCC">KI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="flat-corner dim"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div>
+          <div class="tile-emoji tint-yellow">&#128736;</div>
+          <div class="tile-name">Baumarkt</div>
+          <div class="tile-meta">11 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#E8C44A">PF</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-blue">&#127866;</div>
+          <div class="tile-name">Getränke</div>
+          <div class="tile-meta">4 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#6BBF6B">NI</span></div><div class="invite-circle">&#43;</div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+      </div>
+    </div>
+    <div class="verdict">Am unauffälligsten und am wenigsten nach Knopf aussehend. In der Sonne aber <b class="bad">schwer zu sehen</b>.</div>
+  </div>
+  <div class="variant">
+    <div class="column-label">S3 · Vor dem Listennamen</div>
+    <div class="column-hint">Der Glyph steht in der Zeile mit dem Namen, wie in Apple Notizen. Text ist nie ein Knopf.</div>
+    <div class="phone-frame">
+      <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+      <div class="overview-head"><div class="overview-title">Meine Listen</div><div class="overview-avatar">NI</div></div>
+      <div class="grid">
+        <div class="tile">
+          
+          <div class="tile-emoji tint-green">&#128722;</div>
+          <div class="tile-name"><span class="name-glyph"><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span>Wocheneinkauf</div>
+          <div class="tile-meta">6 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#5BA8D5">EI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          
+          <div class="tile-emoji tint-purple">&#129380;</div>
+          <div class="tile-name"><span class="name-glyph"><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span>Drogerie</div>
+          <div class="tile-meta">3 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#A07BCC">KI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          
+          <div class="tile-emoji tint-yellow">&#128736;</div>
+          <div class="tile-name"><span class="name-glyph"><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span>Baumarkt</div>
+          <div class="tile-meta">11 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#E8C44A">PF</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-blue">&#127866;</div>
+          <div class="tile-name">Getränke</div>
+          <div class="tile-meta">4 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#6BBF6B">NI</span></div><div class="invite-circle">&#43;</div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+      </div>
+    </div>
+    <div class="verdict">Landet direkt im Lesefluss — man sieht es beim Lesen des Namens. Frisst dafür Platz von langen Listennamen.</div>
+  </div>
+</div>
+
+<div class="section-head">Die Kachelfläche — ohne Rand</div>
+<div class="section-sub">
+  Kein zusätzliches Element, nur die Fläche der fremden Kachel. Der Rand bleibt exakt derselbe wie
+  bei den eigenen Kacheln, damit nichts umrahmt aussieht. Damit hängt die ganze Wirkung an der
+  <strong>Stärke der Tönung</strong> — deshalb drei Stufen zum Vergleichen.
+</div>
+
+<div class="row">
+  <div class="variant">
+    <div class="column-label">Tönung 1 · dezent</div>
+    <div class="column-hint">Türkis mit 5 % Deckkraft über der Kachelfläche. So dezent, dass man es fast nur im Vergleich sieht.</div>
+    <div class="phone-frame">
+      <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+      <div class="overview-head"><div class="overview-title">Meine Listen</div><div class="overview-avatar">NI</div></div>
+      <div class="grid">
+        <div class="tile surface-1">
+          
+          <div class="tile-emoji tint-green">&#128722;</div>
+          <div class="tile-name">Wocheneinkauf</div>
+          <div class="tile-meta">6 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#5BA8D5">EI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile surface-1">
+          
+          <div class="tile-emoji tint-purple">&#129380;</div>
+          <div class="tile-name">Drogerie</div>
+          <div class="tile-meta">3 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#A07BCC">KI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile surface-1">
+          
+          <div class="tile-emoji tint-yellow">&#128736;</div>
+          <div class="tile-name">Baumarkt</div>
+          <div class="tile-meta">11 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#E8C44A">PF</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-blue">&#127866;</div>
+          <div class="tile-name">Getränke</div>
+          <div class="tile-meta">4 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#6BBF6B">NI</span></div><div class="invite-circle">&#43;</div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+      </div>
+    </div>
+    <div class="verdict">Ohne Rand bleibt nur der Flächenunterschied. Bei 5 % ist er auf einem hellen Display oder in der Sonne <b class="bad">kaum noch da</b>.</div>
+  </div>
+  <div class="variant">
+    <div class="column-label">Tönung 2 · mittel</div>
+    <div class="column-hint">Türkis mit 10 %. Die fremden Kacheln lesen sich als Gruppe, ohne dass es bunt wirkt.</div>
+    <div class="phone-frame">
+      <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+      <div class="overview-head"><div class="overview-title">Meine Listen</div><div class="overview-avatar">NI</div></div>
+      <div class="grid">
+        <div class="tile surface-2">
+          
+          <div class="tile-emoji tint-green">&#128722;</div>
+          <div class="tile-name">Wocheneinkauf</div>
+          <div class="tile-meta">6 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#5BA8D5">EI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile surface-2">
+          
+          <div class="tile-emoji tint-purple">&#129380;</div>
+          <div class="tile-name">Drogerie</div>
+          <div class="tile-meta">3 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#A07BCC">KI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile surface-2">
+          
+          <div class="tile-emoji tint-yellow">&#128736;</div>
+          <div class="tile-name">Baumarkt</div>
+          <div class="tile-meta">11 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#E8C44A">PF</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-blue">&#127866;</div>
+          <div class="tile-name">Getränke</div>
+          <div class="tile-meta">4 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#6BBF6B">NI</span></div><div class="invite-circle">&#43;</div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+      </div>
+    </div>
+    <div class="verdict">Der beste Kompromiss: <b class="good">gut sichtbar</b>, ruhig genug fürs Raster, und weiterhin <b class="good">kein Element</b>, das man antippen könnte.</div>
+  </div>
+  <div class="variant">
+    <div class="column-label">Tönung 3 · deutlich</div>
+    <div class="column-hint">Türkis mit 16 %. Kein Zweifel mehr, welche Liste fremd ist.</div>
+    <div class="phone-frame">
+      <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+      <div class="overview-head"><div class="overview-title">Meine Listen</div><div class="overview-avatar">NI</div></div>
+      <div class="grid">
+        <div class="tile surface-3">
+          
+          <div class="tile-emoji tint-green">&#128722;</div>
+          <div class="tile-name">Wocheneinkauf</div>
+          <div class="tile-meta">6 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#5BA8D5">EI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile surface-3">
+          
+          <div class="tile-emoji tint-purple">&#129380;</div>
+          <div class="tile-name">Drogerie</div>
+          <div class="tile-meta">3 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#A07BCC">KI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile surface-3">
+          
+          <div class="tile-emoji tint-yellow">&#128736;</div>
+          <div class="tile-name">Baumarkt</div>
+          <div class="tile-meta">11 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#E8C44A">PF</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-blue">&#127866;</div>
+          <div class="tile-name">Getränke</div>
+          <div class="tile-meta">4 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#6BBF6B">NI</span></div><div class="invite-circle">&#43;</div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+      </div>
+    </div>
+    <div class="verdict">Sichtbarkeit: <b class="good">sehr gut</b>. Dafür konkurriert die Fläche mit den farbigen Emoji-Kreisen und das Raster wirkt unruhiger.</div>
+  </div>
+</div>
+
+<div class="section-head">Bisher besprochen</div>
+<div class="section-sub">Die Varianten aus den letzten Runden, damit nichts verloren geht.</div>
+
+<div class="row">
+  <div class="variant">
+    <div class="column-label">Ecke · Menschen</div>
+    <div class="column-hint">Fällt sofort auf — sieht aber aus wie ein Knopf und ist keiner.</div>
+    <div class="phone-frame">
+      <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+      <div class="overview-head"><div class="overview-title">Meine Listen</div><div class="overview-avatar">NI</div></div>
+      <div class="grid">
+        <div class="tile">
+          <div class="shared-corner"><svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div>
+          <div class="tile-emoji tint-green">&#128722;</div>
+          <div class="tile-name">Wocheneinkauf</div>
+          <div class="tile-meta">6 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#5BA8D5">EI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="shared-corner"><svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div>
+          <div class="tile-emoji tint-purple">&#129380;</div>
+          <div class="tile-name">Drogerie</div>
+          <div class="tile-meta">3 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#A07BCC">KI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="shared-corner"><svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div>
+          <div class="tile-emoji tint-yellow">&#128736;</div>
+          <div class="tile-name">Baumarkt</div>
+          <div class="tile-meta">11 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#E8C44A">PF</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-blue">&#127866;</div>
+          <div class="tile-name">Getränke</div>
+          <div class="tile-meta">4 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#6BBF6B">NI</span></div><div class="invite-circle">&#43;</div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+      </div>
+    </div>
+    <div class="verdict">Sichtbarkeit: <b class="good">sehr gut</b>. Verwechslungsgefahr: <b class="bad">hoch</b>.</div>
+  </div>
+  <div class="variant">
+    <div class="column-label">Ecke · Kreise</div>
+    <div class="column-hint">Dieselbe Stelle, andere Form. Am Problem ändert die Form nichts.</div>
+    <div class="phone-frame">
+      <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+      <div class="overview-head"><div class="overview-title">Meine Listen</div><div class="overview-avatar">NI</div></div>
+      <div class="grid">
+        <div class="tile">
+          <div class="shared-corner"><svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><circle cx="7.5" cy="12" r="5" opacity="0.6"/><circle cx="16.5" cy="12" r="5"/></svg></div>
+          <div class="tile-emoji tint-green">&#128722;</div>
+          <div class="tile-name">Wocheneinkauf</div>
+          <div class="tile-meta">6 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#5BA8D5">EI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="shared-corner"><svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><circle cx="7.5" cy="12" r="5" opacity="0.6"/><circle cx="16.5" cy="12" r="5"/></svg></div>
+          <div class="tile-emoji tint-purple">&#129380;</div>
+          <div class="tile-name">Drogerie</div>
+          <div class="tile-meta">3 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#A07BCC">KI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="shared-corner"><svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><circle cx="7.5" cy="12" r="5" opacity="0.6"/><circle cx="16.5" cy="12" r="5"/></svg></div>
+          <div class="tile-emoji tint-yellow">&#128736;</div>
+          <div class="tile-name">Baumarkt</div>
+          <div class="tile-meta">11 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#E8C44A">PF</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-blue">&#127866;</div>
+          <div class="tile-name">Getränke</div>
+          <div class="tile-meta">4 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#6BBF6B">NI</span></div><div class="invite-circle">&#43;</div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+      </div>
+    </div>
+    <div class="verdict">Sichtbarkeit: <b class="good">sehr gut</b>. Verwechslungsgefahr: <b class="bad">hoch</b>.</div>
+  </div>
+  <div class="variant">
+    <div class="column-label">In der Mitglieder-Reihe</div>
+    <div class="column-hint">Bleibt stehen, damit nichts verschwindet.</div>
+    <div class="phone-frame">
+      <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+      <div class="overview-head"><div class="overview-title">Meine Listen</div><div class="overview-avatar">NI</div></div>
+      <div class="grid">
+        <div class="tile">
+          
+          <div class="tile-emoji tint-green">&#128722;</div>
+          <div class="tile-name">Wocheneinkauf</div>
+          <div class="tile-meta">6 Items</div>
+          <div class="member-row"><span class="row-marker"><svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span><div class="avatars"><span style="background:#5BA8D5">EI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          
+          <div class="tile-emoji tint-purple">&#129380;</div>
+          <div class="tile-name">Drogerie</div>
+          <div class="tile-meta">3 Items</div>
+          <div class="member-row"><span class="row-marker"><svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span><div class="avatars"><span style="background:#A07BCC">KI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          
+          <div class="tile-emoji tint-yellow">&#128736;</div>
+          <div class="tile-name">Baumarkt</div>
+          <div class="tile-meta">11 Items</div>
+          <div class="member-row"><span class="row-marker"><svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span><div class="avatars"><span style="background:#E8C44A">PF</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-blue">&#127866;</div>
+          <div class="tile-name">Getränke</div>
+          <div class="tile-meta">4 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#6BBF6B">NI</span></div><div class="invite-circle">&#43;</div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+      </div>
+    </div>
+    <div class="verdict">Sichtbarkeit: <b class="bad">schwach</b>. Verwechslungsgefahr: <b class="good">keine</b>.</div>
+  </div>
+  <div class="variant">
+    <div class="column-label">Im Text</div>
+    <div class="column-hint">Symbol in der Zeile vor „6 Items", in Textfarbe.</div>
+    <div class="phone-frame">
+      <div class="status-bar"><div class="status-time">9:41</div><div class="status-dots"><i></i><i></i><i></i></div></div>
+      <div class="overview-head"><div class="overview-title">Meine Listen</div><div class="overview-avatar">NI</div></div>
+      <div class="grid">
+        <div class="tile">
+          
+          <div class="tile-emoji tint-green">&#128722;</div>
+          <div class="tile-name">Wocheneinkauf</div>
+          <div class="tile-meta"><span class="meta-icon"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span>6 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#5BA8D5">EI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          
+          <div class="tile-emoji tint-purple">&#129380;</div>
+          <div class="tile-name">Drogerie</div>
+          <div class="tile-meta"><span class="meta-icon"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span>3 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#A07BCC">KI</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          
+          <div class="tile-emoji tint-yellow">&#128736;</div>
+          <div class="tile-name">Baumarkt</div>
+          <div class="tile-meta"><span class="meta-icon"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span>11 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#E8C44A">PF</span><span style="background:#6BBF6B">NI</span></div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+        <div class="tile">
+          <div class="tile-emoji tint-blue">&#127866;</div>
+          <div class="tile-name">Getränke</div>
+          <div class="tile-meta">4 Items</div>
+          <div class="member-row"><div class="avatars"><span style="background:#6BBF6B">NI</span></div><div class="invite-circle">&#43;</div></div>
+          <div class="tile-pencil">&#9998;</div>
+        </div>
+      </div>
+    </div>
+    <div class="verdict">Sichtbarkeit: <b class="bad">leise</b>. Verwechslungsgefahr: <b class="good">keine</b>.</div>
+  </div>
+</div>
+
+<div class="note">
+  <strong>Verworfen: die Tönung.</strong> Eine Farbe hat keine Legende — niemand lernt daraus,
+  was gemeint ist. Bleibt als Notiz stehen, warum: <br><br>
+  <strong>Ohne Rand ist Tönung 1 zu wenig.</strong> Der Rand hat vorher einen guten Teil der Arbeit
+  gemacht — eine Linie hat harte Kanten und wird vom Auge sofort erfasst, eine Fläche nicht. Was
+  übrig bleibt, muss deshalb kräftiger sein als die 5 %, mit denen ich vorher gearbeitet habe.
+  <br><br>
+  <strong>Ich würde Tönung 2 nehmen.</strong> Die drei fremden Kacheln lesen sich als Gruppe, ohne
+  dass das Raster bunt wird, und in der Sonne bleibt genug übrig. Tönung 3 funktioniert auch, wirkt
+  aber neben den farbigen Emoji-Kreisen unruhig — die Kachel bekommt dann zwei Farbflächen, die um
+  Aufmerksamkeit konkurrieren.
+  <br><br>
+  Ein Punkt zum Mitdenken: Im hellen Modus muss die Tönung neu bestimmt werden. Auf weißem Grund
+  wirkt dieselbe Deckkraft deutlich kräftiger — das ist kein Hindernis, nur ein zweiter Wert, den
+  wir festlegen müssen, wenn du dich entschieden hast.
+</div>
+
+</body>
+</html>

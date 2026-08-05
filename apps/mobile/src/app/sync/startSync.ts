@@ -3,10 +3,16 @@
 
 import { App as CapacitorApp } from '@capacitor/app'
 import { Network } from '@capacitor/network'
-import { store } from '../store'
+import { store, type RootState } from '../store'
 import { removeItem } from '../clientStorage'
 import { initialSyncCompleted } from '../appSlice'
 import { selectHasIdentity } from '../../features/auth/domain/authSlice'
+import { listLeft, selectAllLists } from '../../features/lists/domain/listsSlice'
+import {
+  recipeLeft,
+  selectAllRecipes,
+} from '../../features/recipes/domain/recipesSlice'
+import type { Aggregate } from './aggregate'
 import { syncEngine } from './syncEngine'
 import { SYNC_STORAGE_KEY } from './outbox'
 
@@ -27,6 +33,38 @@ export async function openLocalLog(): Promise<void> {
   await syncEngine.openLocalLog((action) => store.dispatch(action))
 }
 
+/**
+ * Everything whose folded state this device currently holds. The engine
+ * uses it for two things: deciding whether a cursor may be resumed, and
+ * noticing what the server no longer shows us. Lives here because the
+ * engine knows nothing about Redux.
+ *
+ * Depends on the boot order: hydration runs before startSync, so a restart
+ * finds its trees in place. Turn that around and every log gets refetched
+ * once — wasteful, never wrong, since folding twice yields the same tree.
+ */
+function heldAggregates(state: RootState): readonly Aggregate[] {
+  return [
+    ...selectAllLists(state).map(
+      (list): Aggregate => ({ kind: 'list', id: list.id }),
+    ),
+    ...selectAllRecipes(state).map(
+      (recipe): Aggregate => ({ kind: 'recipe', id: recipe.id }),
+    ),
+  ]
+}
+
+/**
+ * Letting go of something we are no longer a member of. The same local-only
+ * actions leaving uses — nothing is destroyed anywhere, this device just
+ * stops holding it.
+ */
+function dropped(aggregate: Aggregate) {
+  return aggregate.kind === 'recipe'
+    ? recipeLeft({ id: aggregate.id })
+    : listLeft({ id: aggregate.id })
+}
+
 /** Called from the root beforeLoad (app boot) and ensureIdentity. Idempotent. */
 export function startSync(): void {
   if (started) return
@@ -42,7 +80,10 @@ export function startSync(): void {
   started = true
 
   void syncEngine
-    .start((action) => store.dispatch(action))
+    .start((action) => store.dispatch(action), {
+      heldAggregates: () => heldAggregates(store.getState()),
+      dropAggregate: (aggregate) => store.dispatch(dropped(aggregate)),
+    })
     .finally(() => store.dispatch(initialSyncCompleted()))
     .catch((error: unknown) => {
       console.warn('sync: start failed', error)

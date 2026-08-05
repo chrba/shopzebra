@@ -23,6 +23,7 @@ import {
   ownerNamesLoaded,
   selectListById,
 } from '../features/lists/domain/listsSlice'
+import { listsFromStorage } from '../features/lists/domain/listsFromStorage'
 import {
   friendIntentRestored,
   joinIntentRestored,
@@ -42,11 +43,16 @@ import {
   fetchSharingProjection,
 } from '../features/sharing/memberCommands'
 import { joinWithToken } from '../features/sharing/joinWithToken'
+import { ensureIdentity } from '../features/auth/domain/identityThunks'
+import type { AggregateKind } from './sync/aggregate'
 import { ListMembersPage } from '../features/lists/members/ListMembersPage'
 import { ListInvitePage } from '../features/lists/members/ListInvitePage'
+import type { InviteState } from '../features/sharing/InvitePage'
 import { RecipeMembersPage } from '../features/recipes/members/RecipeMembersPage'
 import { RecipeInvitePage } from '../features/recipes/members/RecipeInvitePage'
 import { JoinListPage } from '../features/lists/join/JoinListPage'
+import { JoiningScreen } from '../features/lists/join/JoiningScreen'
+import { InvitePageSkeleton } from '../features/sharing/InvitePageSkeleton'
 import { shoppingLoaded } from '../features/shopping/domain/shoppingSlice'
 import { SHOPPING_STORAGE_KEY } from '../features/shopping/domain/shoppingClientStorageHandler'
 import {
@@ -67,6 +73,7 @@ import { RECIPES_KEY } from '../features/recipes/domain/recipesClientStorageHand
 import { RECIPE_PREFS_KEY } from '../features/preferences/domain/preferencesClientStorageHandler'
 import type { Recipe } from '../features/recipes/domain/recipesDomain'
 import {
+  deviceNamed,
   guestIdentityCreated,
   linkedIdentityRestored,
   selectCurrentUserId,
@@ -74,6 +81,7 @@ import {
   type EstablishedIdentity,
 } from '../features/auth/domain/authSlice'
 import { restoredIdentity } from '../features/auth/domain/restoredIdentity'
+import { ensureDeviceName } from '../features/auth/domain/deviceName'
 import {
   ensureShadowAccount,
   loadShadowCredentials,
@@ -200,6 +208,47 @@ function canReachServer(): boolean {
   return selectHasIdentity(store.getState())
 }
 
+// --- Background refreshes ---
+//
+// A screen never waits for the network (react-best-practices.md): it
+// renders from the store and these fill in what the store could not know.
+// Deliberately NOT awaited — awaiting in a loader claims "this screen
+// cannot exist without the answer", which is true for a mintable invite
+// token and for joining, and for nothing else here.
+
+/**
+ * Owner display names and the member cap of one kind. Neither can travel
+ * in an event: the owner never triggers a member-added event for
+ * themselves, and the cap is a server-wide number.
+ */
+function refreshSharingProjection(kind: AggregateKind): void {
+  if (!canReachServer()) return
+  void fetchSharingProjection(kind)
+    .then((projection) => {
+      store.dispatch(
+        kind === 'recipe'
+          ? recipeOwnerNamesLoaded({ ownerNames: projection.ownerNames })
+          : ownerNamesLoaded({ ownerNames: projection.ownerNames }),
+      )
+      if (projection.maxMembers !== null) {
+        store.dispatch(memberLimitLoaded({ maxMembers: projection.maxMembers }))
+      }
+    })
+    .catch((error: unknown) => {
+      console.warn(`reading the ${kind} projection failed`, error)
+    })
+}
+
+/** The address book behind the one-tap picker. Cached locally since boot. */
+function refreshFriends(): void {
+  if (!canReachServer()) return
+  void fetchFriends()
+    .then((friends) => store.dispatch(friendsLoaded({ friends })))
+    .catch((error: unknown) => {
+      console.warn('reading friends failed', error)
+    })
+}
+
 const rootRoute = createRootRoute({
   component: RootLayout,
   beforeLoad: async () => {
@@ -208,13 +257,17 @@ const rootRoute = createRootRoute({
     // keeps the pending skeleton from flashing on in-app navigations.
     if (selectIsAppLoaded(store.getState())) return
 
-    // 1. Restore the identity. A live Amplify session wins; stored shadow
+    // 1. The device's own name — drawn on the very first start, kept ever
+    //    after. Before the identity, so a name Cognito already knows wins.
+    store.dispatch(deviceNamed({ name: await ensureDeviceName() }))
+
+    // 2. Restore the identity. A live Amplify session wins; stored shadow
     //    credentials without one mean the token cache was cleared — sign in
     //    again silently. Neither: the device stays local, which is a normal
     //    state here, not an error.
     await restoreIdentity()
 
-    // 2. Load persisted lists + preferences (local-first: rendered
+    // 3. Load persisted lists + preferences (local-first: rendered
     // immediately, the sync engine catches up with the server log in
     // the background once startSync() runs below).
     const rawLists = await getItem(LISTS_KEY)
@@ -225,24 +278,7 @@ const rootRoute = createRootRoute({
 
     if (rawLists) {
       try {
-        const parsed: unknown = JSON.parse(rawLists)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          // Lists persisted before the owner model lack ownerId —
-          // fall back to the first member.
-          const stored = parsed as readonly Partial<ShoppingList>[]
-          lists = stored.flatMap((entry) =>
-            entry.id && entry.name
-              ? [
-                  {
-                    id: entry.id,
-                    name: entry.name,
-                    ownerId: entry.ownerId ?? entry.memberIds?.[0] ?? 'unknown',
-                    memberIds: entry.memberIds ?? [],
-                  },
-                ]
-              : [],
-          )
-        }
+        lists = listsFromStorage(JSON.parse(rawLists))
       } catch {
         // ignore malformed data
       }
@@ -259,14 +295,14 @@ const rootRoute = createRootRoute({
       }
     }
 
-    // 3. Load or create device ID
+    // 4. Load or create device ID
     let deviceId = await getItem(DEVICE_ID_KEY)
     if (!deviceId) {
       deviceId = crypto.randomUUID()
       await setItem(DEVICE_ID_KEY, deviceId)
     }
 
-    // 4. Hydrate lists + shopping items from clientStorage
+    // 5. Hydrate lists + shopping items from clientStorage
     const rawShopping = await getItem(SHOPPING_STORAGE_KEY)
     if (rawShopping) {
       try {
@@ -314,11 +350,11 @@ const rootRoute = createRootRoute({
     }
     store.dispatch(appLoaded({ theme: 'dark', deviceId }))
 
-    // 5. Open the local event log: the queued events of this device go
+    // 6. Open the local event log: the queued events of this device go
     // back into the reducer's pending queue, with or without an account.
     await openLocalLog()
 
-    // 6. Local-first boot: the store above is hydrated from clientStorage
+    // 7. Local-first boot: the store above is hydrated from clientStorage
     // and rendered immediately. With an identity the sync engine now
     // catches up with the server log in the background — no await, so
     // the app never blocks the first render on network. Without one this
@@ -340,18 +376,7 @@ const indexRoute = createRoute({
 const listsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/lists',
-  loader: async () => {
-    if (!canReachServer()) return
-    // The overview names the owner of every shared list, and that name has
-    // no event to travel in — the owner never triggers a member-added
-    // event for themselves. Failing costs the name, not the screen.
-    try {
-      const projection = await fetchSharingProjection('list')
-      store.dispatch(ownerNamesLoaded({ ownerNames: projection.ownerNames }))
-    } catch (error: unknown) {
-      console.warn('reading the list projection failed', error)
-    }
-  },
+  loader: () => refreshSharingProjection('list'),
   component: ListsPage,
 })
 
@@ -391,27 +416,11 @@ const categoryRoute = createRoute({
 const listMembersRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/lists/$listId/members',
-  loader: async () => {
-    if (!canReachServer()) return
-    // Owner names and the member cap come from the list projection; the
-    // friends fill the one-tap picker. Failing either costs data, not the
-    // screen — the cached state stands in.
-    try {
-      const projection = await fetchSharingProjection('list')
-      store.dispatch(ownerNamesLoaded({ ownerNames: projection.ownerNames }))
-      if (projection.maxMembers !== null) {
-        store.dispatch(
-          memberLimitLoaded({ maxMembers: projection.maxMembers }),
-        )
-      }
-    } catch (error: unknown) {
-      console.warn('reading the list projection failed', error)
-    }
-    try {
-      store.dispatch(friendsLoaded({ friends: await fetchFriends() }))
-    } catch (error: unknown) {
-      console.warn('reading friends failed', error)
-    }
+  // The members, their names and roles are all in the store — this screen
+  // is instant, and the two refreshes land underneath it.
+  loader: () => {
+    refreshSharingProjection('list')
+    refreshFriends()
   },
   component: () => {
     const { listId } = listMembersRoute.useParams()
@@ -422,39 +431,49 @@ const listMembersRoute = createRoute({
 const listInviteRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/lists/$listId/invite',
+  pendingComponent: InvitePageSkeleton,
   loader: async ({ params }) => {
+    // Sharing is what makes an account necessary — so it is made here,
+    // silently, while the pending skeleton covers the wait. Nobody is asked
+    // anything: the device has carried its name since the first start.
+    await store.dispatch(ensureIdentity())
+
     const state = store.getState()
-    if (!canReachServer()) return { invite: null }
     const list = selectListById(state, params.listId)
 
-    // Only the owner may mint invites (events.md owner model). Before the
-    // first share the owner is still the local sentinel — the name sheet
-    // creates the identity and reloads this loader.
+    // Only the owner may mint invites (events.md owner model).
     if (!list || list.ownerId !== selectCurrentUserId(state)) {
-      return { invite: null }
+      const refused: InviteState = { status: 'notOwner' }
+      return { state: refused }
     }
     try {
-      return { invite: await fetchInvite({ kind: 'list', id: params.listId }) }
+      const invite = await fetchInvite({ kind: 'list', id: params.listId })
+      const ready: InviteState = { status: 'ready', invite }
+      return { state: ready }
     } catch (error: unknown) {
+      // Offline, blocked or a server that said no — anything but a verdict
+      // on who owns this. The screen offers another try instead of blaming.
       console.warn('reading the list invite failed', error)
-      return { invite: null }
+      const unreachable: InviteState = { status: 'unreachable' }
+      return { state: unreachable }
     }
   },
   component: () => {
     const { listId } = listInviteRoute.useParams()
-    const { invite } = listInviteRoute.useLoaderData()
-    return ListInvitePage({ listId, invite })
+    const { state } = listInviteRoute.useLoaderData()
+    return ListInvitePage({ listId, state })
   },
 })
 
 const joinRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/join/$token',
+  pendingComponent: JoiningScreen,
   loader: async ({ params }) => {
-    // Redeeming needs an identity: the server writes the member-added
-    // event under the caller's JWT. A device without one gets the name
-    // sheet on the page below, which joins as soon as the account exists.
-    if (!selectHasIdentity(store.getState())) return { outcome: null }
+    // Redeeming needs an identity: the server writes the member-added event
+    // under the caller's JWT. It is created here rather than asked for —
+    // the invitee arrives with a name already.
+    await store.dispatch(ensureIdentity())
 
     const outcome = await joinWithToken(params.token)
     if (outcome.status === 'joined') {
@@ -466,32 +485,25 @@ const joinRoute = createRoute({
     return { outcome }
   },
   component: () => {
-    const { token } = joinRoute.useParams()
     const { outcome } = joinRoute.useLoaderData()
-    return JoinListPage({ token, outcome })
+    return JoinListPage({ outcome })
   },
 })
 
 const friendsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/friends',
-  loader: async () => {
-    if (!canReachServer()) return
-    // Refresh the address book; on failure the cached state stands.
-    try {
-      store.dispatch(friendsLoaded({ friends: await fetchFriends() }))
-    } catch (error: unknown) {
-      console.warn('reading friends failed', error)
-    }
-  },
+  // The address book was hydrated from storage at boot; this only refreshes it.
+  loader: () => refreshFriends(),
   component: FriendsPage,
 })
 
 const friendsInviteRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/friends/invite',
+  pendingComponent: InvitePageSkeleton,
   loader: async () => {
-    if (!canReachServer()) return { invite: null }
+    await store.dispatch(ensureIdentity())
     try {
       return { invite: await createFriendInvite() }
     } catch (error: unknown) {
@@ -547,27 +559,10 @@ const recipeDetailRoute = createRoute({
 const recipeMembersRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/recipes/$recipeId/members',
-  loader: async () => {
-    if (!canReachServer()) return
-    // Same two reads as for a list: the projection carries owner names and
-    // the member cap, the friends fill the one-tap picker. Failing either
-    // costs data, not the screen.
-    try {
-      const projection = await fetchSharingProjection('recipe')
-      store.dispatch(
-        recipeOwnerNamesLoaded({ ownerNames: projection.ownerNames }),
-      )
-      if (projection.maxMembers !== null) {
-        store.dispatch(memberLimitLoaded({ maxMembers: projection.maxMembers }))
-      }
-    } catch (error: unknown) {
-      console.warn('reading the recipe projection failed', error)
-    }
-    try {
-      store.dispatch(friendsLoaded({ friends: await fetchFriends() }))
-    } catch (error: unknown) {
-      console.warn('reading friends failed', error)
-    }
+  // Same two refreshes as for a list, and just as little waiting.
+  loader: () => {
+    refreshSharingProjection('recipe')
+    refreshFriends()
   },
   component: () => {
     const { recipeId } = recipeMembersRoute.useParams()
@@ -578,30 +573,35 @@ const recipeMembersRoute = createRoute({
 const recipeInviteRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/recipes/$recipeId/invite',
+  pendingComponent: InvitePageSkeleton,
   loader: async ({ params }) => {
+    // Same as for a list: the account is made here, not asked for.
+    await store.dispatch(ensureIdentity())
+
     const state = store.getState()
-    if (!canReachServer()) return { invite: null }
     const recipe = selectRecipeById(state, params.recipeId)
 
-    // Only the owner may mint invites (events.md owner model). Before the
-    // first share the owner is still the local sentinel — the name sheet
-    // creates the identity and reloads this loader.
+    // Only the owner may mint invites (events.md owner model).
     if (!recipe || recipe.ownerId !== selectCurrentUserId(state)) {
-      return { invite: null }
+      const refused: InviteState = { status: 'notOwner' }
+      return { state: refused }
     }
     try {
-      return {
-        invite: await fetchInvite({ kind: 'recipe', id: params.recipeId }),
-      }
+      const invite = await fetchInvite({ kind: 'recipe', id: params.recipeId })
+      const ready: InviteState = { status: 'ready', invite }
+      return { state: ready }
     } catch (error: unknown) {
+      // Offline, blocked or a server that said no — anything but a verdict
+      // on who owns this. The screen offers another try instead of blaming.
       console.warn('reading the recipe invite failed', error)
-      return { invite: null }
+      const unreachable: InviteState = { status: 'unreachable' }
+      return { state: unreachable }
     }
   },
   component: () => {
     const { recipeId } = recipeInviteRoute.useParams()
-    const { invite } = recipeInviteRoute.useLoaderData()
-    return RecipeInvitePage({ recipeId, invite })
+    const { state } = recipeInviteRoute.useLoaderData()
+    return RecipeInvitePage({ recipeId, state })
   },
 })
 
@@ -633,9 +633,13 @@ const routeTree = rootRoute.addChildren([
   profileRoute,
 ])
 
-// While the root beforeLoad hydrates the store on startup, the lists
-// skeleton renders instead of a blank screen (pendingMs 0 shows it
-// immediately, pendingMinMs keeps it from flashing on fast loads).
+// The lists skeleton belongs to the app start: while the root beforeLoad
+// hydrates the store, it renders instead of a blank screen (pendingMs 0
+// shows it immediately, pendingMinMs keeps it from flashing).
+//
+// Navigation inside the app never reaches a pending state — those loaders
+// only kick off background refreshes and return at once. The three screens
+// that do have to wait for the server bring their own pendingComponent.
 export const router = createRouter({
   routeTree,
   defaultPendingComponent: ListsPageSkeleton,

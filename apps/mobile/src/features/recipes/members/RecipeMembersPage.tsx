@@ -2,6 +2,8 @@ import { useNavigate } from '@tanstack/react-router'
 import { useAppSelector } from '../../../app/store'
 import { selectRecipeById, selectRecipeMembers } from '../domain/recipesSlice'
 import { selectMaxMembers } from '../../lists/domain/listsSlice'
+import { selectRecipePreferences } from '../../preferences/domain/preferencesSlice'
+import { DEFAULT_RECIPE_EMOJI } from '../manage/recipeEmojiCatalog'
 import { MembersPage } from '../../sharing/MembersPage'
 
 type RecipeMembersPageProps = {
@@ -24,17 +26,24 @@ export function RecipeMembersPage({ recipeId }: RecipeMembersPageProps) {
     selectRecipeMembers(state, recipeId),
   )
   const maxMembers = useAppSelector(selectMaxMembers)
+  const preferences = useAppSelector((state) =>
+    selectRecipePreferences(state, recipeId),
+  )
 
   return (
     <MembersPage
       aggregate={{ kind: 'recipe', id: recipeId }}
+      subject={{
+        name: recipe?.name ?? '',
+        // The same icon the collection tile wears.
+        emoji: preferences?.emoji ?? DEFAULT_RECIPE_EMOJI,
+      }}
       ownerId={recipe?.ownerId ?? null}
       members={members}
       maxMembers={maxMembers}
       wording={{
         missing: 'Dieses Rezept gibt es nicht mehr.',
         full: 'Rezept ist voll',
-        accessTo: 'dieses Rezept',
       }}
       onBack={() =>
         void navigate({ to: '/recipes/$recipeId', params: { recipeId } })

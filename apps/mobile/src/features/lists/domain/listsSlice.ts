@@ -109,6 +109,23 @@ const listsSlice = createSlice({
       lists: state.lists.filter((list) => list.id !== action.payload.id),
     }),
 
+    /**
+     * Local-only: leaving failed, so the list comes back. The counterpart
+     * of listLeft, which is dispatched before the server has answered so
+     * the tile disappears on the tap. Names the payload `list` and not
+     * `listId` for the same reason listLeft does: a listId at the root
+     * would put this into the outbox, and there is nothing to send.
+     *
+     * Total, like every fold: a list that is already there stays as it is.
+     */
+    listRestored: (
+      state: ListsState,
+      action: PayloadAction<{ readonly list: ShoppingList }>,
+    ): ListsState =>
+      state.lists.some((list) => list.id === action.payload.list.id)
+        ? state
+        : { ...state, lists: [...state.lists, action.payload.list] },
+
     listDeleted: (
       state: ListsState,
       action: PayloadAction<{
@@ -233,6 +250,7 @@ export const {
   listsLoaded,
   listCreated,
   listLeft,
+  listRestored,
   listRenamed,
   listDeleted,
   listMemberAdded,
