@@ -23,36 +23,28 @@ function ProfileAvatar({
   )
 }
 
-/** Material "add" icon for the create-list button. */
-function PlusIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-5 fill-current">
-      <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-    </svg>
-  )
-}
-
 type ListsHeaderProps = {
   readonly title: string
   /** Shown in the avatar — this device's name. */
   readonly profileName: string
   /** Decides the avatar's colour, exactly as it does for every member. */
   readonly profileUserId: string
-  readonly onAdd: () => void
   readonly onProfile: () => void
 }
 
 /**
- * Top bar of the lists overview with title, add-button and profile-button.
+ * Top bar of the lists overview: profile on the left, title in the middle.
+ *
+ * No plus here — a new list is started from the dashed card at the end of
+ * the grid, where the lists are. Two ways to the same page taught nothing
+ * and cost a corner.
  * @param props.title Header text displayed in the center.
- * @param props.onAdd Called when the "+" button is tapped.
  * @param props.onProfile Called when the profile avatar is tapped.
  */
 export function ListsHeader({
   title,
   profileName,
   profileUserId,
-  onAdd,
   onProfile,
 }: ListsHeaderProps) {
   return (
@@ -71,15 +63,8 @@ export function ListsHeader({
         {title}
       </h1>
 
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        className="text-teal"
-        onClick={onAdd}
-        aria-label="Neue Liste erstellen"
-      >
-        <PlusIcon />
-      </Button>
+      {/* Balances the profile button so the title stays centred. */}
+      <div className="size-8 shrink-0" />
     </header>
   )
 }

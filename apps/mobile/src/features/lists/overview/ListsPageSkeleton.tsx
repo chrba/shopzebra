@@ -52,7 +52,6 @@ export function ListsPageSkeleton() {
           title="Meine Listen"
           profileName=""
           profileUserId=""
-          onAdd={noop}
           onProfile={noop}
         />
 

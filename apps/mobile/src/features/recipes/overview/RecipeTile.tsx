@@ -105,7 +105,7 @@ export function RecipeTile({
   const meta = [
     `${portions} Portionen`,
     ...(durationMinutes === undefined ? [] : [`${durationMinutes} Min`]),
-    ...(ownerName === null ? [] : [`von ${ownerName}`]),
+    ...(ownerName === null ? [] : [ownerName]),
   ].join(' · ')
 
   return (

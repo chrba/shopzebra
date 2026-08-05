@@ -129,7 +129,7 @@ export function ListSummaryCard({
             foreign tile taller than one's own, right next to it in the grid. */}
         <CardDescription className="truncate text-xs font-medium">
           {list.itemCount} Items
-          {list.ownerName !== null && ` · von ${list.ownerName}`}
+          {list.ownerName !== null && ` · ${list.ownerName}`}
         </CardDescription>
 
         {/* Whole row is the target — a 24px plus alone would be far below

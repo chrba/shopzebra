@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useAppDispatch, useAppSelector } from '../../../app/store'
 import { selectListById } from '../../lists/domain/listsSlice'
 import { selectCurrentUserId } from '../../auth/domain/authSlice'
+import { MEMBER_NAME_FALLBACK } from '../../sharing/memberDisplayName'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -107,6 +108,58 @@ function ConfettiBurst() {
   )
 }
 
+type ListHeaderProps = {
+  readonly name: string
+  /**
+   * Whose list this is — null for one's own. The only place the owner is
+   * named while shopping: the overview tile says it too, but nobody looks
+   * at that from inside the list.
+   */
+  readonly ownerName: string | null
+  readonly onBack: () => void
+}
+
+/**
+ * Says which list one is in and whose it is, and holds the way back.
+ *
+ * No pencil here: this screen is for shopping. Renaming a list is a rare
+ * act and belongs to the overview, where the list is a thing one looks at
+ * rather than one works in.
+ *
+ * The title truncates rather than wraps — list names have no length limit,
+ * and a two-line header would push the cart down the screen.
+ */
+function ListHeader({ name, ownerName, onBack }: ListHeaderProps) {
+  return (
+    <header className="flex items-center justify-between px-5 pt-4 pb-2">
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        onClick={onBack}
+        aria-label="Zurück zu Listen"
+      >
+        <BackIcon />
+      </Button>
+
+      <div className="min-w-0 flex-1">
+        <h1 className="font-display truncate text-center text-[17px] font-bold">
+          {name}
+        </h1>
+        {/* Plain text on purpose: no glyph carries "shared" well enough at
+            this size to be worth learning. */}
+        {ownerName !== null && (
+          <div className="text-teal mt-0.5 truncate text-center text-[11.5px] font-semibold">
+            Geteilt von {ownerName}
+          </div>
+        )}
+      </div>
+
+      {/* Balances the back button so the title sits in the middle. */}
+      <div className="w-8 shrink-0" />
+    </header>
+  )
+}
+
 type ShoppingListPageProps = {
   readonly listId: string
 }
@@ -126,6 +179,13 @@ export function ShoppingListPage({ listId }: ShoppingListPageProps) {
   const [completedExpanded, setCompletedExpanded] = useState(false)
   const [searchInput, setSearchInput] = useState('')
   const [sheetProductId, setSheetProductId] = useState<string | null>(null)
+
+  // Only a foreign list names its owner; one's own would state the obvious.
+  const isOwn = list?.ownerId === currentUserId
+  const ownerName =
+    !list || isOwn
+      ? null
+      : (list.memberNames?.[list.ownerId] ?? MEMBER_NAME_FALLBACK)
 
   if (!list) {
     return (
@@ -199,30 +259,11 @@ export function ShoppingListPage({ listId }: ShoppingListPageProps) {
 
   return (
     <div className="min-h-screen pb-[100px]">
-      {/* Header */}
-      <header className="flex items-center justify-between px-5 pt-4 pb-2">
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          onClick={() => navigate({ to: '/lists' })}
-          aria-label="Zurück zu Listen"
-        >
-          <BackIcon />
-        </Button>
-        <h1 className="font-display flex-1 text-center text-[17px] font-bold">
-          {list.name}
-        </h1>
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          onClick={() =>
-            navigate({ to: '/lists/$listId/edit', params: { listId } })
-          }
-          aria-label="Liste bearbeiten"
-        >
-          ✏️
-        </Button>
-      </header>
+      <ListHeader
+        name={list.name}
+        ownerName={ownerName}
+        onBack={() => void navigate({ to: '/lists' })}
+      />
 
       {/* Cart section */}
       <section className="px-5">

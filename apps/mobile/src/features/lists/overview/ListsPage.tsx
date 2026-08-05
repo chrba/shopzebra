@@ -187,7 +187,6 @@ export function ListsPage() {
         title="Meine Listen"
         profileName={displayName}
         profileUserId={currentUserId}
-        onAdd={goToCreateList}
         onProfile={goToProfile}
       />
       <SummaryChips
