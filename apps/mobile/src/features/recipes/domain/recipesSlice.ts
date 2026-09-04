@@ -40,8 +40,12 @@ const recipesSlice = createSlice({
       }),
     },
 
+    // Opens the recipe's log: no membership exists yet, so it goes to the
+    // collection endpoint, where the server bootstraps ownership for the
+    // caller and appends this very event (services/events.md).
     recipeCreated: {
-      role: 'command',
+      role: 'event',
+      opens: 'recipe',
       reducer: (
         state: RecipesState,
         action: PayloadAction<{
@@ -88,6 +92,7 @@ const recipesSlice = createSlice({
     // part of it — it travels in its own events and is never clobbered here.
     recipeUpdated: {
       role: 'event',
+      on: 'recipe',
       reducer: (
         state: RecipesState,
         action: PayloadAction<{
@@ -138,6 +143,7 @@ const recipesSlice = createSlice({
 
     recipeDeleted: {
       role: 'event',
+      on: 'recipe',
       reducer: (
         state: RecipesState,
         action: PayloadAction<{ readonly recipeId: string }>,
@@ -154,6 +160,7 @@ const recipesSlice = createSlice({
     // cursor catch-up with meta.remote.
     recipeMemberAdded: {
       role: 'event',
+      on: 'recipe',
       reducer: (
         state: RecipesState,
         action: PayloadAction<{
@@ -183,6 +190,7 @@ const recipesSlice = createSlice({
     // Class-2 event, counterpart of recipeMemberAdded.
     recipeMemberRemoved: {
       role: 'event',
+      on: 'recipe',
       reducer: (
         state: RecipesState,
         action: PayloadAction<{
@@ -268,6 +276,7 @@ export const {
   recipeOwnerNamesLoaded,
 } = recipesSlice.actions
 export const recipesReducer = recipesSlice.reducer
+export const recipesSyncDeclarations = recipesSlice.declarations
 
 // --- Selectors ---
 

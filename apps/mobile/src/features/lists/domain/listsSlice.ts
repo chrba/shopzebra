@@ -51,8 +51,12 @@ const listsSlice = createSlice({
       }),
     },
 
+    // Opens the list's log: no membership exists yet, so it goes to the
+    // collection endpoint, where the server bootstraps ownership for the
+    // caller and appends this very event (services/events.md).
     listCreated: {
-      role: 'command',
+      role: 'event',
+      opens: 'list',
       reducer: (
         state: ListsState,
         action: PayloadAction<{
@@ -87,6 +91,7 @@ const listsSlice = createSlice({
 
     listRenamed: {
       role: 'event',
+      on: 'list',
       reducer: (
         state: ListsState,
         action: PayloadAction<{
@@ -141,6 +146,7 @@ const listsSlice = createSlice({
 
     listDeleted: {
       role: 'event',
+      on: 'list',
       reducer: (
         state: ListsState,
         action: PayloadAction<{
@@ -157,6 +163,7 @@ const listsSlice = createSlice({
     // cursor catch-up with meta.remote.
     listMemberAdded: {
       role: 'event',
+      on: 'list',
       reducer: (
         state: ListsState,
         action: PayloadAction<{
@@ -186,6 +193,7 @@ const listsSlice = createSlice({
     // Class-2 event, counterpart of listMemberAdded.
     listMemberRemoved: {
       role: 'event',
+      on: 'list',
       reducer: (
         state: ListsState,
         action: PayloadAction<{
@@ -285,6 +293,7 @@ export const {
   memberLimitLoaded,
 } = listsSlice.actions
 export const listsReducer = listsSlice.reducer
+export const listsSyncDeclarations = listsSlice.declarations
 
 // --- Selectors ---
 

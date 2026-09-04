@@ -77,6 +77,7 @@ const shoppingSlice = createSlice({
 
     itemAdded: {
       role: 'event',
+      on: 'list',
       reducer: (
         state: ShoppingState,
         action: PayloadAction<{
@@ -130,6 +131,7 @@ const shoppingSlice = createSlice({
 
     itemChecked: {
       role: 'event',
+      on: 'list',
       reducer: (
         state: ShoppingState,
         action: PayloadAction<{
@@ -151,6 +153,7 @@ const shoppingSlice = createSlice({
 
     itemUnchecked: {
       role: 'event',
+      on: 'list',
       reducer: (
         state: ShoppingState,
         action: PayloadAction<{
@@ -171,6 +174,7 @@ const shoppingSlice = createSlice({
 
     itemRemoved: {
       role: 'event',
+      on: 'list',
       reducer: (
         state: ShoppingState,
         action: PayloadAction<{
@@ -189,6 +193,7 @@ const shoppingSlice = createSlice({
 
     itemUpdated: {
       role: 'event',
+      on: 'list',
       reducer: (
         state: ShoppingState,
         action: PayloadAction<{
@@ -215,6 +220,7 @@ const shoppingSlice = createSlice({
 
     itemNoteUpdated: {
       role: 'event',
+      on: 'list',
       reducer: (
         state: ShoppingState,
         action: PayloadAction<{
@@ -236,6 +242,7 @@ const shoppingSlice = createSlice({
 
     customVariantAdded: {
       role: 'event',
+      on: 'list',
       reducer: (
         state: ShoppingState,
         action: PayloadAction<{
@@ -322,6 +329,7 @@ export const {
   customVariantAdded,
 } = shoppingSlice.actions
 export const shoppingReducer = shoppingSlice.reducer
+export const shoppingSyncDeclarations = shoppingSlice.declarations
 
 // --- Selectors ---
 
