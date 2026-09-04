@@ -16,7 +16,7 @@ Stage 1 moves events reliably (outbox + retry out, cursor catch-up in); stage 2 
 
 Conflicts are **not** merged on the client. On append, the server assigns a strictly increasing, gapless **position per list** (aggregate); all clients fold the events in exactly that order. Convergence holds by construction, not by merge rules — no CRDTs, no field versions, no last-writer-wins clocks.
 
-The engine exploits the project's central uniformity: **Redux action = domain event = wire format.** A `{ type, payload, meta }` goes over the wire unchanged. There is no mapping layer — which is why a new event type costs **zero lines of sync code**: `synced: true` on the slice is enough.
+The engine exploits the project's central uniformity: **Redux action = domain event = wire format.** A `{ type, payload, meta }` goes over the wire unchanged. There is no mapping layer — which is why a new event type costs **close to zero lines of sync code**: `synced: true` on the slice, plus naming the reducer's role (`event | command | localEvent | observation | hydration`, see `app/createSlice.ts`). Still no `if` in the sync path — the role is looked up, not branched on.
 
 ---
 
@@ -68,7 +68,7 @@ Outside this folder, but part of the mechanism:
 - **`app/store.ts`** — wires `withSync` around the combined feature reducers. The visible tree stays at top level (`state.lists` etc. — every selector, middleware and `getState()` caller reads it unchanged); `confirmed` and `pending` live under `state.sync`. `sync` is a reserved top-level key.
 - **`app/syncMiddleware.ts`** — a single effect: every dispatched action is offered to `syncEngine.record()`. No per-feature handlers, no `if` chains.
 - **`app/eventIdMiddleware.ts`** — stamps `eventId` + `deviceId` **before** the reducer. Actions with `meta.remote` keep their identity (otherwise dedup and ack matching would break).
-- **`app/createSlice.ts`** — `synced: true` on a slice registers the slice name; `belongsToSyncedSlice()` feeds the shared `needsSync()` predicate.
+- **`app/createSlice.ts`** — `synced: true` on a slice forces every one of its reducers to declare a `role` (`event | command | localEvent | observation | hydration`), tracked in a `type → role` registry. `needsSync()` reads that registry via `roleOf()`; `belongsToSyncedSlice()` still exists but no longer feeds the predicate.
 - **Class-2 events** (`lists/listMemberAdded`, `lists/listMemberRemoved`, and their `recipes/…` counterparts) — written by the server, never dispatched locally. They arrive **only** through catch-up and never travel the outbox. The commands that cause them (`POST /lists/join`, `DELETE /lists/{listId}/members/{memberId}`) are direct fetches, because their answer is needed *before* anything can be shown or dispatched.
 - **`features/*/domain/*ClientStorageHandler.ts`** (lists, shopping) — persist the **confirmed** tree on every `eventsConfirmed`. Optimistic events are not persisted there; they survive restarts via the outbox queue + `pendingRestored`.
 

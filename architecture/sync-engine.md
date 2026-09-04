@@ -100,6 +100,8 @@ const preferencesSlice = createSlice({ name: 'preferences', synced: false, ... }
 
 Ein Boolean pro Slice statt ein `if` pro Action. Maßgeblich ist dabei das **Aggregate, auf dessen Log ein Event landet** — nicht das Feature, das es dispatcht: `ingredientsCheckedOut` wird von `meal-plan/` dispatcht, gehört aber zum ShoppingList-Aggregate (siehe [../services/events.md](../services/events.md)). Und die dabei entstehende Grenze ist exakt die **Domain-vs-Local-Preferences-Grenze** aus [domain-model.md](./domain-model.md) §1. Dieselbe Linie, einmal gezogen, zweimal genutzt — das ist das Zeichen, dass der Schnitt stimmt.
 
+Der Boolean allein reicht aber nicht: Ein synced Slice mischt Kategorien — echte Domain-Events, Fakten die bewusst lokal bleiben, und Ergebnisse von Abfragen. Deshalb deklariert **jeder Reducer eines synced Slice zusätzlich seine Rolle** (`event | command | localEvent | observation | hydration`). Die Sync-Entscheidung folgt aus dieser Rolle über eine exhaustive Tabelle in `needsSync.ts`, nicht mehr aus der Form des Payloads. Details und Begründung: [design](../docs/superpowers/specs/2026-09-04-explicit-action-role-classification-design.md).
+
 ---
 
 ## 4. Die Bausteine
