@@ -7,7 +7,7 @@ import {
 } from '@/features/lists/domain/listsSlice'
 import { preferencesReducer, listPreferencesSet, selectAllListPreferences } from '@/features/preferences/domain/preferencesSlice'
 import { shoppingReducer, itemAdded, selectListItems } from '@/features/shopping/domain/shoppingSlice'
-import { aggregateOf } from '@/app/sync/aggregate'
+import { needsSync } from '@/app/sync/needsSync'
 
 const fold = (actions: readonly { type: string }[]) =>
   actions.reduce(
@@ -20,21 +20,22 @@ describe('leaving a list', () => {
     const lists = fold([
       listCreated({ listId: 'l1', name: 'Wocheneinkauf', ownerId: 'chris' }),
       listCreated({ listId: 'l2', name: 'Bäcker', ownerId: 'me' }),
-      listLeft({ id: 'l1' }),
+      listLeft({ listId: 'l1' }),
     ])
 
     expect(selectAllLists({ lists }).map((list) => list.id)).toEqual(['l2'])
   })
 
   // Leaving ends my access to the log, so the server can never tell me
-  // about it afterwards — the event must stay on this device.
+  // about it afterwards. role: 'localEvent' is what keeps it here now —
+  // the payload may say listId like every other list event.
   test('never reaches the outbox', () => {
     expect(
-      aggregateOf({
-        ...listLeft({ id: 'l1' }),
+      needsSync({
+        ...listLeft({ listId: 'l1' }),
         meta: { eventId: 'e1', deviceId: 'd1' },
       }),
-    ).toBeNull()
+    ).toBe(false)
   })
 
   test('takes the items of that list with it', () => {
@@ -51,7 +52,7 @@ describe('leaving a list', () => {
       }),
     )
 
-    const shopping = shoppingReducer(withItems, listLeft({ id: 'l1' }))
+    const shopping = shoppingReducer(withItems, listLeft({ listId: 'l1' }))
 
     expect(selectListItems({ shopping }, 'l1')).toEqual([])
   })
@@ -65,7 +66,7 @@ describe('leaving a list', () => {
       }),
     )
 
-    const preferences = preferencesReducer(withPrefs, listLeft({ id: 'l1' }))
+    const preferences = preferencesReducer(withPrefs, listLeft({ listId: 'l1' }))
 
     expect(selectAllListPreferences({ preferences })['l1']).toBeUndefined()
   })

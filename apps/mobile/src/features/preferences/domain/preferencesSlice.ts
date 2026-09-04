@@ -91,8 +91,8 @@ const preferencesSlice = createSlice({
       creator: listLeft,
       reducer: (
         state: PreferencesState,
-        action: PayloadAction<{ readonly id: string }>,
-      ): PreferencesState => withoutList(state, action.payload.id),
+        action: PayloadAction<{ readonly listId: string }>,
+      ): PreferencesState => withoutList(state, action.payload.listId),
     },
     {
       // Preferences of a deleted recipe are orphans — clean them up.

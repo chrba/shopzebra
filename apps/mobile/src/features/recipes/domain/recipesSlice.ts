@@ -127,11 +127,11 @@ const recipesSlice = createSlice({
       role: 'localEvent',
       reducer: (
         state: RecipesState,
-        action: PayloadAction<{ readonly id: string }>,
+        action: PayloadAction<{ readonly recipeId: string }>,
       ): RecipesState => ({
         ...state,
         recipes: state.recipes.filter(
-          (recipe) => recipe.id !== action.payload.id,
+          (recipe) => recipe.id !== action.payload.recipeId,
         ),
       }),
     },

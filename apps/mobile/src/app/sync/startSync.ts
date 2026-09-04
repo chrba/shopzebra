@@ -61,8 +61,8 @@ function heldAggregates(state: RootState): readonly Aggregate[] {
  */
 function dropped(aggregate: Aggregate) {
   return aggregate.kind === 'recipe'
-    ? recipeLeft({ id: aggregate.id })
-    : listLeft({ id: aggregate.id })
+    ? recipeLeft({ recipeId: aggregate.id })
+    : listLeft({ listId: aggregate.id })
 }
 
 /** Called from the root beforeLoad (app boot) and ensureIdentity. Idempotent. */

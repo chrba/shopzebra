@@ -112,10 +112,12 @@ const listsSlice = createSlice({
       role: 'localEvent',
       reducer: (
         state: ListsState,
-        action: PayloadAction<{ readonly id: string }>,
+        action: PayloadAction<{ readonly listId: string }>,
       ): ListsState => ({
         ...state,
-        lists: state.lists.filter((list) => list.id !== action.payload.id),
+        lists: state.lists.filter(
+          (list) => list.id !== action.payload.listId,
+        ),
       }),
     },
 

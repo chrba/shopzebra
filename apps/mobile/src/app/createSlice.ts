@@ -195,13 +195,20 @@ export function roleOf(type: string): ActionRole | undefined {
 
 // --- createSlice ---
 
-// Note: this overload (synced?: false) is declared first — with the
-// `synced: true` overload first, TypeScript's overload-failure recovery
-// (interacting with noUncheckedIndexedAccess) widens every property of the
-// resulting ActionCreators to `T | undefined`, which then poisons every
-// other file importing an action creator from a slice that hasn't migrated
-// to per-reducer roles yet. Declaration order alone avoids that; the
-// intended "role is missing" error still surfaces at the call site.
+// This overload (synced?: false) is declared first. Verified experimentally
+// (task 5): with a reducer missing its role, both orders report the same
+// specific diagnostic at the slice itself (TS matches the `synced: true`
+// overload for the message either way, since the literal discriminant
+// picks it out) — so order does not improve that message. But whichever
+// overload is declared second still triggers TypeScript's overload-failure
+// recovery once the call fails both, and that recovery widens every
+// property of the resulting ActionCreators to `T | undefined`, poisoning
+// every other file that imports an action creator from the affected slice.
+// Swapping the order only changes which files get poisoned, not whether
+// they do (measured: 33 files either way). Keeping `synced?: false` first
+// is arbitrary between two equally bad options, so it stays as documented
+// history rather than a deliberate optimization — see task-5-report.md for
+// the measurements.
 export function createSlice<
   Name extends string,
   S,

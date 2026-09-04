@@ -278,8 +278,8 @@ const shoppingSlice = createSlice({
       creator: listLeft,
       reducer: (
         state: ShoppingState,
-        action: PayloadAction<{ readonly id: string }>,
-      ): ShoppingState => withoutList(state, action.payload.id),
+        action: PayloadAction<{ readonly listId: string }>,
+      ): ShoppingState => withoutList(state, action.payload.listId),
     },
     {
       // Docking: items a guest put on a list were authored by the local

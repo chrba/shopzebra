@@ -35,7 +35,7 @@ export const leaveList =
   async (dispatch: AppDispatch, getState: () => RootState): Promise<void> => {
     const state = getState()
     const left = selectListById(state, listId)
-    dispatch(listLeft({ id: listId }))
+    dispatch(listLeft({ listId }))
 
     try {
       await removeMember(
