@@ -55,8 +55,11 @@ export function parseAggregate(value: unknown): Aggregate | null {
 }
 
 /**
- * Aggregate a synced action belongs to, or null for local-only actions
- * (e.g. hydration), which carry no aggregate id at all.
+ * Aggregate a synced action's payload names, or null when it names none —
+ * either because it is local-only (locality is decided by the role now, not
+ * here) or because a role admitted it for sending but its payload carries no
+ * recognised aggregate id. Callers that treat this as a routing decision
+ * must handle that second case explicitly.
  */
 export function aggregateOf(action: PayloadAction<unknown>): Aggregate | null {
   const payload = action.payload

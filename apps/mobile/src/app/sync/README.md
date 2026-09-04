@@ -98,7 +98,7 @@ flowchart LR
    - `meta.remote` set → came from the server, do **not** send it back (`null`).
    - `listCreated` → **class-2 command**: `{ path: '/lists', wire }` with the `ownerId → createdBy` translation into wire format. The server validates and writes the event itself.
    - `needsSync(action)` false (role is `localEvent`, `observation`, `hydration`, or undeclared, e.g. `preferences/*`) → no sync (`null`), regardless of what the payload carries.
-   - Otherwise the role admitted it (`event` or `command`) → `aggregateOf` reads the aggregate id (`listId`, `recipeId`, …) purely to route it: `{ path: eventsPathFor(aggregate), wire: action }`.
+   - Otherwise the role admitted it (`event` or `command`) → `aggregateOf` reads the aggregate id (`listId`, `recipeId`, …) to route it: `{ path: eventsPathFor(aggregate), wire: action }`. This doubles as a gate — role and payload are no longer coupled by construction, so a role that admits an action whose payload carries no recognised id logs an error and returns `null` instead of routing it.
 6. The outbox appends the entry and persists; `requestSync()` is kicked — the engine runs one push-then-pull cycle.
 7. Inside the cycle, `drainOutbox()` POSTs head-by-head via `sendEntry()`. Response classification:
 

@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { createSlice } from '@/app/createSlice'
 import { toOutboxEntry } from '@/app/sync/send/toOutboxEntry'
 import { itemAdded } from '@/features/shopping/domain/shoppingSlice'
 import { listCreated } from '@/features/lists/domain/listsSlice'
@@ -8,6 +9,20 @@ import {
 } from '@/features/recipes/domain/recipesSlice'
 
 const meta = { eventId: 'e1', deviceId: 'device-1' }
+
+// A slice of its own, so the test states the mismatch rather than leaning on
+// whatever payload shapes the feature slices happen to carry today.
+const demo = createSlice({
+  name: 'toOutboxEntryDemo',
+  initialState: {},
+  synced: true,
+  reducers: {
+    anEventWithoutAggregateId: {
+      role: 'event',
+      reducer: (state: object) => state,
+    },
+  },
+})
 
 describe('toOutboxEntry', () => {
   it('maps a synced class-1 action to its list log', () => {
@@ -113,5 +128,22 @@ describe('toOutboxEntry', () => {
         meta,
       }),
     ).toBeNull()
+  })
+
+  it('logs and returns null when a role admits an action but its payload carries no aggregate id', () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const action = {
+      type: demo.actions.anEventWithoutAggregateId.type,
+      payload: { note: 'no id field here' },
+      meta,
+    }
+
+    const entry = toOutboxEntry(action)
+
+    expect(entry).toBeNull()
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining(demo.actions.anEventWithoutAggregateId.type),
+    )
+    errorSpy.mockRestore()
   })
 })

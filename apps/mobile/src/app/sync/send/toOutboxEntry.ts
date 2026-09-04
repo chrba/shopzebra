@@ -45,7 +45,16 @@ export function toOutboxEntry(
     }
   }
 
+  // needsSync answers from the role alone; it no longer implies routability.
+  // So a role can admit an action whose payload carries no recognised
+  // aggregate id (typo, renamed field, a kind aggregate.ts doesn't know) —
+  // that must fail loudly here, or the action sits in `pending` forever.
   const aggregate = aggregateOf(action)
-  if (!aggregate) return null
+  if (!aggregate) {
+    console.error(
+      `sync: ${action.type} was admitted for sending but no aggregate id could be read from its payload — cannot route it`,
+    )
+    return null
+  }
   return { path: eventsPathFor(aggregate), wire: action }
 }
