@@ -23,6 +23,11 @@ const ID_FIELD_OF: Readonly<Record<AggregateKind, string>> = {
   plan: 'planId',
 }
 
+/** The payload field that names an aggregate of this kind. Called by the sync policy to route an event. */
+export function idFieldOf(kind: AggregateKind): string {
+  return ID_FIELD_OF[kind]
+}
+
 /** How each kind names itself in a route — and in its collection response. */
 const COLLECTION_OF: Readonly<Record<AggregateKind, string>> = {
   list: 'lists',

@@ -1,34 +1,38 @@
 // Custom createSlice — same API as RTK, but without Immer.
 // Reducer functions MUST return new state (spread instead of mutation).
 
+import type { AggregateKind } from './sync/aggregate'
+
 /**
- * The sync classification of an action, declared once at the reducer that
- * owns it (design: docs/superpowers/specs/2026-09-04-explicit-action-role-classification-design.md).
+ * How a synced slice classifies one of its actions
+ * (design: docs/superpowers/specs/2026-09-04-sync-declaration-design.md).
  *
- * - event: a real domain fact caused by a user action, part of the aggregate log
- * - command: event-shaped, but server-authoritative (class 2) — the server
- *   claims ownership and writes the event itself. Today this label only
- *   documents the special case in toOutboxEntry; the structural separation
- *   (dispatch through a dedicated thunk) is still outstanding.
- * - localEvent: a real domain fact whose distribution is deliberately limited
- *   to this device, because its authoritative version already reached the
- *   server through a command
+ * - event: a domain fact. `on` names the aggregate whose log it is
+ *   appended to; `opens` names the kind of aggregate it brings into being —
+ *   no log exists yet, so it goes to the collection endpoint, where the
+ *   server bootstraps ownership. Both travel to the server.
+ * - localEvent: a domain fact whose reach is deliberately this device only
  * - observation: a current value a query reported — no user action, no log entry
  * - hydration: restoring data this device already knew, from local storage
  */
-export type ActionRole =
-  | 'event'
-  | 'command'
-  | 'localEvent'
-  | 'observation'
-  | 'hydration'
+export type ActionDeclaration =
+  | { readonly role: 'event'; readonly on: AggregateKind }
+  | { readonly role: 'event'; readonly opens: AggregateKind }
+  | { readonly role: 'localEvent' }
+  | { readonly role: 'observation' }
+  | { readonly role: 'hydration' }
+
+export type ActionRole = ActionDeclaration['role']
+
+/** Every declaration of a synced slice, keyed by full action type (`lists/listRenamed`). */
+export type SyncDeclarations = Readonly<Record<string, ActionDeclaration>>
 
 export type ActionMeta = {
   /** Unique per dispatch. Used as part of the DynamoDB sort key for server-side idempotency. */
   readonly eventId: string
   /** Originating device. Used to filter out own events when syncing from the server. */
   readonly deviceId: string
-  /** Set by fromServer() for events received from the backend. SyncMiddleware skips these. */
+  /** Set by the receive path for events folded from the server. They are never sent back. */
   readonly remote?: boolean
   /** Server-assigned log position — present only on events folded from the server. */
   readonly position?: string
@@ -69,17 +73,16 @@ type ReducerDefinition<S> = ReducerFunction<S> | ReducerWithPrepare<S>
 
 // A synced slice mixes categories — domain events, facts that stay local,
 // query results — so the classification lives per reducer, not per slice.
-// role is mandatory there: the overload below accepts no bare function.
-type SyncedReducerDefinition<S> =
-  | {
-      readonly role: ActionRole
-      readonly reducer: (state: S, action: PayloadAction<any>) => S
-    }
-  | {
-      readonly role: ActionRole
-      readonly prepare: (...args: any[]) => { readonly payload: any }
-      readonly reducer: (state: S, action: PayloadAction<any>) => S
-    }
+// The declaration is mandatory there: the overload below accepts no bare
+// function, and an event must say which aggregate it is on or opens.
+type SyncedReducerDefinition<S> = ActionDeclaration &
+  (
+    | { readonly reducer: (state: S, action: PayloadAction<any>) => S }
+    | {
+        readonly prepare: (...args: any[]) => { readonly payload: any }
+        readonly reducer: (state: S, action: PayloadAction<any>) => S
+      }
+  )
 
 // Maps a role-carrying definition back onto the shape the existing
 // inference already understands, so none of it has to change.
@@ -131,6 +134,35 @@ type InferPayload<R> = R extends {
       ? P
       : undefined
     : undefined
+
+// --- Event payloads must name their aggregate ---
+//
+// The route of an event is built from the id field of its aggregate. The
+// compiler checks the field is there, so no event can ever be admitted for
+// sending and then turn out unroutable.
+
+/** Mirrors ID_FIELD_OF in sync/aggregate.ts — the two must agree. */
+type AggregateIdField<K extends AggregateKind> = K extends 'list'
+  ? 'listId'
+  : K extends 'recipe'
+    ? 'recipeId'
+    : 'planId'
+
+type AggregateOf<D> = D extends { readonly on: infer K extends AggregateKind }
+  ? K
+  : D extends { readonly opens: infer K extends AggregateKind }
+    ? K
+    : never
+
+type NamesItsAggregate<D> = [AggregateOf<D>] extends [never]
+  ? D
+  : InferPayload<WithoutRole<D>> extends {
+        readonly [F in AggregateIdField<AggregateOf<D>>]: string
+      }
+    ? D
+    : {
+        readonly reducer: `an event on/opens '${AggregateOf<D>}' must take a payload with a string ${AggregateIdField<AggregateOf<D>>}`
+      }
 
 type ActionCreatorWithMeta<F, T extends string, P> = F & {
   readonly type: T
@@ -222,12 +254,15 @@ export function createSlice<
 }): {
   readonly actions: ActionCreators<Name, R>
   readonly reducer: (state: S | undefined, action: { readonly type: string }) => S
+  readonly declarations: SyncDeclarations
 }
 
 export function createSlice<
   Name extends string,
   S,
-  R extends Record<string, SyncedReducerDefinition<S>>,
+  R extends Record<string, SyncedReducerDefinition<S>> & {
+    readonly [K in keyof R]: NamesItsAggregate<R[K]>
+  },
 >(config: {
   readonly name: Name
   readonly initialState: S
@@ -237,6 +272,7 @@ export function createSlice<
 }): {
   readonly actions: ActionCreators<Name, R>
   readonly reducer: (state: S | undefined, action: { readonly type: string }) => S
+  readonly declarations: SyncDeclarations
 }
 
 export function createSlice(config: {
@@ -248,21 +284,22 @@ export function createSlice(config: {
 }): {
   readonly actions: Record<string, any>
   readonly reducer: (state: any, action: { readonly type: string }) => any
+  readonly declarations: SyncDeclarations
 } {
   if (config.synced) syncedSliceNames.add(config.name)
 
   const actionCreators = {} as Record<string, (...args: unknown[]) => unknown>
   const lookup: Record<string, (state: any, action: any) => any> = {}
+  const declarations: Record<string, ActionDeclaration> = {}
 
   for (const key of Object.keys(config.reducers)) {
     const type = `${config.name}/${key}`
     const definition = config.reducers[key] as
       | ((state: any, action: any) => any)
-      | {
-          readonly role?: ActionRole
+      | (ActionDeclaration & {
           readonly prepare?: (...args: unknown[]) => { readonly payload: unknown }
           readonly reducer: (state: any, action: any) => any
-        }
+        })
 
     if (typeof definition === 'function') {
       const creator = (payload?: unknown) =>
@@ -275,7 +312,7 @@ export function createSlice(config: {
       continue
     }
 
-    const prepare = definition.prepare
+    const { prepare, reducer: caseReducer, ...declaration } = definition
     if (prepare) {
       const creator = (...args: unknown[]) => ({ type, ...prepare(...args) })
       creator.type = type
@@ -290,10 +327,11 @@ export function createSlice(config: {
         action.type === type
       actionCreators[key] = creator
     }
-    lookup[type] = definition.reducer
+    lookup[type] = caseReducer
 
-    if (config.synced && definition.role !== undefined) {
-      roleByActionType.set(type, definition.role)
+    if (config.synced) {
+      declarations[type] = declaration
+      roleByActionType.set(type, declaration.role)
     }
   }
 
@@ -310,5 +348,6 @@ export function createSlice(config: {
   return {
     actions: actionCreators,
     reducer,
+    declarations,
   }
 }

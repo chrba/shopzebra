@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import {
   createSlice,
   belongsToSyncedSlice,
-  roleOf,
   type PayloadAction,
 } from '@/app/createSlice'
 
@@ -22,43 +21,53 @@ describe('synced slices', () => {
   })
 })
 
-describe('action role registry', () => {
-  it('registriert die deklarierte Rolle eines synced Reducers', () => {
-    createSlice({
-      name: 'roledDemo',
+describe('sync declarations', () => {
+  it('gibt die Deklaration jedes synced Reducers unter seinem Action-Typ zurück', () => {
+    const slice = createSlice({
+      name: 'declaredDemo',
       initialState: {},
       synced: true,
       reducers: {
-        somethingHappened: {
+        thingRenamed: {
           role: 'event',
-          reducer: (state: object) => state,
+          on: 'list',
+          reducer: (
+            state: object,
+            _action: PayloadAction<{ readonly listId: string }>,
+          ) => state,
         },
-        somethingLoaded: {
-          role: 'hydration',
-          reducer: (state: object) => state,
+        thingCreated: {
+          role: 'event',
+          opens: 'list',
+          reducer: (
+            state: object,
+            _action: PayloadAction<{ readonly listId: string }>,
+          ) => state,
         },
+        thingDropped: { role: 'localEvent', reducer: (state: object) => state },
+        thingsLoaded: { role: 'hydration', reducer: (state: object) => state },
       },
     })
 
-    expect(roleOf('roledDemo/somethingHappened')).toBe('event')
-    expect(roleOf('roledDemo/somethingLoaded')).toBe('hydration')
+    expect(slice.declarations).toEqual({
+      'declaredDemo/thingRenamed': { role: 'event', on: 'list' },
+      'declaredDemo/thingCreated': { role: 'event', opens: 'list' },
+      'declaredDemo/thingDropped': { role: 'localEvent' },
+      'declaredDemo/thingsLoaded': { role: 'hydration' },
+    })
   })
 
-  it('kennt keine Rolle für Actions unsynced Slices', () => {
-    createSlice({
-      name: 'unroledDemo',
+  it('hat keine Deklarationen für einen unsynced Slice', () => {
+    const slice = createSlice({
+      name: 'undeclaredDemo',
       initialState: {},
       reducers: { somethingHappened: (state: object) => state },
     })
 
-    expect(roleOf('unroledDemo/somethingHappened')).toBeUndefined()
+    expect(slice.declarations).toEqual({})
   })
 
-  it('kennt keine Rolle für unbekannte Action-Typen', () => {
-    expect(roleOf('never/registered')).toBeUndefined()
-  })
-
-  it('erzeugt für die Rollen-Form weiterhin funktionierende Action Creators', () => {
+  it('erzeugt für die Deklarationsform funktionierende Action Creators', () => {
     const slice = createSlice({
       name: 'creatorDemo',
       initialState: { seen: '' },
@@ -66,19 +75,20 @@ describe('action role registry', () => {
       reducers: {
         thingRenamed: {
           role: 'event',
+          on: 'list',
           reducer: (
             _state: { readonly seen: string },
-            action: PayloadAction<{ readonly name: string }>,
+            action: PayloadAction<{ readonly listId: string; readonly name: string }>,
           ) => ({ seen: action.payload.name }),
         },
       },
     })
 
-    const action = slice.actions.thingRenamed({ name: 'Brot' })
+    const action = slice.actions.thingRenamed({ listId: 'l1', name: 'Brot' })
 
     expect(action).toEqual({
       type: 'creatorDemo/thingRenamed',
-      payload: { name: 'Brot' },
+      payload: { listId: 'l1', name: 'Brot' },
     })
     expect(slice.reducer({ seen: '' }, action)).toEqual({ seen: 'Brot' })
   })
