@@ -109,11 +109,12 @@ const listsSlice = createSlice({
     },
 
     /**
-     * Local-only: I left this list. The server wrote the member-removed
-     * event, but it will never reach me — leaving ends my access to that
-     * log.
+     * Local-only: this device no longer holds the list — I left it, its
+     * owner removed me, or it was deleted while I was away. The server's
+     * own event about that never reaches me: whatever ended my membership
+     * also ended my access to the log.
      */
-    listLeft: {
+    listDropped: {
       role: 'localEvent',
       reducer: (
         state: ListsState,
@@ -128,7 +129,7 @@ const listsSlice = createSlice({
 
     /**
      * Local-only: leaving failed, so the list comes back. The counterpart
-     * of listLeft, which is dispatched before the server has answered so
+     * of listDropped, which is dispatched before the server has answered so
      * the tile disappears on the tap.
      *
      * Total, like every fold: a list that is already there stays as it is.
@@ -283,7 +284,7 @@ const listsSlice = createSlice({
 export const {
   listsLoaded,
   listCreated,
-  listLeft,
+  listDropped,
   listRestored,
   listRenamed,
   listDeleted,

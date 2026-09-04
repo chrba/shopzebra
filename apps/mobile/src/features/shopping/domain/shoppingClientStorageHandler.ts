@@ -1,7 +1,7 @@
 import { setItem } from '../../../app/clientStorage'
 import { isEventsConfirmed } from '../../../app/sync/withSync'
 import { identityAttached } from '../../auth/domain/authSlice'
-import { listLeft } from '../../lists/domain/listsSlice'
+import { listDropped } from '../../lists/domain/listsSlice'
 import type { ListItem } from './shoppingDomain'
 
 type ShoppingState = {
@@ -25,12 +25,12 @@ export function shoppingClientStorageHandler(
   action: { readonly type: string; readonly payload?: unknown },
   getState: () => unknown,
 ): void {
-  // Docking rewrites the confirmed tree in place and leaving drops a
+  // Docking rewrites the confirmed tree in place and dropping removes a
   // list from it; without these the old state returns on the next start.
   if (
     !isEventsConfirmed(action) &&
     !identityAttached.match(action) &&
-    !listLeft.match(action)
+    !listDropped.match(action)
   ) {
     return
   }

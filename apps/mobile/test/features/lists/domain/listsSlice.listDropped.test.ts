@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import {
   listsReducer,
   listCreated,
-  listLeft,
+  listDropped,
   selectAllLists,
 } from '@/features/lists/domain/listsSlice'
 import { preferencesReducer, listPreferencesSet, selectAllListPreferences } from '@/features/preferences/domain/preferencesSlice'
@@ -15,24 +15,23 @@ const fold = (actions: readonly { type: string }[]) =>
     listsReducer(undefined, { type: '@@INIT' }),
   )
 
-describe('leaving a list', () => {
+describe('dropping a list', () => {
   test('drops only the list that was left', () => {
     const lists = fold([
       listCreated({ listId: 'l1', name: 'Wocheneinkauf', ownerId: 'chris' }),
       listCreated({ listId: 'l2', name: 'Bäcker', ownerId: 'me' }),
-      listLeft({ listId: 'l1' }),
+      listDropped({ listId: 'l1' }),
     ])
 
     expect(selectAllLists({ lists }).map((list) => list.id)).toEqual(['l2'])
   })
 
-  // Leaving ends my access to the log, so the server can never tell me
-  // about it afterwards. role: 'localEvent' is what keeps it here now —
-  // the payload may say listId like every other list event.
+  // Whatever ended my membership also ended my access to the log, so the
+  // server can never tell me about it — role: 'localEvent' keeps it here.
   test('never reaches the outbox', () => {
     expect(
       appSyncPolicy.reachesServer({
-        ...listLeft({ listId: 'l1' }),
+        ...listDropped({ listId: 'l1' }),
         meta: { eventId: 'e1', deviceId: 'd1' },
       }),
     ).toBe(false)
@@ -52,7 +51,7 @@ describe('leaving a list', () => {
       }),
     )
 
-    const shopping = shoppingReducer(withItems, listLeft({ listId: 'l1' }))
+    const shopping = shoppingReducer(withItems, listDropped({ listId: 'l1' }))
 
     expect(selectListItems({ shopping }, 'l1')).toEqual([])
   })
@@ -66,7 +65,7 @@ describe('leaving a list', () => {
       }),
     )
 
-    const preferences = preferencesReducer(withPrefs, listLeft({ listId: 'l1' }))
+    const preferences = preferencesReducer(withPrefs, listDropped({ listId: 'l1' }))
 
     expect(selectAllListPreferences({ preferences })['l1']).toBeUndefined()
   })

@@ -7,9 +7,9 @@ import { store, type RootState } from '../store'
 import { removeItem } from '../clientStorage'
 import { initialSyncCompleted } from '../appSlice'
 import { selectHasIdentity } from '../../features/auth/domain/authSlice'
-import { listLeft, selectAllLists } from '../../features/lists/domain/listsSlice'
+import { listDropped, selectAllLists } from '../../features/lists/domain/listsSlice'
 import {
-  recipeLeft,
+  recipeDropped,
   selectAllRecipes,
 } from '../../features/recipes/domain/recipesSlice'
 import type { Aggregate } from './aggregate'
@@ -61,8 +61,8 @@ function heldAggregates(state: RootState): readonly Aggregate[] {
  */
 function dropped(aggregate: Aggregate) {
   return aggregate.kind === 'recipe'
-    ? recipeLeft({ recipeId: aggregate.id })
-    : listLeft({ listId: aggregate.id })
+    ? recipeDropped({ recipeId: aggregate.id })
+    : listDropped({ listId: aggregate.id })
 }
 
 /** Called from the root beforeLoad (app boot) and ensureIdentity. Idempotent. */

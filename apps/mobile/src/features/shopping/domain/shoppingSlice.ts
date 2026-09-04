@@ -1,7 +1,7 @@
 import { createSelector } from '@reduxjs/toolkit'
 import { createSlice, type PayloadAction } from '../../../app/createSlice'
 import { identityAttached } from '../../auth/domain/authSlice'
-import { listDeleted, listLeft } from '../../lists/domain/listsSlice'
+import { listDeleted, listDropped } from '../../lists/domain/listsSlice'
 import type { ListItem } from './shoppingDomain'
 
 type ItemsByListId = { readonly [listId: string]: readonly ListItem[] }
@@ -281,8 +281,8 @@ const shoppingSlice = createSlice({
       ): ShoppingState => withoutList(state, action.payload.listId),
     },
     {
-      // A list I left is gone from this device — its items too.
-      creator: listLeft,
+      // A dropped list is gone from this device — its items too.
+      creator: listDropped,
       reducer: (
         state: ShoppingState,
         action: PayloadAction<{ readonly listId: string }>,

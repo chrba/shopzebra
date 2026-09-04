@@ -1,7 +1,7 @@
 import { setItem } from '../../../app/clientStorage'
 import { isEventsConfirmed } from '../../../app/sync/withSync'
 import { identityAttached } from '../../auth/domain/authSlice'
-import { recipeLeft, recipeOwnerNamesLoaded } from './recipesSlice'
+import { recipeDropped, recipeOwnerNamesLoaded } from './recipesSlice'
 import type { Recipe } from './recipesDomain'
 
 type RecipesState = {
@@ -27,7 +27,7 @@ export function recipesClientStorageHandler(
   if (
     !isEventsConfirmed(action) &&
     !identityAttached.match(action) &&
-    !recipeLeft.match(action) &&
+    !recipeDropped.match(action) &&
     !recipeOwnerNamesLoaded.match(action)
   ) {
     return

@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '../../../app/createSlice'
-import { listDeleted, listLeft } from '../../lists/domain/listsSlice'
+import { listDeleted, listDropped } from '../../lists/domain/listsSlice'
 import { recipeDeleted } from '../../recipes/domain/recipesSlice'
 import type { ListPreferences, RecipePreferences } from './preferencesDomain'
 
@@ -86,9 +86,9 @@ const preferencesSlice = createSlice({
       ): PreferencesState => withoutList(state, action.payload.listId),
     },
     {
-      // Leaving drops the list from this device just as deleting does —
+      // A dropped list is gone from this device just as deleting does —
       // its emoji and colour have nothing left to belong to.
-      creator: listLeft,
+      creator: listDropped,
       reducer: (
         state: PreferencesState,
         action: PayloadAction<{ readonly listId: string }>,

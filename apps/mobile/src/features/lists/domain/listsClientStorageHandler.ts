@@ -1,7 +1,7 @@
 import { setItem } from '../../../app/clientStorage'
 import { isEventsConfirmed } from '../../../app/sync/withSync'
 import { identityAttached } from '../../auth/domain/authSlice'
-import { listLeft, listRestored, ownerNamesLoaded } from './listsSlice'
+import { listDropped, listRestored, ownerNamesLoaded } from './listsSlice'
 import type { ShoppingList } from './listsDomain'
 
 type ListsState = {
@@ -20,7 +20,7 @@ export function listsClientStorageHandler(
   action: { readonly type: string; readonly payload?: unknown },
   getState: () => unknown,
 ): void {
-  // Docking rewrites the confirmed tree in place and leaving drops a
+  // Docking rewrites the confirmed tree in place and dropping removes a
   // list from it; without these the old state returns on the next start.
   //
   // Owner names belong here too, even though no event carries them: they
@@ -30,7 +30,7 @@ export function listsClientStorageHandler(
   if (
     !isEventsConfirmed(action) &&
     !identityAttached.match(action) &&
-    !listLeft.match(action) &&
+    !listDropped.match(action) &&
     !listRestored.match(action) &&
     !ownerNamesLoaded.match(action)
   ) {

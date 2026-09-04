@@ -125,10 +125,10 @@ const recipesSlice = createSlice({
     },
 
     /**
-     * Local-only: this device stops holding the recipe — left, or removed
-     * by its owner.
+     * Local-only: this device no longer holds the recipe — left, removed
+     * by its owner, or deleted while I was away.
      */
-    recipeLeft: {
+    recipeDropped: {
       role: 'localEvent',
       reducer: (
         state: RecipesState,
@@ -271,7 +271,7 @@ export const {
   recipeUpdated,
   recipeDeleted,
   recipeMemberAdded,
-  recipeLeft,
+  recipeDropped,
   recipeMemberRemoved,
   recipeOwnerNamesLoaded,
 } = recipesSlice.actions

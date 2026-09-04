@@ -7,7 +7,7 @@ import { selectDeviceId } from '../../../app/appSlice'
 import { selectCurrentUserId } from '../../auth/domain/authSlice'
 import { authFetch, type Fetcher } from '../../../app/authFetch'
 import { removeMember } from '../../sharing/memberCommands'
-import { listLeft, listRestored, selectListById } from './listsSlice'
+import { listDropped, listRestored, selectListById } from './listsSlice'
 
 /**
  * True when the server refuses because it does not count us as a member.
@@ -35,7 +35,7 @@ export const leaveList =
   async (dispatch: AppDispatch, getState: () => RootState): Promise<void> => {
     const state = getState()
     const left = selectListById(state, listId)
-    dispatch(listLeft({ listId }))
+    dispatch(listDropped({ listId }))
 
     try {
       await removeMember(
