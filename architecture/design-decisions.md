@@ -152,6 +152,8 @@ Die API ist überwiegend Event-Transport — aber nicht ausschließlich. Nicht j
 
 Die Linie: *Hat es eine nutzerübergreifende Invariante oder eine Außenwirkung?* → Klasse 2. Sonst Klasse 1.
 
+**Eröffnende Events.** `listCreated` und `recipeCreated` sind Klasse-1-Events mit eigenem Endpunkt (`POST /lists`, `POST /recipes`): Es gibt noch keinen Log, an den sie appended werden könnten, und keine Membership, die der generische Pfad prüfen könnte. Der Server claimt Ownership für den Aufrufer und appended das Event des Clients unverändert. Im Client heißt das `opens: 'list'` statt `on: 'list'` — eine Routing-Eigenschaft, kein Command.
+
 Das ist keine Aufweichung des dummen Backends, sondern seine Präzisierung: **Das Gate kennt die Regeln, der Log kennt nichts.** Der Store bleibt append-only und uninterpretierend. Und die Klasse-2-Liste wächst nicht mit der Feature-Zahl — sie umfasst Identität, Zugriff und externe Effekte, nicht die Domäne.
 
 Der Grund, warum das nicht optional ist: Membership wird aus dem Log abgeleitet. Dürfte ein Client `listMemberAdded` selbst appenden, stammte die Autorisierungsgrundlage aus genau dem Stream, den die Autorisierung schützen soll. Siehe [sync-engine.md](./sync-engine.md) §6.

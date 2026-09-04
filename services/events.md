@@ -38,7 +38,7 @@ Aggregate-ID: `LIST#{listId}`
 
 | Event | Klasse |
 |---|---|
-| `listCreated` | **2** — erzeugt die Autorisierungswurzel: `POST /lists`, Server prüft `createdBy` = Aufrufer, claimt Ownership atomar und schreibt das Event |
+| `listCreated` | **1, eigener Endpunkt** — eröffnet den Log: `POST /lists`, Server prüft `createdBy` = Aufrufer, claimt Ownership atomar und appended das Event des Clients |
 | `messageSent`, `reactionAdded` | 1 |
 | `listRenamed` | 1 |
 | `listDeleted` | 1 |
@@ -195,9 +195,9 @@ Nachrichten und Reaktionen leben auf dem **ShoppingList-Aggregate** (Feed pro Li
 Aggregate-ID: `RECIPE#{recipeId}`
 
 `recipeUpdated` und `recipeDeleted` sind **Klasse 1**. `recipeCreated` ist —
-wie `listCreated` — ein Hybrid: es steht in der Klasse-1-Allowlist (damit
-Envelope und Schema es prüfen), wird aber über den **Klasse-2-Command**
-`POST /recipes` erzeugt, weil es die Autorisierungswurzel des Rezepts setzt.
+wie `listCreated` — ein **eröffnendes Klasse-1-Event**: Es steht in der
+Allowlist (Envelope und Schema prüfen es) und geht an den eigenen Endpunkt
+`POST /recipes`, weil noch kein Log existiert.
 Der Server claimt die Ownership atomar und schreibt das Event selbst.
 
 `recipeMemberAdded` und `recipeMemberRemoved` sind **Klasse 2**: Sie werden

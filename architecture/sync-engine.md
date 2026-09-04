@@ -100,7 +100,7 @@ const preferencesSlice = createSlice({ name: 'preferences', synced: false, ... }
 
 Ein Boolean pro Slice statt ein `if` pro Action. Maßgeblich ist dabei das **Aggregate, auf dessen Log ein Event landet** — nicht das Feature, das es dispatcht: `ingredientsCheckedOut` wird von `meal-plan/` dispatcht, gehört aber zum ShoppingList-Aggregate (siehe [../services/events.md](../services/events.md)). Und die dabei entstehende Grenze ist exakt die **Domain-vs-Local-Preferences-Grenze** aus [domain-model.md](./domain-model.md) §1. Dieselbe Linie, einmal gezogen, zweimal genutzt — das ist das Zeichen, dass der Schnitt stimmt.
 
-Der Boolean allein reicht aber nicht: Ein synced Slice mischt Kategorien — echte Domain-Events, Fakten die bewusst lokal bleiben, und Ergebnisse von Abfragen. Deshalb deklariert **jeder Reducer eines synced Slice zusätzlich seine Rolle** (`event | command | localEvent | observation | hydration`). Die Sync-Entscheidung folgt aus dieser Rolle über eine exhaustive Tabelle in `needsSync.ts`, nicht mehr aus der Form des Payloads. Details und Begründung: [design](../docs/superpowers/specs/2026-09-04-explicit-action-role-classification-design.md).
+Der Boolean allein reicht aber nicht: Ein synced Slice mischt Kategorien — echte Domain-Events, Fakten die bewusst lokal bleiben, und Ergebnisse von Abfragen. Deshalb **deklariert jeder Reducer eines synced Slice seine Rolle** (`event | localEvent | observation | hydration`), und ein `event` nennt zusätzlich sein Aggregate: `on: 'list'` (liegt auf einem bestehenden Log) oder `opens: 'list'` (eröffnet ein neues Log und geht deshalb an die Collection, wo der Server Ownership bootstrappt). Der Compiler erzwingt, dass das Payload das Aggregate-Feld (`listId`, `recipeId`) trägt. Aus den Deklarationen aller synced Slices komponiert `app/sync/appSyncPolicy.ts` **eine** Policy, die `withSync` (ob pending), die Engine (wohin) und der Receive-Pfad (Wire-Übersetzung) nur noch konsumieren. Details: [design](../docs/superpowers/specs/2026-09-04-sync-declaration-design.md).
 
 ---
 
@@ -156,6 +156,8 @@ Der Event Store bleibt append-only und uninterpretierend. Davor sitzt ein Gate, 
 ### Zwei Klassen von Nachrichten
 
 **Klasse 1 — kollaborative Domain-Events.** `itemAdded`, `itemChecked`, `listRenamed`, `recipeCreated`, `recipeAssigned`, `messageSent`. Keine Invariante über Nutzer hinweg. Wer Mitglied des Aggregates ist, darf sie senden. Das Backend prüft Auth + Membership + Wohlgeformtheit, vergibt die nächste Position, hängt an und broadcastet. Semantik interpretiert es nicht. **Ein generisches Lambda für alle**, kein Deploy pro Event-Typ.
+
+> `listCreated` und `recipeCreated` gehören dazu — sie *eröffnen* ein Log, für das noch keine Membership existiert, und gehen deshalb an `POST /lists` bzw. `POST /recipes`, wo der Server Ownership claimt und das Event wörtlich appended. Sie sind keine Commands: Der Client erzeugt die Id, wendet sofort an, und ein Gast arbeitet ohne Server damit.
 
 **Klasse 2 — sicherheitsrelevante Commands.** Invite-Erzeugung (Owner-only), `listMemberAdded` (Invite-Token einlösen), `listMemberRemoved`, Rezept-Import per URL. Echte Invarianten, echte Außenwirkung. Diese gehen **nicht** durch den Event-Append-Pfad: eigener Endpunkt, eigenes Lambda, Server validiert, Server entscheidet, und **der Server schreibt das resultierende Event in den Log**. Der Client schlägt vor, der Server verfügt.
 

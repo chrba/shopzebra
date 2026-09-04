@@ -1,0 +1,513 @@
+Cleanup Model TODO
+==================
+
+Warum wir das machen
+--------------------
+Das aktuelle Modell drueckt nicht klar aus, was fachlich passiert.
+Dadurch entstehen technische Sonderregeln wie `id` statt `listId`, nur damit
+eine Action nicht gesynct wird. Die Sync-Bedeutung einer Action ist damit
+nicht explizit im Modell sichtbar, sondern haengt teilweise an impliziten
+Payload-Konventionen.
+
+Das wollen wir aendern, weil das aktuelle Design:
+
+- schwer zu verstehen ist
+- nicht intention-revealing ist
+- bei spaeteren Aenderungen fragil ist
+- das Domain-Modell schlechter ausdrueckt, als es sollte
+
+Problem
+-------
+Die aktuelle Modellierung mischt:
+
+- echte Domain-Events
+- lokale Hilfs-/Cleanup-Actions
+- Sync-interne Steueractions
+
+Dadurch muss die Sync-Bedeutung teilweise indirekt aus Payload-Form und
+Feldnamen erschlossen werden, z.B. `id` statt `listId`, damit `aggregateOf()`
+die Action nicht als syncbares Aggregate-Event erkennt.
+
+Das ist:
+
+- nicht intention-revealing
+- schwer verständlich
+- fragil bei späteren Änderungen
+- zu technisch statt am Domain-Modell ausgerichtet
+
+Beobachteter Geruch
+-------------------
+`listLeft` ist im aktuellen Code keine sauber modellierte fachliche Tatsache,
+sondern eine lokale Folgeaktion nach einem Membership-Command oder nach dem
+Verlust der Sichtbarkeit im Catch-up.
+
+Der Haupt-Hack ist:
+
+- die Sync-Klassifikation haengt an Payload-Feldnamen
+- `aggregateOf()` erkennt syncbare Aggregate-Events ueber Felder wie
+  `listId` oder `recipeId`
+- deshalb werden lokale-only Actions absichtlich anders geformt, damit sie
+  aus dieser Heuristik herausfallen
+
+Das sichtbarste Symptom davon ist:
+
+- `listLeft({ id })` statt `listLeft({ listId })`
+
+Das Payload benennt absichtlich nicht das Aggregate-Feld, nur damit die
+Sync-Engine es nicht als normales Listen-Event behandelt.
+
+Ziel
+----
+Die Modellierung soll ausdrücken, was fachlich gemeint ist, statt technische
+Heuristiken auszunutzen.
+
+Das Zielbild ist:
+
+- echte fachliche Intentionen sind echte Domain-Events
+- lokale Cleanup-Bedeutungen werden nicht als pseudo-fachliche Events getarnt
+- die Sync-Bedeutung einer Action ist explizit und am Domain-Modell orientiert
+- keine Heuristik ueber Feldnamen wie `id` vs `listId`
+
+Aktuelle Design-Richtung
+------------------------
+`listLeft` soll als echtes Domain-Event gedacht werden:
+
+- Bedeutung: der aktuelle Nutzer verlaesst diese Liste
+- lokaler Effekt: sofort optimistic anwenden
+- Sync: wie andere Aggregate-Events zum Server schicken
+- Server: validiert und schreibt die autoritative Aenderung
+
+Wichtige Trennung:
+
+- `listLeft` = self-leave
+- `memberRemoved` oder aehnlich = jemand anders wird entfernt
+
+Damit waere `listLeft` kein lokaler Cleanup-Hack mehr, sondern ein echtes,
+intention-revealing Domain-Event.
+
+Was wir vorhaben
+----------------
+1. Das Problem als Modellproblem behandeln, nicht als Payload-Naming-Problem.
+2. Pruefen, welche heutigen lokalen-only Actions in Wahrheit echte
+   Domain-Intentionen sind.
+3. `listLeft` als Kandidaten fuer ein echtes syncbares Domain-Event behandeln.
+4. Domain-Events, lokale technische Reaktionen und Sync-Steueractions sauber
+   voneinander trennen.
+5. Eine Modellierung finden, bei der die Sync-Bedeutung explizit ist und nicht
+   ueber `aggregateOf()`-Heuristiken an Payload-Feldern haengt.
+
+Leitkriterien
+-------------
+- intention-revealing
+- am Domain-Modell orientiert
+- einfach lesbar
+- robust gegen spaetere Aenderungen
+- keine stillen semantischen Abhaengigkeiten an Feldnamen
+
+
+Zweites TODO: Command/Event-Trennung schaerfen
+==============================================
+
+Warum wir das machen
+--------------------
+Neben dem Payload-Feldnamen-Hack gibt es noch einen zweiten Modellbruch:
+`listCreated` und `recipeCreated` sehen im Client wie normale Domain-Events
+aus, werden im Sendepfad aber als Sonderfall behandelt, weil sie in Wahrheit
+servervalidierte Commands sind.
+
+Das ist problematisch, weil:
+
+- die Action fachlich etwas anderes ausdrueckt als ihr technischer Pfad
+- die Besonderheit erst in `toOutboxEntry()` sichtbar wird
+- das Modell nach aussen "alles ist Event" sagt, intern aber Ausnahmen braucht
+- kuenftige Sonderfaelle leicht wieder als technische Spezialbehandlung enden
+
+Problem
+-------
+Aktuell ist die Form:
+
+- im UI / Store: `listCreated`, `recipeCreated`
+- im Sync-Pfad: Sonderbehandlung zu `/lists` bzw. `/recipes`
+- auf dem Server: validierter Command, der das echte Event schreibt
+
+Damit ist nicht klar modelliert, ob diese Actions:
+
+- ein Command an den Server sind
+- oder ein bereits existierendes Domain-Event
+
+Das fuehrt zu einer unsauberen Vermischung von:
+
+- Nutzerintention
+- Transport-Routing
+- serverseitig erzeugtem Fachereignis
+
+Ziel
+----
+Die Modellierung soll ausdruecklich trennen zwischen:
+
+- **Command**: Nutzer fordert etwas an (`createList`, `createRecipe`)
+- **Domain-Event**: autoritative fachliche Tatsache (`listCreated`, `recipeCreated`)
+
+Dann gilt:
+
+- Commands gehen an Command-Endpunkte
+- Events landen im Aggregate-Log
+- die Sync-Engine muss keinen versteckten Sonderfall fuer "eigentlich kein
+  Event" mehr enthalten
+
+Was wir vorhaben
+----------------
+1. Den Sonderfall `listCreated` / `recipeCreated` nicht als Routing-Detail
+   behandeln, sondern als Modellierungsfrage.
+2. Pruefen, welche heutigen "Events" in Wahrheit Commands sind.
+3. Eine explizite Trennung zwischen Nutzerintention und servergeschriebenem
+   Domain-Event anstreben.
+4. Verhindern, dass kuenftige Klasse-2-Faelle wieder als "fast normale
+   Events mit Spezialrouting" modelliert werden.
+
+Leitkriterien
+-------------
+- Commands und Events haben unterschiedliche fachliche Rollen
+- diese Rollen sollen im Modell sichtbar sein
+- keine versteckten Spezialfaelle in der Transportlogik
+- neue Sonderfaelle sollen durch das Modell aufgefangen werden, nicht durch
+  weitere `if`-Zweige
+
+
+Drittes TODO: Read-Model-Updates explizit machen
+===============================================
+
+Warum wir das machen
+--------------------
+Es gibt Actions wie:
+
+- `memberLimitLoaded`
+- `ownerNamesLoaded`
+- `recipeOwnerNamesLoaded`
+
+Diese sind fachlich weder:
+
+- Nutzerintentionen
+- noch Domain-Events des Aggregate-Logs
+
+Sie sind Antworten auf Leseoperationen bzw. Projektionen aus dem Server-Read-
+Model. Im aktuellen Code stehen sie aber als normale Slice-Actions direkt neben
+echten Domain-Events, und dass sie nicht gesynct werden, ergibt sich nur
+implizit daraus, dass ihnen ein Aggregate-Feld am Payload-Root fehlt.
+
+Das ist problematisch, weil:
+
+- ihre fachliche Rolle nicht sichtbar ist
+- sie im selben begrifflichen Raum wie Domain-Events liegen
+- das Nicht-Syncen wieder an einer technischen Heuristik haengt
+- fuer neue Leser unklar bleibt, warum diese Actions "anders" sind
+
+Was hier mit Read Model gemeint ist
+-----------------------------------
+Mit Read Model ist hier nicht der Event-Log selbst gemeint, sondern eine
+gelesene, fuer die UI aufbereitete Sicht auf Serverdaten.
+
+Beispiele:
+
+- `memberLimitLoaded`
+  Das ist keine Aenderung an einer Liste, sondern gelesene Zusatzinformation
+  aus `GET /lists`: wie viele Mitglieder maximal erlaubt sind.
+
+- `ownerNamesLoaded`
+  Das ist kein Event im Listen-Log, sondern eine gelesene Anreicherung fuer
+  die UI: welcher Anzeigename zum Owner einer Liste gehoert.
+
+- `recipeOwnerNamesLoaded`
+  Gleiches Prinzip fuer Rezepte.
+
+Diese Daten beschreiben also nicht:
+
+- "was ist fachlich im Aggregate passiert?"
+
+sondern:
+
+- "welche gelesene, UI-relevante Sicht hat der Server auf diese Aggregate?"
+
+Das ist eine Projektion bzw. ein Read Model.
+
+Problem
+-------
+Aktuell werden diese Updates als normale Actions im Domain-Slice gefaltet,
+obwohl sie fachlich eine andere Rolle haben als Log-Events wie
+`listCreated`, `listRenamed`, `itemChecked` usw.
+
+Dadurch ist im Modell nicht klar getrennt zwischen:
+
+- **Write-/Event-Seite**: fachliche Aenderungen am Aggregate
+- **Read-/Projection-Seite**: gelesene Zusatzsicht fuer die UI
+
+Ziel
+----
+Die Modellierung soll klar machen:
+
+- Domain-Events veraendern das fachliche Aggregate
+- Read-Model-Updates reichern die lokale Sicht mit gelesenen Daten an
+- Read-Model-Updates gehoeren nicht in den Event-Log
+- Read-Model-Updates sind nicht "fast Events", sondern eine andere Kategorie
+
+Beispiele fuer das Zielverstaendnis:
+
+- `memberLimitLoaded` = "das Read Model fuer Listen hat uns den aktuellen
+  Member-Cap geliefert"
+- `ownerNamesLoaded` = "das Read Model fuer Listen hat uns Anzeigenamen fuer
+  Owner geliefert"
+- `recipeOwnerNamesLoaded` = "das Read Model fuer Rezepte hat uns Owner-Namen
+  geliefert"
+
+Dann waere fachlich klar:
+
+- Das sind Query-/Projection-Resultate
+- Keine Nutzerintention
+- Kein Aggregate-Log-Event
+- Kein Kandidat fuer Pending/Outbox
+
+Was wir vorhaben
+----------------
+1. Diese Actions nicht als "lokale Sonder-Events" behandeln, sondern als
+   eigene Kategorie von Read-Model-/Projection-Updates.
+2. Klarer ausdruecken, dass sie aus Lese-Endpoints bzw. Server-Projektionen
+   stammen.
+3. Verhindern, dass ihr Nicht-Syncen weiter nur an Payload-Form und
+   `aggregateOf()`-Heuristik haengt.
+4. Das Modell so scharf machen, dass neue Query-/Projection-Daten an der
+   richtigen Stelle landen.
+
+Leitkriterien
+-------------
+- Read-Model-Updates sind begrifflich getrennt von Domain-Events
+- ihre Herkunft aus Query/Projection soll sichtbar sein
+- ihr Nicht-Syncen soll fachlich klar sein, nicht nur technisch implizit
+- die UI darf solche Daten weiter lokal falten, ohne dass sie wie
+  Log-Events aussehen
+
+
+Viertes TODO: Origin-Metadaten klarer ausdruecken
+===============================================
+
+Warum wir das machen
+--------------------
+`meta.remote` ist kein schwerer Architekturfehler, aber semantisch recht eng
+und etwas grob. Es markiert technisch, dass eine Action vom Server kam und
+deshalb nicht wieder in den Sync-Outflow darf.
+
+Das ist grundsaetzlich legitim, weil es technische Herkunft und nicht
+fachliche Bedeutung beschreibt. Trotzdem ist die aktuelle Form etwas
+unpraezise:
+
+- `remote: true` beschreibt nur einen Spezialfall
+- die Gegenbedeutung "lokal" ist nur implizit
+- die Rolle als Herkunfts-/Transport-Metadatum koennte klarer benannt sein
+
+Problem
+-------
+Die Action-Herkunft ist technisch relevant fuer:
+
+- `eventIdMiddleware`
+- `needsSync()`
+- das Verhindern von Echo-Schleifen
+
+Aktuell wird diese Herkunft ueber ein boolesches Flag `remote` ausgedrueckt.
+Das funktioniert, ist aber sprachlich weniger klar als ein explizites
+Origin-Modell.
+
+Ziel
+----
+Die Herkunft einer Action soll als technische Metainformation klarer
+ausgedrueckt werden, z.B. als allgemeineres Origin-Konzept statt als
+einzelnes Bool-Flag.
+
+Die beabsichtigte Aussage ist:
+
+- diese Action stammt lokal vom Geraet
+- oder sie stammt vom Server / Receive-Pfad
+
+Wichtig:
+
+- Das ist keine Domain-Fachlichkeit
+- Das ist Transport-/Origin-Metadatum
+- Es ist deshalb kein Kernproblem wie der Payload-Feldnamen-Hack, sondern eine
+  kleinere Verfeinerung fuer Lesbarkeit und Modellklarheit
+
+Was wir vorhaben
+----------------
+1. `meta.remote` als kleinere Modellverbesserung betrachten, nicht als
+   Hauptbaustelle.
+2. Pruefen, ob ein expliziteres Herkunftsmodell wie `meta.origin` die
+   beabsichtigte Bedeutung klarer ausdrueckt.
+3. Sicherstellen, dass technische Herkunft weiter in Meta bleibt und nicht in
+   fachliche Payloads rutscht.
+
+Leitkriterien
+-------------
+- technische Herkunft soll klar benannt sein
+- Domain-Bedeutung und Transport-Metadaten bleiben getrennt
+- keine unnötige Uebermodellierung fuer ein kleines Problem
+
+
+Fuenftes TODO: Fachliche Sync-Bedeutung zentralisieren
+======================================================
+
+Warum wir das machen
+--------------------
+Ein Teil des verbleibenden Geruchs ist nicht, dass Sync an mehreren Stellen
+implementiert ist, sondern dass fachliche Sync-Bedeutung an mehreren Stellen
+mitentschieden wird.
+
+Mechanik darf verteilt sein:
+
+- Reducer
+- Outbox
+- Transport
+- Lifecycle
+- Middleware
+
+Das ist normal. Problematisch ist es erst dann, wenn dieselbe fachliche Frage
+an mehreren Stellen separat codiert wird, z.B.:
+
+- ist das ein echtes syncbares Domain-Event?
+- ist das ein Command?
+- ist das nur ein Read-Model-Update?
+- gehoert das in Pending / Outbox / Catch-up?
+
+Dann ist das Sync-Wissen nicht nur verteilt, sondern dupliziert.
+
+Problem
+-------
+Im aktuellen Modell steckt ein Teil der fachlichen Sync-Bedeutung in:
+
+- Slice-Form und Payload-Struktur
+- `needsSync()`
+- `aggregateOf()`
+- `toOutboxEntry()`
+- Sonderwissen im Sync-Ablauf
+
+Dadurch ist schwer zu sehen, wo eigentlich die autoritative Entscheidung ueber
+die Rolle einer Action liegt.
+
+Ziel
+----
+Die fachliche Sync-Klassifikation soll an moeglichst einer klaren Stelle
+entschieden werden.
+
+Die technische Ausfuehrung darf weiter verteilt bleiben, aber sie soll auf
+einer gemeinsamen, expliziten Bedeutung aufbauen statt selbst wieder zu
+klassifizieren.
+
+Das Zielbild ist:
+
+- **Bedeutung zentral**
+- **Mechanik verteilt**
+
+Dann bleibt okay, dass Sync mehrere Module hat, aber nicht okay waere mehr,
+dass jede Schicht die Fachrolle einer Action neu erraten muss.
+
+Was wir vorhaben
+----------------
+1. Fachliche Sync-Klassifikation als eigenes Problem behandeln.
+2. Pruefen, welche Entscheidungen heute mehrfach oder implizit codiert sind.
+3. Ein Modell anstreben, in dem andere Sync-Bausteine eine zentrale
+   Klassifikation nur noch konsumieren.
+4. Verhindern, dass neue Sonderfaelle kuenftig wieder an mehreren Stellen
+   verteilt auftauchen.
+
+Leitkriterien
+-------------
+- fachliche Bedeutung wird zentral entschieden
+- technische Ausfuehrung darf auf mehrere Module verteilt sein
+- keine doppelte oder dreifache Codierung derselben Sync-Semantik
+
+
+Sechstes TODO: Enge Kopplung von Redux-Action, Domain-Event und Wire-Format pruefen
+====================================================================================
+
+Warum wir das machen
+--------------------
+Die Architektur nutzt bewusst die Naehe von:
+
+- Redux-Action
+- Domain-Event
+- Wire-Format
+
+Das ist elegant und reduziert Mapping-Code. Gleichzeitig ist es aber auch ein
+strenger Kopplungsentscheid: was auf einer Ebene modelliert wird, strahlt sehr
+schnell auf die anderen Ebenen aus.
+
+Diese Naehe macht Modellfehler gefaehrlicher:
+
+- technische Sonderfaelle wirken schnell wie Domain-Faelle
+- Domain-Entscheidungen werden leicht von Transportfragen beeinflusst
+- Read-Model-Updates sehen schneller wie Domain-Events aus
+- neue Klasse-2-Sonderfaelle koennen leichter im Event-Kleid auftreten
+
+Problem
+-------
+Im aktuellen Modell ist dieselbe Form oft gleichzeitig:
+
+- Redux-Dispatch-Objekt
+- fachliches Event
+- wire payload zum Server
+
+Das spart Uebersetzung, erschwert aber die klare Trennung von:
+
+- Domain-Bedeutung
+- Client-Interaktion
+- Transportdarstellung
+
+Ziel
+----
+Wir wollen bewusst pruefen, ob diese enge Gleichsetzung auch nach den anderen
+Bereinigungen noch die richtige Form ist oder ob sie zu viele Folgeprobleme
+erzeugt.
+
+Wichtig:
+
+- Das ist kein automatischer Beschluss fuer mehr Mapping oder mehr Schichten.
+- Es ist eine Architekturfrage: wie eng duerfen Domain und Transport gekoppelt
+  sein, ohne dass die Modellklarheit leidet?
+
+Was wir vorhaben
+----------------
+1. Diese Kopplung als bewussten Trade-off behandeln, nicht als naturgegeben.
+2. Pruefen, welche der aktuellen Modellgerueche direkt aus dieser Gleichsetzung
+   entstehen oder verstaerkt werden.
+3. Bewerten, ob die Einfachheit des gemeinsamen Formats die Modellkosten weiter
+   rechtfertigt.
+
+Leitkriterien
+-------------
+- Einfachheit bleibt wichtig
+- aber Domain-Bedeutung soll nicht von Transportform dominiert werden
+- Kopplung soll bewusst gewaehlt sein, nicht versehentlich mitgeschleppt
+
+
+Status (2026-09-04, zweiter Schritt): Punkte 1, 2, 3 und 5 sind UMGESETZT.
+Design: docs/superpowers/specs/2026-09-04-sync-declaration-design.md
+Plan:   docs/superpowers/plans/2026-09-04-sync-declaration.md
+
+Jeder Reducer eines synced Slice traegt eine Deklaration: role
+(event | localEvent | observation | hydration), und ein event nennt sein
+Aggregate als on: 'list' (liegt auf dem Log) oder opens: 'list' (eroeffnet
+den Log -> Collection-Endpunkt). Der Compiler erzwingt das Aggregate-Feld im
+Payload. app/sync/appSyncPolicy.ts komponiert daraus explizit eine Policy;
+withSync, Engine und Receive-Pfad konsumieren sie. Keine globale Registry,
+kein aggregateOf(), kein needsSync.ts/toOutboxEntry.ts, kein fromServer.ts.
+
+Punkt 1: listLeft heisst listDropped — die eine lokale Tatsache "dieses
+Geraet haelt die Liste nicht mehr", fuer Verlassen und Zugriffsverlust.
+Punkt 2: entschieden — listCreated/recipeCreated sind Tatsachen (Events, die
+ein Log eroeffnen), keine Commands. Die Rolle 'command' und der .match()-
+Sonderfall sind weg; "Plan 2" ist hinfaellig. Echte Commands sind die Thunks
+in memberCommands.ts, wie bisher.
+Punkt 3: unveraendert erledigt (observation).
+Punkt 5: erledigt — Klassifikation UND Routing kommen aus einer Deklaration;
+der zweite Nicht-Sync-Mechanismus (gefaelschtes meta.remote in
+memberAddedLocally) ist durch listMemberAddedLocally/… (localEvent) ersetzt.
+
+Punkt 4 (meta.origin): bewusst nicht umgesetzt — seit dem Ende der
+remote-Faelschung bedeutet remote wieder genau "kam vom Server".
+Punkt 6 (Kopplung Action/Event/Wire): unberuehrt, bewusste Grundentscheidung.

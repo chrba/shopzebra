@@ -160,7 +160,7 @@ Genauer: im **Higher-Order Reducer** `withSync` ([sync-engine.md](./sync-engine.
 - **eventId-Dedup** (dasselbe Event kommt doppelt bei At-least-once-Zustellung) → in der Sync-Schicht, vor dem Fold.
 - **Autorisierung** → Backend, siehe §6.
 
-> ⚠️ Bestehendes Risiko: `eventIdMiddleware` vergibt bei *jedem* Dispatch eine neue `eventId`. Ein `fromServer(...)`-Event läuft ebenfalls durch die Middleware und darf dabei **keine neue eventId** bekommen — sonst bricht das Dedup und die Pending-Queue findet ihr eigenes bestätigtes Event nicht wieder.
+> ⚠️ Bestehendes Risiko: `eventIdMiddleware` vergibt bei *jedem* Dispatch eine neue `eventId`. Ein vom Server gefaltetes Event (`meta.remote`, gesetzt vom Receive-Pfad in `toLocalAction`) läuft ebenfalls durch die Middleware und muss dabei **seine `eventId` behalten** — sonst bricht das Dedup und die Pending-Queue findet ihr eigenes bestätigtes Event nicht wieder.
 
 ---
 

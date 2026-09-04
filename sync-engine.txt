@@ -1,0 +1,222 @@
+Sync Engine in ShopZebra
+========================
+
+Kurzfassung
+-----------
+Die Sync-Engine ist eine local-first Event-Sync-Schicht fuer die Mobile-App.
+Lokale Aenderungen werden sofort im UI sichtbar, gleichzeitig in eine Outbox
+gelegt und spaeter zum Server geschickt. Der Server ordnet Events pro Aggregate
+(z.B. Liste oder Rezept). Der Client haelt deshalb zwei Staende:
+
+- confirmed: alles, was vom Server bestaetigt und in Server-Reihenfolge gefaltet wurde
+- pending: eigene lokale Events, die noch nicht bestaetigt sind
+
+Die UI liest nicht direkt confirmed, sondern visible = confirmed + pending.
+Wenn Server-Events ankommen, werden sie in confirmed gefaltet, bestaetigte
+pending-Events entfernt und der Rest nochmal oben drauf gespielt. Das ist der
+entscheidende Rebase-Schritt.
+
+Die Kernidee
+------------
+Das zentrale Modell ist:
+
+visibleState = fold(rootReducer, fold(rootReducer, confirmed, serverLog), pending)
+
+Oder praktischer:
+
+1. confirmed ist die "Server-geordnete Wahrheit", lokal gespeichert
+2. pending sind meine noch unbestaetigten Aenderungen
+3. visible ist confirmed plus pending
+
+Dadurch bleibt die App sofort reaktiv, aber alle Geraete konvergieren wieder,
+weil am Ende alle denselben Log in derselben Positions-Reihenfolge falten.
+
+Wie ein lokales Event durch die Engine laeuft
+---------------------------------------------
+1. Eine Komponente dispatcht eine normale Redux-Action.
+2. `eventIdMiddleware` gibt der Action eine `eventId` und `deviceId`.
+3. `withSync` legt synced Actions in `pending` und wendet sie sofort auf
+   `visible` an. Das ist optimistic UI.
+4. `syncMiddleware` reicht dieselbe Action an `syncEngine.offer()` weiter.
+5. `policy.toOutboxEntry()` (die in `appSyncPolicy.ts` komponierte Policy) entscheidet, ob und wohin die Action synchronisiert wird.
+6. Die Outbox persistiert den Send-Eintrag.
+7. `SyncEngine.requestSync()` startet genau einen Push-then-Pull-Zyklus.
+8. Erst wird die Outbox zum Server geschickt.
+9. Danach wird per Cursor Catch-up vom Server geholt.
+10. Empfangene Events gehen als `eventsConfirmed(...)` in `withSync`.
+11. `withSync` faltet sie in `confirmed`, entfernt bestaetigte pending-Events
+    und baut `visible` durch Rebase neu auf.
+
+Die wichtigsten Teile im Code
+-----------------------------
+`apps/mobile/src/app/sync/withSync.ts`
+Das Herzstueck. Hier steckt das Datenmodell mit `confirmed`, `pending` und
+`visible`. Wenn du nur eine Datei wirklich verstehen willst, fang hier an.
+
+`apps/mobile/src/app/sync/syncEngine.ts`
+Die Orchestrierung. Hier steht der komplette Sync-Zyklus: push, rejected
+pending verwerfen, pull, Retry, stop/start, Single-Flight.
+
+`apps/mobile/src/app/sync/outbox.ts`
+Persistente Bruecke zwischen Send- und Receive-Pfad. Haelt:
+- queue: was noch gesendet werden muss
+- cursorByAggregate: bis wohin pro Aggregate bestaetigt gefaltet wurde
+
+`apps/mobile/src/app/sync/receive/catchUp.ts`
+Der Pull-Pfad. Holt pro Aggregate alle Events hinter dem Cursor, sortiert sie
+nach `meta.position`, dispatcht sie gesammelt als `eventsConfirmed`, und schiebt
+erst danach den Cursor weiter.
+
+`apps/mobile/src/app/sync/syncPolicy.ts`
+Die Policy-Kante: Rolle -> ob, on/opens -> wohin.
+
+`apps/mobile/src/app/sync/appSyncPolicy.ts`
+Die explizite Komposition aus den drei Slices.
+
+`apps/mobile/src/app/store.ts`
+Hier wird `withSync` um den normalen Root-Reducer gelegt. Wichtig: der sichtbare
+State bleibt oben auf `state.lists`, `state.shopping` etc.; nur das Sync-Bookkeeping
+liegt unter `state.sync`.
+
+`apps/mobile/src/app/sync/startSync.ts`
+Lifecycle und Trigger: App-Start, Sign-in, Resume, Reconnect, Sign-out.
+
+Was "synced" konkret bedeutet
+-----------------------------
+Nicht jede Action wird synchronisiert. Die Entscheidung steht am Reducer:
+
+- Ein Slice meldet sich mit `synced: true` in `createSlice(...)` an.
+- Jeder Case-Reducer deklariert dann seine Rolle:
+  `event | localEvent | observation | hydration`. Ein `event` nennt sein
+  Aggregate: `on: 'list'` (liegt auf dem Listen-Log) oder `opens: 'list'`
+  (eroeffnet ein neues Log). Der Compiler erzwingt, dass das Payload
+  `listId`/`recipeId` traegt.
+- `app/sync/appSyncPolicy.ts` komponiert die Deklarationen aller synced
+  Slices zu einer Policy. Sie beantwortet:
+  - `reachesServer(action)`: hat `meta`, nicht `remote`, Rolle `event`?
+    -> pending + Outbox
+  - `toOutboxEntry(action)`: `on` -> `/lists/{id}/events`,
+    `opens` -> `/lists` (mit `ownerId -> createdBy`)
+
+Nur `event` verlaesst das Geraet. `listCreated` ist ein Event, das ein Log
+eroeffnet — kein Command. Echte Commands (Invite, Join, Member entfernen)
+sind Thunks in `features/sharing/memberCommands.ts` und werden nie zu
+Slice-Actions.
+
+Warum zwei Baeume statt nur einem?
+----------------------------------
+Weil optimistic UI und spaet eintreffende Server-Reihenfolge sonst auseinander
+laufen.
+
+Beispiel:
+- Geraet A aendert Menge auf 2
+- Geraet B aendert dieselbe Menge auf 5
+- beide sehen lokal erst ihren eigenen Wert
+- der Server ordnet spaeter 5 vor 2
+
+Ohne Rebase wuerde jedes Geraet in seiner lokalen Reihenfolge weiterleben.
+Mit Rebase falten am Ende beide dieselben bestaetigten Events in derselben
+Reihenfolge und landen beim selben Ergebnis.
+
+Was die Engine bewusst garantiert
+---------------------------------
+- optimistic UI
+- offline-faehige Queue
+- Retry bei Netzwerk/5xx
+- Rollback bei fachlicher Ablehnung (4xx)
+- Cursor-basiertes Nachholen pro Aggregate
+- nur ein Sync-Zyklus gleichzeitig
+- keine per-Feature-Sync-Handler fuer jeden Event-Typ
+
+Wichtige Invarianten
+--------------------
+Damit die Engine funktioniert, muessen ein paar Regeln immer gelten:
+
+- Reducer muessen replay-pure sein
+  Kein `Date.now()`, `Math.random()`, `crypto.randomUUID()` im Reducer.
+
+- Reducer muessen total sein
+  Ein Event darf den Fold nicht crashen. Im Zweifel wird ignoriert, nicht
+  geworfen.
+
+- Server-Reihenfolge ist kanonisch
+  Eingehende Events werden nach `meta.position` sortiert.
+
+- Cursor erst nach erfolgreichem Fold verschieben
+  Sonst koennen Events fuer immer verloren gehen.
+
+- Eigene bestaetigte Events kommen auch ueber den Pull zurueck
+  Nur so landen sie an ihrer echten Server-Position in `confirmed`.
+
+Wo du zuerst reinschauen solltest
+---------------------------------
+Empfohlene Reihenfolge zum Verstehen:
+
+1. `architecture/sync-engine.md`
+   Das ist die beste High-Level-Erklaerung. Erst lesen, dann in den Code.
+
+2. `apps/mobile/src/app/sync/README.md`
+   Beschreibt die konkrete Implementierung der aktuellen Stages.
+
+3. `apps/mobile/src/app/sync/withSync.ts`
+   Hier verstehst du das eigentliche Modell. Wenn das klar ist, ist der Rest
+   viel leichter.
+
+4. `apps/mobile/src/app/store.ts`
+   Zeigt, wie `withSync` in den echten Redux-Store eingebaut wird.
+
+5. `apps/mobile/src/app/sync/syncEngine.ts`
+   Danach die Orchestrierung lesen: offer, start, requestSync, syncOnce.
+
+6. `apps/mobile/src/app/sync/outbox.ts`
+   Dann die persistente Queue + Cursor-Bruecke.
+
+7. `apps/mobile/src/app/sync/receive/catchUp.ts`
+   Danach den Pull-Pfad.
+
+8. `apps/mobile/src/app/sync/syncPolicy.ts`
+   Danach die Routing-/Policy-Entscheidung.
+
+9. `apps/mobile/src/app/sync/startSync.ts`
+   Zum Schluss Lifecycle und Trigger.
+
+Wenn du lieber testgetrieben verstehen willst
+---------------------------------------------
+Dann lies diese Tests parallel:
+
+- `apps/mobile/test/app/sync/syncEngine.cycle.test.ts`
+  Zeigt den Push-then-Pull-Zyklus, Coalescing und Retry-Verhalten.
+
+- `apps/mobile/test/app/sync/syncEngine.reconcile.test.ts`
+  Zeigt, wie das System mit Aggregates umgeht, die der Server nicht mehr
+  zurueckliefert.
+
+- `apps/mobile/test/app/sync/syncEngine.test.ts`
+- `apps/mobile/test/app/sync/syncEngine.stop.test.ts`
+- `apps/mobile/test/app/sync/withSync.test.ts`
+
+Wenn ich selbst neu in den Code kaeme
+-------------------------------------
+Ich wuerde genau so vorgehen:
+
+1. `architecture/sync-engine.md`
+2. `withSync.ts`
+3. `store.ts`
+4. `syncEngine.ts`
+5. `outbox.ts`
+6. `catchUp.ts`
+7. danach Tests
+
+Der wichtigste mentale Schnitt ist:
+
+- `withSync.ts` = State-Modell und Rebase
+- `syncEngine.ts` = Ablaufsteuerung
+- `outbox.ts` = Persistenz
+- `catchUp.ts` = Eingang vom Server
+- `syncPolicy.ts` = Ausgang zum Server (ob + wohin)
+
+Ein Satz zum Mitnehmen
+----------------------
+Die Sync-Engine ist im Kern kein "grober Sync-Manager", sondern ein
+Higher-Order-Reducer mit persistierter Outbox und cursor-basiertem Catch-up.
+Wenn du `withSync.ts` sauber verstehst, faellt der Rest in place.

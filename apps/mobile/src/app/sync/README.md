@@ -1,6 +1,6 @@
-# Sync Engine — Implementation (Stages 1 + 2)
+# Sync Engine — Implementation
 
-This directory contains the client side of the sync engine: **outbox, cursor catch-up, retry (stage 1) and the `withSync` rebase (stage 2)**. Real-time receive via AppSync does not exist yet — the cursor catch-up is the only receive path.
+This directory contains the client side of the sync engine: outbox, cursor catch-up, retry, and the `withSync` rebase. Real-time receive via AppSync does not exist yet — the cursor catch-up is the only receive path. (Historical note: `status.md` calls the outbox/cursor/retry part "Stufe 1" and the rebase "Stufe 2"; this README uses those words only where it refers to that history.)
 
 The whole mechanism in one line — implemented by `withSync.ts`:
 
@@ -16,7 +16,7 @@ Stage 1 moves events reliably (outbox + retry out, cursor catch-up in); stage 2 
 
 Conflicts are **not** merged on the client. On append, the server assigns a strictly increasing, gapless **position per list** (aggregate); all clients fold the events in exactly that order. Convergence holds by construction, not by merge rules — no CRDTs, no field versions, no last-writer-wins clocks.
 
-The engine exploits the project's central uniformity: **Redux action = domain event = wire format.** A `{ type, payload, meta }` goes over the wire unchanged. There is no mapping layer — which is why a new event type costs **close to zero lines of sync code**: `synced: true` on the slice, plus naming the reducer's role (`event | command | localEvent | observation | hydration`, see `app/createSlice.ts`). Still no `if` in the sync path — the role is looked up, not branched on.
+The engine exploits the project's central uniformity: **Redux action = domain event = wire format.** A `{ type, payload, meta }` goes over the wire unchanged. There is no mapping layer — which is why a new event type costs **close to zero lines of sync code**: `synced: true` on the slice, plus declaring the reducer (`role: 'event'` with `on`/`opens`, or `localEvent | observation | hydration`, see `app/createSlice.ts`). Still no `if` in the sync path — the composed policy looks it up.
 
 ---
 
@@ -66,10 +66,10 @@ The folder structure mirrors the architecture: `send/` is the write path, `recei
 Outside this folder, but part of the mechanism:
 
 - **`app/store.ts`** — wires `withSync` around the combined feature reducers. The visible tree stays at top level (`state.lists` etc. — every selector, middleware and `getState()` caller reads it unchanged); `confirmed` and `pending` live under `state.sync`. `sync` is a reserved top-level key.
-- **`app/syncMiddleware.ts`** — a single effect: every dispatched action is offered to `syncEngine.record()`. No per-feature handlers, no `if` chains.
+- **`app/syncMiddleware.ts`** — a single effect: every dispatched action is offered to `syncEngine.offer()`. No per-feature handlers, no `if` chains.
 - **`app/eventIdMiddleware.ts`** — stamps `eventId` + `deviceId` **before** the reducer. Actions with `meta.remote` keep their identity (otherwise dedup and ack matching would break).
-- **`app/createSlice.ts`** — `synced: true` on a slice forces every one of its reducers to declare a `role` (`event | command | localEvent | observation | hydration`), tracked in a `type → role` registry. `needsSync()` reads that registry via `roleOf()`; `belongsToSyncedSlice()` still exists but no longer feeds the predicate.
-- **Class-2 events** (`lists/listMemberAdded`, `lists/listMemberRemoved`, and their `recipes/…` counterparts) — written by the server, never dispatched locally. They arrive **only** through catch-up and never travel the outbox. The commands that cause them (`POST /lists/join`, `DELETE /lists/{listId}/members/{memberId}`) are direct fetches, because their answer is needed *before* anything can be shown or dispatched.
+- **`app/createSlice.ts`** — `synced: true` on a slice forces every one of its reducers to declare itself (`role`, and for events `on`/`opens` naming the aggregate — the compiler checks the payload carries its id). The slice returns these `declarations`; `app/sync/appSyncPolicy.ts` composes them into the one `SyncPolicy` (`reachesServer`, `toOutboxEntry`, `domainPayloadOf`, `domainActionOf`) that `withSync`, the engine and the receive path consume.
+- **Class-2 commands and their events** — invites, join, add/remove member are direct fetches in `features/sharing/memberCommands.ts`, because their answer is needed *before* anything can be shown; the events they cause (`lists/listMemberAdded`, `lists/listMemberRemoved`, and their `recipes/…` counterparts) are written by the server, arrive **only** through catch-up and never travel the outbox. The optimistic rows shown on the tap come from `localEvent` actions (`listMemberAddedLocally`, …), never from a faked server echo.
 - **`features/*/domain/*ClientStorageHandler.ts`** (lists, shopping) — persist the **confirmed** tree on every `eventsConfirmed`. Optimistic events are not persisted there; they survive restarts via the outbox queue + `pendingRestored`.
 
 ```mermaid
@@ -78,12 +78,12 @@ flowchart LR
         MW1[eventIdMiddleware] --> MW2[withSync reducer<br/>confirmed + pending + visible] --> MW3[syncMiddleware]
     end
     UI[Component<br/>dispatch] --> MW1
-    MW3 -->|record| ENG[SyncEngine]
-    ENG -->|toOutboxEntry| OB[(Outbox<br/>shopzebra_sync)]
+    MW3 -->|offer| ENG[SyncEngine]
+    ENG -->|policy.toOutboxEntry| OB[(Outbox<br/>shopzebra_sync)]
     OB --> DR[drainOutbox] --> TR[transport] -->|POST| API[Backend API]
     API -->|GET ?since| CU[catchUp]
     CU -->|eventsConfirmed batch| store
-    NET[network/app resume] -->|refresh| CU
+    NET[network/app resume] -->|requestSync| CU
 ```
 
 ---
@@ -93,12 +93,8 @@ flowchart LR
 1. A component dispatches an ordinary action (e.g. `shopping/itemChecked`).
 2. `eventIdMiddleware` stamps `eventId` (idempotency) and `deviceId` into `meta`.
 3. The `withSync` reducer applies it **immediately** to `visible` and appends it to `pending` — optimistic, the UI never waits for the server. `confirmed` stays untouched until the server orders the event.
-4. `syncMiddleware` hands the action to `syncEngine.record()`.
-5. `toOutboxEntry()` decides **the routing at enqueue time as well** — every entry is uniformly `{ path, wire }`:
-   - `meta.remote` set → came from the server, do **not** send it back (`null`).
-   - `listCreated` → **class-2 command**: `{ path: '/lists', wire }` with the `ownerId → createdBy` translation into wire format. The server validates and writes the event itself.
-   - `needsSync(action)` false (role is `localEvent`, `observation`, `hydration`, or undeclared, e.g. `preferences/*`) → no sync (`null`), regardless of what the payload carries.
-   - Otherwise the role admitted it (`event` or `command`) → `aggregateOf` reads the aggregate id (`listId`, `recipeId`, …) to route it: `{ path: eventsPathFor(aggregate), wire: action }`. This doubles as a gate — role and payload are no longer coupled by construction, so a role that admits an action whose payload carries no recognised id logs an error and returns `null` instead of routing it.
+4. `syncMiddleware` hands the action to `syncEngine.offer()`.
+5. `policy.toOutboxEntry()` decides the routing at enqueue time — every entry is uniformly `{ path, wire }`: `meta.remote` or a role other than `event` → `null`; `on: 'list'` → `{ path: '/lists/{listId}/events', wire: action }`; `opens: 'list'` → `{ path: '/lists', wire }` with `ownerId → createdBy`. An event that could not be routed does not exist — the declaration's type demands the id field.
 6. The outbox appends the entry and persists; `requestSync()` is kicked — the engine runs one push-then-pull cycle.
 7. Inside the cycle, `drainOutbox()` POSTs head-by-head via `sendEntry()`. Response classification:
 
@@ -118,7 +114,7 @@ sequenceDiagram
 
     C->>S: dispatch(itemChecked)
     Note over S: eventId + deviceId in meta,<br/>state updated immediately (optimistic)
-    S->>E: record(action)
+    S->>E: offer(action)
     E->>O: enqueue({path, wire})
     O-->>O: persist (shopzebra_sync)
     E->>E: requestSync() — one cycle at a time
@@ -192,7 +188,7 @@ Durable sync state is split by ownership:
 //   → the CONFIRMED tree, written on every eventsConfirmed
 ```
 
-The restart round-trip: hydration loads the confirmed blobs into both trees (hydration actions are non-synced, so they apply to `confirmed` and `visible` alike) → `SyncEngine.start()` dispatches `pendingRestored` with the queue's wire actions (translated back to domain form via `domainActionOf`) → the rebase replays them on top. Offline edits survive restarts without ever persisting the optimistic tree.
+The restart round-trip: hydration loads the confirmed blobs into both trees (hydration actions are non-synced, so they apply to `confirmed` and `visible` alike) → `SyncEngine.start()` dispatches `pendingRestored` with the queue's wire actions (translated back to domain form via `policy.domainActionOf`) → the rebase replays them on top. Offline edits survive restarts without ever persisting the optimistic tree.
 
 The `Outbox` class holds its state as an immutable value and serializes writes through a `lastWrite` promise chain — no write overtakes another. A corrupted blob parses to `EMPTY` instead of crashing.
 
@@ -206,7 +202,7 @@ Actions dispatched **before** `start()` has loaded the blob land in the engine's
 stateDiagram-v2
     [*] --> Stopped
     Stopped --> Running: startSync()<br/>(boot beforeLoad or performSignIn)
-    Running --> Running: networkStatusChange / appStateChange<br/>→ refresh() = one push-then-pull cycle
+    Running --> Running: networkStatusChange / appStateChange<br/>→ requestSync() = one push-then-pull cycle
     Running --> Stopped: stopSync()<br/>(performSignOut)
     note right of Stopped
         stop() clears deps, buffer + retry timer,
@@ -229,7 +225,7 @@ These hold project-wide; the engine breaks without them:
 - **Reducers are replay-pure.** No `Date.now()`, `crypto.randomUUID()`, `Math.random()` inside a reducer — ids/timestamps are created in the middleware and travel in `meta`/`payload`. The stage-2 rebase folds repeatedly; every replay must be identical.
 - **Reducers are total.** An inapplicable event is ignored, never thrown — the log is immutable, and a fold that crashes would break the aggregate for every device permanently.
 - **Intention events, no full-state events.** `listRenamed` instead of `listUpdated { name, … }` — full-state clobbers during rebase.
-- **Class 2 never goes through the event append.** Anything with a cross-user invariant (`listCreated`, later invites/membership) goes through dedicated command endpoints; the server writes the event. The only exception existing today in `toOutboxEntry` is `listCreated`.
+- **Class 2 never goes through the event append.** Anything with a cross-user invariant (invites, join, add/remove member) goes through dedicated command endpoints; the server writes those events, the client never appends them. `listCreated`/`recipeCreated` are *not* class 2 — they are class-1 events that open a log: they declare `opens`, and the composed policy routes them to the collection endpoint (`POST /lists` / `POST /recipes`), where the server bootstraps ownership and appends the client's event verbatim. There are no per-action exceptions in the send path: the declaration decides the route, like for any other event.
 
 ---
 
