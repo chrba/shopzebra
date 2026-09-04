@@ -25,6 +25,47 @@ const initialState: ListsState = {
   maxMembers: null,
 }
 
+function withMember(
+  state: ListsState,
+  listId: string,
+  memberId: string,
+  name: string,
+): ListsState {
+  return {
+    ...state,
+    lists: state.lists.map((list) =>
+      list.id === listId
+        ? {
+            ...list,
+            memberIds: list.memberIds.includes(memberId)
+              ? list.memberIds
+              : [...list.memberIds, memberId],
+            memberNames: { ...list.memberNames, [memberId]: name },
+          }
+        : list,
+    ),
+  }
+}
+
+function withoutMember(
+  state: ListsState,
+  listId: string,
+  memberId: string,
+): ListsState {
+  return {
+    ...state,
+    lists: state.lists.map((list) => {
+      if (list.id !== listId) return list
+      const { [memberId]: _removed, ...remainingNames } = list.memberNames ?? {}
+      return {
+        ...list,
+        memberIds: list.memberIds.filter((id) => id !== memberId),
+        memberNames: remainingNames,
+      }
+    }),
+  }
+}
+
 const listsSlice = createSlice({
   name: 'lists',
   synced: true,
@@ -172,23 +213,8 @@ const listsSlice = createSlice({
           readonly memberId: string
           readonly name: string
         }>,
-      ): ListsState => ({
-        ...state,
-        lists: state.lists.map((list) =>
-          list.id === action.payload.listId
-            ? {
-                ...list,
-                memberIds: list.memberIds.includes(action.payload.memberId)
-                  ? list.memberIds
-                  : [...list.memberIds, action.payload.memberId],
-                memberNames: {
-                  ...list.memberNames,
-                  [action.payload.memberId]: action.payload.name,
-                },
-              }
-            : list,
-        ),
-      }),
+      ): ListsState =>
+        withMember(state, action.payload.listId, action.payload.memberId, action.payload.name),
     },
 
     // Class-2 event, counterpart of listMemberAdded.
@@ -197,25 +223,37 @@ const listsSlice = createSlice({
       on: 'list',
       reducer: (
         state: ListsState,
+        action: PayloadAction<{ readonly listId: string; readonly memberId: string }>,
+      ): ListsState =>
+        withoutMember(state, action.payload.listId, action.payload.memberId),
+    },
+
+    // Local-only: the friend was tapped, the command is still travelling.
+    // The row must appear now; if the server refuses, listMemberRemovedLocally
+    // takes it back off. The real listMemberAdded arrives with the next pull.
+    listMemberAddedLocally: {
+      role: 'localEvent',
+      reducer: (
+        state: ListsState,
         action: PayloadAction<{
           readonly listId: string
           readonly memberId: string
+          readonly name: string
         }>,
-      ): ListsState => ({
-        ...state,
-        lists: state.lists.map((list) => {
-          if (list.id !== action.payload.listId) return list
-          const { [action.payload.memberId]: _removed, ...remainingNames } =
-            list.memberNames ?? {}
-          return {
-            ...list,
-            memberIds: list.memberIds.filter(
-              (memberId) => memberId !== action.payload.memberId,
-            ),
-            memberNames: remainingNames,
-          }
-        }),
-      }),
+      ): ListsState =>
+        withMember(state, action.payload.listId, action.payload.memberId, action.payload.name),
+    },
+
+    // Local-only: the server already wrote listMemberRemoved (or refused an
+    // add). Folding this now makes the row disappear one pull earlier; the
+    // real event folds on top later and the reducer, being total, absorbs it.
+    listMemberRemovedLocally: {
+      role: 'localEvent',
+      reducer: (
+        state: ListsState,
+        action: PayloadAction<{ readonly listId: string; readonly memberId: string }>,
+      ): ListsState =>
+        withoutMember(state, action.payload.listId, action.payload.memberId),
     },
 
     // Observation: comes from GET /lists, not from a user action.
@@ -290,6 +328,8 @@ export const {
   listDeleted,
   listMemberAdded,
   listMemberRemoved,
+  listMemberAddedLocally,
+  listMemberRemovedLocally,
   ownerNamesLoaded,
   memberLimitLoaded,
 } = listsSlice.actions

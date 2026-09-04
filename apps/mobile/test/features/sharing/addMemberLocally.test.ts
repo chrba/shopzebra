@@ -33,13 +33,12 @@ describe('memberAddedLocally', () => {
     ])
   })
 
-  // The server writes the real event; this is only the local echo. Sent
-  // back it would be a member-added event the client may not write.
+  // A local fact, not a server echo: it needs no fake origin to stay here.
   test('is never sent to the server', () => {
     expect(
       appSyncPolicy.reachesServer({
         ...memberAddedLocally({ kind: 'list', id: 'l1' }, 'sarah', 'Eiszebra'),
-        meta: { eventId: 'e1', deviceId: 'd1', remote: true },
+        meta: { eventId: 'e1', deviceId: 'd1' },
       }),
     ).toBe(false)
   })
@@ -48,6 +47,6 @@ describe('memberAddedLocally', () => {
     expect(
       memberAddedLocally({ kind: 'recipe', id: 'r1' }, 'sarah', 'Eiszebra')
         .type,
-    ).toBe('recipes/recipeMemberAdded')
+    ).toBe('recipes/recipeMemberAddedLocally')
   })
 })

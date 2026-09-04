@@ -26,13 +26,13 @@ describe('memberRemovedLocally', () => {
     ).toEqual(['adnan'])
   })
 
-  // It is an echo of what the server already did — sending it back would
-  // post a member-removed event the client is not allowed to write.
+  // A local fact — the server already wrote the real event, this one only
+  // makes the row disappear now instead of one pull later.
   test('is never sent to the server', () => {
     expect(
       appSyncPolicy.reachesServer({
         ...memberRemovedLocally({ kind: 'list', id: 'l1' }, 'sarah'),
-        meta: { eventId: 'e1', deviceId: 'd1', remote: true },
+        meta: { eventId: 'e1', deviceId: 'd1' },
       }),
     ).toBe(false)
   })
@@ -40,6 +40,6 @@ describe('memberRemovedLocally', () => {
   test('speaks the recipe event for a recipe', () => {
     expect(
       memberRemovedLocally({ kind: 'recipe', id: 'r1' }, 'sarah').type,
-    ).toBe('recipes/recipeMemberRemoved')
+    ).toBe('recipes/recipeMemberRemovedLocally')
   })
 })

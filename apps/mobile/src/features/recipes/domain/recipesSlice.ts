@@ -18,6 +18,47 @@ const initialState: RecipesState = {
   recipes: [],
 }
 
+function withMember(
+  state: RecipesState,
+  recipeId: string,
+  memberId: string,
+  name: string,
+): RecipesState {
+  return {
+    ...state,
+    recipes: state.recipes.map((recipe) =>
+      recipe.id === recipeId
+        ? {
+            ...recipe,
+            memberIds: recipe.memberIds.includes(memberId)
+              ? recipe.memberIds
+              : [...recipe.memberIds, memberId],
+            memberNames: { ...recipe.memberNames, [memberId]: name },
+          }
+        : recipe,
+    ),
+  }
+}
+
+function withoutMember(
+  state: RecipesState,
+  recipeId: string,
+  memberId: string,
+): RecipesState {
+  return {
+    ...state,
+    recipes: state.recipes.map((recipe) => {
+      if (recipe.id !== recipeId) return recipe
+      const { [memberId]: _removed, ...remainingNames } = recipe.memberNames ?? {}
+      return {
+        ...recipe,
+        memberIds: recipe.memberIds.filter((id) => id !== memberId),
+        memberNames: remainingNames,
+      }
+    }),
+  }
+}
+
 const recipesSlice = createSlice({
   name: 'recipes',
   synced: true,
@@ -168,23 +209,8 @@ const recipesSlice = createSlice({
           readonly memberId: string
           readonly name: string
         }>,
-      ): RecipesState => ({
-        ...state,
-        recipes: state.recipes.map((recipe) =>
-          recipe.id === action.payload.recipeId
-            ? {
-                ...recipe,
-                memberIds: recipe.memberIds.includes(action.payload.memberId)
-                  ? recipe.memberIds
-                  : [...recipe.memberIds, action.payload.memberId],
-                memberNames: {
-                  ...recipe.memberNames,
-                  [action.payload.memberId]: action.payload.name,
-                },
-              }
-            : recipe,
-        ),
-      }),
+      ): RecipesState =>
+        withMember(state, action.payload.recipeId, action.payload.memberId, action.payload.name),
     },
 
     // Class-2 event, counterpart of recipeMemberAdded.
@@ -193,25 +219,37 @@ const recipesSlice = createSlice({
       on: 'recipe',
       reducer: (
         state: RecipesState,
+        action: PayloadAction<{ readonly recipeId: string; readonly memberId: string }>,
+      ): RecipesState =>
+        withoutMember(state, action.payload.recipeId, action.payload.memberId),
+    },
+
+    // Local-only: the friend was tapped, the command is still travelling.
+    // The row must appear now; if the server refuses, recipeMemberRemovedLocally
+    // takes it back off. The real recipeMemberAdded arrives with the next pull.
+    recipeMemberAddedLocally: {
+      role: 'localEvent',
+      reducer: (
+        state: RecipesState,
         action: PayloadAction<{
           readonly recipeId: string
           readonly memberId: string
+          readonly name: string
         }>,
-      ): RecipesState => ({
-        ...state,
-        recipes: state.recipes.map((recipe) => {
-          if (recipe.id !== action.payload.recipeId) return recipe
-          const { [action.payload.memberId]: _removed, ...remainingNames } =
-            recipe.memberNames ?? {}
-          return {
-            ...recipe,
-            memberIds: recipe.memberIds.filter(
-              (memberId) => memberId !== action.payload.memberId,
-            ),
-            memberNames: remainingNames,
-          }
-        }),
-      }),
+      ): RecipesState =>
+        withMember(state, action.payload.recipeId, action.payload.memberId, action.payload.name),
+    },
+
+    // Local-only: the server already wrote recipeMemberRemoved (or refused an
+    // add). Folding this now makes the row disappear one pull earlier; the
+    // real event folds on top later and the reducer, being total, absorbs it.
+    recipeMemberRemovedLocally: {
+      role: 'localEvent',
+      reducer: (
+        state: RecipesState,
+        action: PayloadAction<{ readonly recipeId: string; readonly memberId: string }>,
+      ): RecipesState =>
+        withoutMember(state, action.payload.recipeId, action.payload.memberId),
     },
 
     // Observation: comes from GET /recipes, not from a user action. The
@@ -273,6 +311,8 @@ export const {
   recipeMemberAdded,
   recipeDropped,
   recipeMemberRemoved,
+  recipeMemberAddedLocally,
+  recipeMemberRemovedLocally,
   recipeOwnerNamesLoaded,
 } = recipesSlice.actions
 export const recipesReducer = recipesSlice.reducer

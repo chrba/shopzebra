@@ -8,14 +8,13 @@
 // the very same endpoints, one path segment apart.
 
 import { authFetch, type Fetcher } from '../../app/authFetch'
-import { fromServer } from '../../app/fromServer'
 import {
-  listMemberAdded,
-  listMemberRemoved,
+  listMemberAddedLocally,
+  listMemberRemovedLocally,
 } from '../lists/domain/listsSlice'
 import {
-  recipeMemberAdded,
-  recipeMemberRemoved,
+  recipeMemberAddedLocally,
+  recipeMemberRemovedLocally,
 } from '../recipes/domain/recipesSlice'
 import {
   collectionPathFor,
@@ -119,37 +118,30 @@ export async function addMember(
 }
 
 /**
- * The member-added event of whichever kind, marked as coming from the
- * server. Dispatched the moment the friend is tapped, before the command
- * has travelled: the row must appear now, not one round trip later. If the
- * server refuses, memberRemovedLocally takes it back off.
+ * The member-added fact of this device, dispatched the moment the friend is
+ * tapped, before the command has travelled: the row must appear now, not one
+ * round trip later. If the server refuses, memberRemovedLocally takes it
+ * back off.
  */
 export function memberAddedLocally(
   aggregate: Aggregate,
   memberId: string,
   name: string,
 ) {
-  return fromServer(
-    aggregate.kind === 'recipe'
-      ? recipeMemberAdded({ recipeId: aggregate.id, memberId, name })
-      : listMemberAdded({ listId: aggregate.id, memberId, name }),
-  )
+  return aggregate.kind === 'recipe'
+    ? recipeMemberAddedLocally({ recipeId: aggregate.id, memberId, name })
+    : listMemberAddedLocally({ listId: aggregate.id, memberId, name })
 }
 
 /**
- * The member-removed event of whichever kind, marked as coming from the
- * server. Dispatched right after the command succeeded: the server has
- * written this event, but this device would only see it on the next pull —
- * and if it removed itself, never at all. Folding it now is what makes the
- * row disappear immediately; the pull folds the same event again later,
- * which the reducers absorb (they are total).
+ * The member-removed fact of this device. Dispatched right after the command
+ * succeeded (or after an add was refused): the server's event would only
+ * arrive with the next pull — and if this device removed itself, never.
  */
 export function memberRemovedLocally(aggregate: Aggregate, memberId: string) {
-  return fromServer(
-    aggregate.kind === 'recipe'
-      ? recipeMemberRemoved({ recipeId: aggregate.id, memberId })
-      : listMemberRemoved({ listId: aggregate.id, memberId }),
-  )
+  return aggregate.kind === 'recipe'
+    ? recipeMemberRemovedLocally({ recipeId: aggregate.id, memberId })
+    : listMemberRemovedLocally({ listId: aggregate.id, memberId })
 }
 
 export type SharingProjection = {
