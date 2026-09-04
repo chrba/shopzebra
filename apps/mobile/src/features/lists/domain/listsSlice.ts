@@ -31,192 +31,216 @@ const listsSlice = createSlice({
   initialState,
   reducers: {
     // Local hydration from clientStorage — not a domain event.
-    listsLoaded: (
-      state: ListsState,
-      action: PayloadAction<{
-        readonly lists: readonly ShoppingList[]
-      }>,
-    ): ListsState => ({
-      ...state,
-      // Dedup by id, first occurrence wins. This heals already-persisted
-      // state that was damaged by a non-total fold before listCreated
-      // guarded against re-applying an event for a list it already knows.
-      lists: action.payload.lists.filter(
-        (list, index) =>
-          action.payload.lists.findIndex((other) => other.id === list.id) ===
-          index,
-      ),
-    }),
-
-    listCreated: (
-      state: ListsState,
-      action: PayloadAction<{
-        readonly listId: string
-        readonly name: string
-        readonly ownerId: string
-      }>,
-    ): ListsState => {
-      // Reducer totality (architecture/sync-engine.md §5): an event that is
-      // not applicable to the current state is ignored, never applied
-      // destructively. On cursor catch-up the same listCreated can be
-      // folded onto state that already contains the list (e.g. fresh
-      // applied-set after an upgrade) — appending blindly would duplicate it.
-      if (state.lists.some((list) => list.id === action.payload.listId)) {
-        return state
-      }
-
-      return {
+    listsLoaded: {
+      role: 'hydration',
+      reducer: (
+        state: ListsState,
+        action: PayloadAction<{
+          readonly lists: readonly ShoppingList[]
+        }>,
+      ): ListsState => ({
         ...state,
-        lists: [
-          ...state.lists,
-          {
-            id: action.payload.listId,
-            name: action.payload.name,
-            ownerId: action.payload.ownerId,
-            memberIds: [action.payload.ownerId],
-          },
-        ],
-      }
+        // Dedup by id, first occurrence wins. This heals already-persisted
+        // state that was damaged by a non-total fold before listCreated
+        // guarded against re-applying an event for a list it already knows.
+        lists: action.payload.lists.filter(
+          (list, index) =>
+            action.payload.lists.findIndex((other) => other.id === list.id) ===
+            index,
+        ),
+      }),
     },
 
-    listRenamed: (
-      state: ListsState,
-      action: PayloadAction<{
-        readonly listId: string
-        readonly name: string
-      }>,
-    ): ListsState => ({
-      ...state,
-      lists: state.lists.map((list) =>
-        list.id === action.payload.listId
-          ? { ...list, name: action.payload.name }
-          : list,
-      ),
-    }),
+    listCreated: {
+      role: 'command',
+      reducer: (
+        state: ListsState,
+        action: PayloadAction<{
+          readonly listId: string
+          readonly name: string
+          readonly ownerId: string
+        }>,
+      ): ListsState => {
+        // Reducer totality (architecture/sync-engine.md §5): an event that is
+        // not applicable to the current state is ignored, never applied
+        // destructively. On cursor catch-up the same listCreated can be
+        // folded onto state that already contains the list (e.g. fresh
+        // applied-set after an upgrade) — appending blindly would duplicate it.
+        if (state.lists.some((list) => list.id === action.payload.listId)) {
+          return state
+        }
+
+        return {
+          ...state,
+          lists: [
+            ...state.lists,
+            {
+              id: action.payload.listId,
+              name: action.payload.name,
+              ownerId: action.payload.ownerId,
+              memberIds: [action.payload.ownerId],
+            },
+          ],
+        }
+      },
+    },
+
+    listRenamed: {
+      role: 'event',
+      reducer: (
+        state: ListsState,
+        action: PayloadAction<{
+          readonly listId: string
+          readonly name: string
+        }>,
+      ): ListsState => ({
+        ...state,
+        lists: state.lists.map((list) =>
+          list.id === action.payload.listId
+            ? { ...list, name: action.payload.name }
+            : list,
+        ),
+      }),
+    },
 
     /**
      * Local-only: I left this list. The server wrote the member-removed
      * event, but it will never reach me — leaving ends my access to that
-     * log. The payload names the id `id` and not `listId` on purpose: a
-     * `listId` at the root would put this into the outbox, where it would
-     * be posted to a list I am no longer a member of.
+     * log.
      */
-    listLeft: (
-      state: ListsState,
-      action: PayloadAction<{ readonly id: string }>,
-    ): ListsState => ({
-      ...state,
-      lists: state.lists.filter((list) => list.id !== action.payload.id),
-    }),
+    listLeft: {
+      role: 'localEvent',
+      reducer: (
+        state: ListsState,
+        action: PayloadAction<{ readonly id: string }>,
+      ): ListsState => ({
+        ...state,
+        lists: state.lists.filter((list) => list.id !== action.payload.id),
+      }),
+    },
 
     /**
      * Local-only: leaving failed, so the list comes back. The counterpart
      * of listLeft, which is dispatched before the server has answered so
-     * the tile disappears on the tap. Names the payload `list` and not
-     * `listId` for the same reason listLeft does: a listId at the root
-     * would put this into the outbox, and there is nothing to send.
+     * the tile disappears on the tap.
      *
      * Total, like every fold: a list that is already there stays as it is.
      */
-    listRestored: (
-      state: ListsState,
-      action: PayloadAction<{ readonly list: ShoppingList }>,
-    ): ListsState =>
-      state.lists.some((list) => list.id === action.payload.list.id)
-        ? state
-        : { ...state, lists: [...state.lists, action.payload.list] },
+    listRestored: {
+      role: 'localEvent',
+      reducer: (
+        state: ListsState,
+        action: PayloadAction<{ readonly list: ShoppingList }>,
+      ): ListsState =>
+        state.lists.some((list) => list.id === action.payload.list.id)
+          ? state
+          : { ...state, lists: [...state.lists, action.payload.list] },
+    },
 
-    listDeleted: (
-      state: ListsState,
-      action: PayloadAction<{
-        readonly listId: string
-      }>,
-    ): ListsState => ({
-      ...state,
-      lists: state.lists.filter((list) => list.id !== action.payload.listId),
-    }),
+    listDeleted: {
+      role: 'event',
+      reducer: (
+        state: ListsState,
+        action: PayloadAction<{
+          readonly listId: string
+        }>,
+      ): ListsState => ({
+        ...state,
+        lists: state.lists.filter((list) => list.id !== action.payload.listId),
+      }),
+    },
 
     // Class-2 event: written by the server when someone redeems an invite
     // token. Never dispatched locally, so it only ever arrives through the
     // cursor catch-up with meta.remote.
-    listMemberAdded: (
-      state: ListsState,
-      action: PayloadAction<{
-        readonly listId: string
-        readonly memberId: string
-        readonly name: string
-      }>,
-    ): ListsState => ({
-      ...state,
-      lists: state.lists.map((list) =>
-        list.id === action.payload.listId
-          ? {
-              ...list,
-              memberIds: list.memberIds.includes(action.payload.memberId)
-                ? list.memberIds
-                : [...list.memberIds, action.payload.memberId],
-              memberNames: {
-                ...list.memberNames,
-                [action.payload.memberId]: action.payload.name,
-              },
-            }
-          : list,
-      ),
-    }),
+    listMemberAdded: {
+      role: 'event',
+      reducer: (
+        state: ListsState,
+        action: PayloadAction<{
+          readonly listId: string
+          readonly memberId: string
+          readonly name: string
+        }>,
+      ): ListsState => ({
+        ...state,
+        lists: state.lists.map((list) =>
+          list.id === action.payload.listId
+            ? {
+                ...list,
+                memberIds: list.memberIds.includes(action.payload.memberId)
+                  ? list.memberIds
+                  : [...list.memberIds, action.payload.memberId],
+                memberNames: {
+                  ...list.memberNames,
+                  [action.payload.memberId]: action.payload.name,
+                },
+              }
+            : list,
+        ),
+      }),
+    },
 
     // Class-2 event, counterpart of listMemberAdded.
-    listMemberRemoved: (
-      state: ListsState,
-      action: PayloadAction<{
-        readonly listId: string
-        readonly memberId: string
-      }>,
-    ): ListsState => ({
-      ...state,
-      lists: state.lists.map((list) => {
-        if (list.id !== action.payload.listId) return list
-        const { [action.payload.memberId]: _removed, ...remainingNames } =
-          list.memberNames ?? {}
-        return {
-          ...list,
-          memberIds: list.memberIds.filter(
-            (memberId) => memberId !== action.payload.memberId,
-          ),
-          memberNames: remainingNames,
-        }
+    listMemberRemoved: {
+      role: 'event',
+      reducer: (
+        state: ListsState,
+        action: PayloadAction<{
+          readonly listId: string
+          readonly memberId: string
+        }>,
+      ): ListsState => ({
+        ...state,
+        lists: state.lists.map((list) => {
+          if (list.id !== action.payload.listId) return list
+          const { [action.payload.memberId]: _removed, ...remainingNames } =
+            list.memberNames ?? {}
+          return {
+            ...list,
+            memberIds: list.memberIds.filter(
+              (memberId) => memberId !== action.payload.memberId,
+            ),
+            memberNames: remainingNames,
+          }
+        }),
       }),
-    }),
+    },
 
-    // Local-only: the member cap from GET /lists. No listId at the payload
-    // root, so needsSync() keeps it out of the outbox.
-    memberLimitLoaded: (
-      state: ListsState,
-      action: PayloadAction<{ readonly maxMembers: number }>,
-    ): ListsState => ({
-      ...state,
-      maxMembers: action.payload.maxMembers,
-    }),
-
-    // Local-only: owner names from GET /lists. Carries no listId at the
-    // payload root, so needsSync() keeps it out of the outbox. The owner's
-    // name has no event to travel in — listCreated holds the list's name,
-    // not the creator's.
-    ownerNamesLoaded: (
-      state: ListsState,
-      action: PayloadAction<{
-        readonly ownerNames: Readonly<Record<string, string>>
-      }>,
-    ): ListsState => ({
-      ...state,
-      lists: state.lists.map((list) => {
-        const ownerName = action.payload.ownerNames[list.id]
-        if (ownerName === undefined) return list
-        return {
-          ...list,
-          memberNames: { ...list.memberNames, [list.ownerId]: ownerName },
-        }
+    // Observation: comes from GET /lists, not from a user action.
+    memberLimitLoaded: {
+      role: 'observation',
+      reducer: (
+        state: ListsState,
+        action: PayloadAction<{ readonly maxMembers: number }>,
+      ): ListsState => ({
+        ...state,
+        maxMembers: action.payload.maxMembers,
       }),
-    }),
+    },
+
+    // Observation: comes from GET /lists, not from a user action. The
+    // owner's name has no event to travel in — listCreated holds the list's
+    // name, not the creator's.
+    ownerNamesLoaded: {
+      role: 'observation',
+      reducer: (
+        state: ListsState,
+        action: PayloadAction<{
+          readonly ownerNames: Readonly<Record<string, string>>
+        }>,
+      ): ListsState => ({
+        ...state,
+        lists: state.lists.map((list) => {
+          const ownerName = action.payload.ownerNames[list.id]
+          if (ownerName === undefined) return list
+          return {
+            ...list,
+            memberNames: { ...list.memberNames, [list.ownerId]: ownerName },
+          }
+        }),
+      }),
+    },
   },
   extraReducers: [
     {
