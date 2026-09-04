@@ -1,8 +1,6 @@
 // Everything the engine knows about aggregates lives in this file.
 // A new aggregate kind (plans) extends these tables — nothing else.
 
-import type { PayloadAction } from '../createSlice'
-
 /** The aggregate kinds there are — the same words the server uses. */
 export type AggregateKind = 'list' | 'recipe' | 'plan'
 
@@ -57,24 +55,6 @@ export function parseAggregate(value: unknown): Aggregate | null {
   const { kind, id } = value as { readonly kind?: unknown; readonly id?: unknown }
   if (!isAggregateKind(kind) || typeof id !== 'string') return null
   return { kind, id }
-}
-
-/**
- * Aggregate a synced action's payload names, or null when it names none —
- * either because it is local-only (locality is decided by the role now, not
- * here) or because a role admitted it for sending but its payload carries no
- * recognised aggregate id. Callers that treat this as a routing decision
- * must handle that second case explicitly.
- */
-export function aggregateOf(action: PayloadAction<unknown>): Aggregate | null {
-  const payload = action.payload
-  if (payload === null || typeof payload !== 'object') return null
-  const fields = payload as Readonly<Record<string, unknown>>
-  for (const kind of ALL_KINDS) {
-    const id = fields[ID_FIELD_OF[kind]]
-    if (typeof id === 'string') return { kind, id }
-  }
-  return null
 }
 
 /** Where the ids of one kind are listed. Called at the start of a catch-up. */

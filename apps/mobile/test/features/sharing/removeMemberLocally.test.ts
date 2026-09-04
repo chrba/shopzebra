@@ -6,7 +6,7 @@ import {
   listMemberAdded,
   selectListMembers,
 } from '@/features/lists/domain/listsSlice'
-import { needsSync } from '@/app/sync/needsSync'
+import { appSyncPolicy } from '@/app/sync/appSyncPolicy'
 
 describe('memberRemovedLocally', () => {
   // The server wrote the event; folding it here is what makes the row go
@@ -30,7 +30,7 @@ describe('memberRemovedLocally', () => {
   // post a member-removed event the client is not allowed to write.
   test('is never sent to the server', () => {
     expect(
-      needsSync({
+      appSyncPolicy.reachesServer({
         ...memberRemovedLocally({ kind: 'list', id: 'l1' }, 'sarah'),
         meta: { eventId: 'e1', deviceId: 'd1', remote: true },
       }),

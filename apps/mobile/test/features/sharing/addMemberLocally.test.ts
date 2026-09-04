@@ -5,7 +5,7 @@ import {
   listCreated,
   selectListMembers,
 } from '@/features/lists/domain/listsSlice'
-import { needsSync } from '@/app/sync/needsSync'
+import { appSyncPolicy } from '@/app/sync/appSyncPolicy'
 
 const fold = (actions: readonly { type: string }[]) =>
   actions.reduce(
@@ -37,7 +37,7 @@ describe('memberAddedLocally', () => {
   // back it would be a member-added event the client may not write.
   test('is never sent to the server', () => {
     expect(
-      needsSync({
+      appSyncPolicy.reachesServer({
         ...memberAddedLocally({ kind: 'list', id: 'l1' }, 'sarah', 'Eiszebra'),
         meta: { eventId: 'e1', deviceId: 'd1', remote: true },
       }),

@@ -7,7 +7,7 @@ import {
 } from '@/features/lists/domain/listsSlice'
 import { preferencesReducer, listPreferencesSet, selectAllListPreferences } from '@/features/preferences/domain/preferencesSlice'
 import { shoppingReducer, itemAdded, selectListItems } from '@/features/shopping/domain/shoppingSlice'
-import { needsSync } from '@/app/sync/needsSync'
+import { appSyncPolicy } from '@/app/sync/appSyncPolicy'
 
 const fold = (actions: readonly { type: string }[]) =>
   actions.reduce(
@@ -31,7 +31,7 @@ describe('leaving a list', () => {
   // the payload may say listId like every other list event.
   test('never reaches the outbox', () => {
     expect(
-      needsSync({
+      appSyncPolicy.reachesServer({
         ...listLeft({ listId: 'l1' }),
         meta: { eventId: 'e1', deviceId: 'd1' },
       }),

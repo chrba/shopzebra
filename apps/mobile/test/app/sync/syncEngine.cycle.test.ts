@@ -3,10 +3,7 @@ import type { PayloadAction } from '@/app/createSlice'
 import type { SyncStorage } from '@/app/sync/outbox'
 import type { SendResult, Transport } from '@/app/sync/transport'
 import { SyncEngine } from '@/app/sync/syncEngine'
-// Side-effect import: registers 'shopping' as a synced slice name (see
-// createSlice({ synced: true })). Vitest isolates modules per test file,
-// so this must happen here too — same pattern as syncEngine.test.ts.
-import '@/features/shopping/domain/shoppingSlice'
+import { appSyncPolicy } from '@/app/sync/appSyncPolicy'
 
 function memoryStorage(): SyncStorage {
   const data = new Map<string, string>()
@@ -50,7 +47,7 @@ function countingTransport(): Transport & { pulls: () => number } {
 describe('SyncEngine sync cycle', () => {
   it('runs one push-then-pull cycle after an action was recorded', async () => {
     const transport = countingTransport()
-    const engine = new SyncEngine(memoryStorage(), transport)
+    const engine = new SyncEngine(memoryStorage(), transport, appSyncPolicy)
     await engine.start(() => undefined)
     expect(transport.pulls()).toBe(1)
 
@@ -61,7 +58,7 @@ describe('SyncEngine sync cycle', () => {
 
   it('terminates — no follow-up pull without new work', async () => {
     const transport = countingTransport()
-    const engine = new SyncEngine(memoryStorage(), transport)
+    const engine = new SyncEngine(memoryStorage(), transport, appSyncPolicy)
     await engine.start(() => undefined)
 
     engine.record(syncedAction('e1'))
@@ -83,7 +80,7 @@ describe('SyncEngine sync cycle', () => {
       },
       fetchEventsSince: () => Promise.resolve([]),
     }
-    const engine = new SyncEngine(memoryStorage(), transport)
+    const engine = new SyncEngine(memoryStorage(), transport, appSyncPolicy)
     await engine.start(() => undefined)
 
     engine.record(syncedAction('e1'))
@@ -112,7 +109,7 @@ describe('SyncEngine sync cycle', () => {
       },
       fetchEventsSince: () => Promise.resolve([]),
     }
-    const engine = new SyncEngine(memoryStorage(), transport)
+    const engine = new SyncEngine(memoryStorage(), transport, appSyncPolicy)
     await engine.start(() => undefined)
 
     engine.record(syncedAction('e1'))
@@ -147,7 +144,7 @@ describe('SyncEngine retry backoff', () => {
       },
       fetchAggregates: () => Promise.resolve([]),
       fetchEventsSince: () => Promise.resolve([]),
-    })
+    }, appSyncPolicy)
     await engine.start(() => undefined)
 
     engine.record(syncedAction('e1'))
@@ -171,7 +168,7 @@ describe('SyncEngine retry backoff', () => {
       },
       fetchAggregates: () => Promise.resolve([]),
       fetchEventsSince: () => Promise.resolve([]),
-    })
+    }, appSyncPolicy)
     await engine.start(() => undefined)
 
     engine.record(syncedAction('e1'))

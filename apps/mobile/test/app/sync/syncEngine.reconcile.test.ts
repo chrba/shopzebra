@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { SyncEngine } from '@/app/sync/syncEngine'
+import { appSyncPolicy } from '@/app/sync/appSyncPolicy'
 import type { Aggregate } from '@/app/sync/aggregate'
 import type { SendResult, Transport } from '@/app/sync/transport'
 
@@ -44,6 +45,7 @@ describe('what the server no longer shows', () => {
     const engine = new SyncEngine(
       memoryStorage(seededWithCursor),
       showing([]),
+      appSyncPolicy,
     )
 
     await engine.start(() => undefined, {
@@ -59,6 +61,7 @@ describe('what the server no longer shows', () => {
     const engine = new SyncEngine(
       memoryStorage(seededWithCursor),
       showing([removedList]),
+      appSyncPolicy,
     )
 
     await engine.start(() => undefined, {
@@ -73,7 +76,7 @@ describe('what the server no longer shows', () => {
   // Dropping it would delete a guest's own lists on their first cycle.
   it('never touches what the server has not confirmed yet', async () => {
     const dropped: Aggregate[] = []
-    const engine = new SyncEngine(memoryStorage(), showing([]))
+    const engine = new SyncEngine(memoryStorage(), showing([]), appSyncPolicy)
 
     await engine.start(() => undefined, {
       heldAggregates: () => [{ kind: 'list', id: 'written-offline' }],

@@ -1,6 +1,6 @@
 // Effects only (sync-engine.md §3): every dispatched action is offered
-// to the sync engine, which decides via toOutboxEntry whether it enters
-// the outbox. No per-feature handlers — a new synced event costs zero
+// to the sync engine, which asks the sync policy whether it enters the
+// outbox. No per-feature handlers — a new synced event costs zero
 // sync code.
 
 import type { Middleware } from '@reduxjs/toolkit'

@@ -11,11 +11,11 @@ import { cursorsGuardedByFoldedState } from './receive/guardedCursors'
 import { cursorKeyOf, type Aggregate } from './aggregate'
 import { withRewrittenAuthor } from './authorRewrite'
 import { drainOutbox } from './send/drainOutbox'
-import { toOutboxEntry } from './send/toOutboxEntry'
 import { catchUp } from './receive/catchUp'
 import { httpTransport, type Transport } from './transport'
 import { pendingDiscarded, pendingRestored } from './withSync'
-import { domainActionOf } from './wire'
+import { appSyncPolicy } from './appSyncPolicy'
+import type { SyncPolicy } from './syncPolicy'
 
 export type Dispatch = (action: PayloadAction<unknown>) => void
 
@@ -53,11 +53,12 @@ export class SyncEngine {
   constructor(
     private readonly storage: SyncStorage,
     private readonly transport: Transport,
+    private readonly policy: SyncPolicy,
   ) {}
 
   /** Called by syncMiddleware for every dispatch. Buffers until start() ran. */
   record(action: PayloadAction<unknown>): void {
-    const entry = toOutboxEntry(action)
+    const entry = this.policy.toOutboxEntry(action)
     if (!entry) return
     if (this.outbox) {
       void this.outbox.enqueue(entry).then(() => this.requestSync())
@@ -87,7 +88,7 @@ export class SyncEngine {
     // without it, offline edits would be invisible after a restart.
     dispatch(
       pendingRestored(
-        outbox.queuedEntries().map((entry) => domainActionOf(entry.wire)),
+        outbox.queuedEntries().map((entry) => this.policy.domainActionOf(entry.wire)),
       ),
     )
   }
@@ -198,6 +199,7 @@ export class SyncEngine {
       dispatch,
       fetchAggregates: this.transport.fetchAggregates,
       fetchEventsSince: this.transport.fetchEventsSince,
+      domainPayloadOf: this.policy.domainPayloadOf,
     })
     this.dropWhatIsNoLongerOurs(outbox, held, visible)
   }
@@ -239,4 +241,4 @@ export class SyncEngine {
 
 /** The app's engine: device storage + HTTP transport. syncMiddleware
  *  records into it, startSync drives its lifecycle. */
-export const syncEngine = new SyncEngine({ getItem, setItem }, httpTransport)
+export const syncEngine = new SyncEngine({ getItem, setItem }, httpTransport, appSyncPolicy)

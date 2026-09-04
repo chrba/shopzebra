@@ -3,10 +3,7 @@ import type { PayloadAction } from '@/app/createSlice'
 import type { OutboxEntry, SyncStorage } from '@/app/sync/outbox'
 import type { SendResult, Transport } from '@/app/sync/transport'
 import { SyncEngine } from '@/app/sync/syncEngine'
-// Side-effect import: registers 'shopping' as a synced slice name (see
-// createSlice({ synced: true })). Vitest isolates modules per test file,
-// so this must happen here too — same pattern as syncedActions.test.ts.
-import '@/features/shopping/domain/shoppingSlice'
+import { appSyncPolicy } from '@/app/sync/appSyncPolicy'
 
 function memoryStorage(): SyncStorage {
   const data = new Map<string, string>()
@@ -41,7 +38,7 @@ function syncedAction(eventId: string): PayloadAction<unknown> {
 describe('SyncEngine', () => {
   it('buffers actions recorded before start and sends them after start', async () => {
     const sent: OutboxEntry[] = []
-    const engine = new SyncEngine(memoryStorage(), recordingTransport(sent))
+    const engine = new SyncEngine(memoryStorage(), recordingTransport(sent), appSyncPolicy)
     engine.record(syncedAction('early'))
     await engine.start(() => undefined)
     await new Promise((resolve) => setTimeout(resolve, 0))
@@ -50,7 +47,7 @@ describe('SyncEngine', () => {
 
   it('ignores remote and unsynced actions', async () => {
     const sent: OutboxEntry[] = []
-    const engine = new SyncEngine(memoryStorage(), recordingTransport(sent))
+    const engine = new SyncEngine(memoryStorage(), recordingTransport(sent), appSyncPolicy)
     engine.record({
       type: 'app/appLoaded',
       payload: {},

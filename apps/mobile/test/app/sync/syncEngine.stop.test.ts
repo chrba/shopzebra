@@ -3,10 +3,7 @@ import type { PayloadAction } from '@/app/createSlice'
 import type { OutboxEntry, SyncStorage } from '@/app/sync/outbox'
 import type { SendResult, Transport } from '@/app/sync/transport'
 import { SyncEngine } from '@/app/sync/syncEngine'
-// Side-effect import: registers 'shopping' as a synced slice name (see
-// createSlice({ synced: true })). Vitest isolates modules per test file,
-// so this must happen here too — same pattern as syncEngine.test.ts.
-import '@/features/shopping/domain/shoppingSlice'
+import { appSyncPolicy } from '@/app/sync/appSyncPolicy'
 
 function memoryStorage(): SyncStorage {
   const data = new Map<string, string>()
@@ -38,7 +35,7 @@ describe('SyncEngine.stop', () => {
       fetchAggregates: () => Promise.resolve([]),
       fetchEventsSince: () => Promise.resolve([]),
     }
-    const engine = new SyncEngine(memoryStorage(), transport)
+    const engine = new SyncEngine(memoryStorage(), transport, appSyncPolicy)
 
     await engine.start(() => undefined)
     engine.stop()
@@ -65,7 +62,7 @@ describe('SyncEngine.stop', () => {
         fetchEventsSinceCalls.push(true)
         return Promise.resolve([])
       },
-    })
+    }, appSyncPolicy)
 
     await engine.start(() => undefined)
     await new Promise((resolve) => setTimeout(resolve, 0))

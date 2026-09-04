@@ -194,53 +194,13 @@ type ExtraReducer<S> = {
   readonly reducer: (state: S, action: PayloadAction<any>) => S
 }
 
-// --- Sync Policy ---
-//
-// A slice opts in with `synced: true` (one boolean per slice, no per-slice
-// ifs); every reducer of that slice then declares its own role, and
-// needsSync reads that role — no per-action ifs either (sync-engine.md §3).
-const syncedSliceNames = new Set<string>()
-
-/**
- * True when the slice owning this action type opted in with `synced: true`.
- * Purely structural: slice membership only, nothing about whether this
- * concrete action reaches the server. That decision is needsSync reading
- * the declared role via `roleOf()` — this function is not part of it.
- */
-export function belongsToSyncedSlice(type: string): boolean {
-  const sliceName = type.split('/')[0]
-  return sliceName !== undefined && syncedSliceNames.has(sliceName)
-}
-
-// --- Action role registry ---
-//
-// Filled only for reducers of a `synced: true` slice, each of which must
-// declare a role (enforced by the overload below). needsSync reads this —
-// the classification lives at the reducer, not in the payload's shape, and
-// never has to travel with the action.
-const roleByActionType = new Map<string, ActionRole>()
-
-/** The declared role of an action type, or undefined outside any synced slice. */
-export function roleOf(type: string): ActionRole | undefined {
-  return roleByActionType.get(type)
-}
-
 // --- createSlice ---
 
-// This overload (synced?: false) is declared first. Verified experimentally
-// (task 5): with a reducer missing its role, both orders report the same
-// specific diagnostic at the slice itself (TS matches the `synced: true`
-// overload for the message either way, since the literal discriminant
-// picks it out) — so order does not improve that message. But whichever
-// overload is declared second still triggers TypeScript's overload-failure
-// recovery once the call fails both, and that recovery widens every
-// property of the resulting ActionCreators to `T | undefined`, poisoning
-// every other file that imports an action creator from the affected slice.
-// Swapping the order only changes which files get poisoned, not whether
-// they do (measured: 33 files either way). Keeping `synced?: false` first
-// is arbitrary between two equally bad options, so it stays as documented
-// history rather than a deliberate optimization — see task-5-report.md for
-// the measurements.
+// Two overloads: a synced slice must declare every reducer (and every
+// event's aggregate), an unsynced one takes bare reducers. When a call
+// fails both, TypeScript's overload recovery widens the inferred action
+// creators — the error shows at the slice, but importing files may report
+// follow-up errors until it is fixed.
 export function createSlice<
   Name extends string,
   S,
@@ -286,8 +246,6 @@ export function createSlice(config: {
   readonly reducer: (state: any, action: { readonly type: string }) => any
   readonly declarations: SyncDeclarations
 } {
-  if (config.synced) syncedSliceNames.add(config.name)
-
   const actionCreators = {} as Record<string, (...args: unknown[]) => unknown>
   const lookup: Record<string, (state: any, action: any) => any> = {}
   const declarations: Record<string, ActionDeclaration> = {}
@@ -329,10 +287,7 @@ export function createSlice(config: {
     }
     lookup[type] = caseReducer
 
-    if (config.synced) {
-      declarations[type] = declaration
-      roleByActionType.set(type, declaration.role)
-    }
+    if (config.synced) declarations[type] = declaration
   }
 
   for (const external of config.extraReducers ?? []) {

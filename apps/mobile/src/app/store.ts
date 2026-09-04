@@ -19,7 +19,7 @@ import { authReducer } from '../features/auth/domain/authSlice'
 import { appReducer } from './appSlice'
 import { isPayloadAction, type PayloadAction } from './createSlice'
 import { withSync, type SyncState } from './sync/withSync'
-import { needsSync } from './sync/needsSync'
+import { appSyncPolicy } from './sync/appSyncPolicy'
 import { eventIdMiddleware } from './eventIdMiddleware'
 import { themeMiddleware } from './themeMiddleware'
 import { clientStorageMiddleware } from './clientStorageMiddleware'
@@ -46,7 +46,7 @@ export type RootState = FeatureState & {
   }
 }
 
-const syncedReducer = withSync<FeatureState>(featureReducer, needsSync)
+const syncedReducer = withSync<FeatureState>(featureReducer, appSyncPolicy.reachesServer)
 
 function toSyncState(state: RootState): SyncState<FeatureState> {
   const { sync, ...visible } = state

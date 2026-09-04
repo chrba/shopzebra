@@ -9,7 +9,7 @@ import { withRewrittenAuthor } from './authorRewrite'
 
 /**
  * One queued send: target path + wire payload. Routing happens at enqueue
- * time (send/toOutboxEntry.ts), so queue and transport stay aggregate-agnostic.
+ * time (syncPolicy.ts), so queue and transport stay aggregate-agnostic.
  */
 export type OutboxEntry = {
   readonly path: string
