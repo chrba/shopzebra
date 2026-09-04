@@ -97,8 +97,8 @@ flowchart LR
 5. `toOutboxEntry()` decides **the routing at enqueue time as well** — every entry is uniformly `{ path, wire }`:
    - `meta.remote` set → came from the server, do **not** send it back (`null`).
    - `listCreated` → **class-2 command**: `{ path: '/lists', wire }` with the `ownerId → createdBy` translation into wire format. The server validates and writes the event itself.
-   - Slice is `synced` and the action names an aggregate (`aggregateOf` — `listId`, `recipeId`, …) → `{ path: eventsPathFor(aggregate), wire: action }`.
-   - Otherwise (e.g. `preferences/*`, hydration actions without an aggregate id) → no sync (`null`).
+   - `needsSync(action)` false (role is `localEvent`, `observation`, `hydration`, or undeclared, e.g. `preferences/*`) → no sync (`null`), regardless of what the payload carries.
+   - Otherwise the role admitted it (`event` or `command`) → `aggregateOf` reads the aggregate id (`listId`, `recipeId`, …) purely to route it: `{ path: eventsPathFor(aggregate), wire: action }`.
 6. The outbox appends the entry and persists; `requestSync()` is kicked — the engine runs one push-then-pull cycle.
 7. Inside the cycle, `drainOutbox()` POSTs head-by-head via `sendEntry()`. Response classification:
 

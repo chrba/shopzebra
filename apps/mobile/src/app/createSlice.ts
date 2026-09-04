@@ -164,16 +164,16 @@ type ExtraReducer<S> = {
 
 // --- Sync Policy ---
 //
-// The only sync policy: a slice opts in with `synced: true` and every
-// action of that slice becomes a candidate for the outbox
-// (sync-engine.md §3 — one boolean per slice, no per-action ifs).
+// A slice opts in with `synced: true` (one boolean per slice, no per-slice
+// ifs); every reducer of that slice then declares its own role, and
+// needsSync reads that role — no per-action ifs either (sync-engine.md §3).
 const syncedSliceNames = new Set<string>()
 
 /**
  * True when the slice owning this action type opted in with `synced: true`.
- * Purely structural: it says nothing about whether a concrete action must
- * be sent — that judgment (locality, aggregate id) lives in needsSync,
- * which calls this on every dispatch.
+ * Purely structural: slice membership only, nothing about whether this
+ * concrete action reaches the server. That decision is needsSync reading
+ * the declared role via `roleOf()` — this function is not part of it.
  */
 export function belongsToSyncedSlice(type: string): boolean {
   const sliceName = type.split('/')[0]
