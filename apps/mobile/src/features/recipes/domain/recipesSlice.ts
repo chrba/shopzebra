@@ -206,7 +206,6 @@ const recipesSlice = createSlice({
       }),
     },
 
-    // Local-only: owner names from GET /recipes.
     // Observation: comes from GET /recipes, not from a user action. The
     // owner's name has no event to travel in — they never trigger a member
     // event for themselves.
