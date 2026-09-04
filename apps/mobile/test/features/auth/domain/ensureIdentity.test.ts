@@ -11,7 +11,7 @@ const { ensureShadowAccount, rewriteQueuedAuthor, startSync } = vi.hoisted(
 
 vi.mock('@/features/auth/domain/shadowAccount', () => ({ ensureShadowAccount }))
 vi.mock('@/app/sync/syncEngine', () => ({
-  syncEngine: { rewriteQueuedAuthor, record: vi.fn() },
+  syncEngine: { rewriteQueuedAuthor, offer: vi.fn() },
 }))
 vi.mock('@/app/sync/startSync', () => ({ startSync }))
 // The store persists on every dispatch; this test has no device to write to.

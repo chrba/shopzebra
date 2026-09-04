@@ -11,9 +11,9 @@ vi.mock('@/app/sync/syncEngine', () => ({
     start: engineStart,
     openLocalLog: engineOpenLocalLog,
     // The store's syncMiddleware offers every dispatch to the engine.
-    record: vi.fn(),
+    offer: vi.fn(),
     stop: vi.fn(),
-    refresh: vi.fn(),
+    requestSync: vi.fn(() => Promise.resolve()),
   },
 }))
 vi.mock('@capacitor/network', () => ({

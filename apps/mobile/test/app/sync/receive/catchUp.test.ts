@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { PayloadAction } from '@/app/createSlice'
 import { Outbox, type SyncStorage } from '@/app/sync/outbox'
 import { isEventsConfirmed, type ConfirmedEvent } from '@/app/sync/withSync'
-import type { WireEvent } from '@/app/sync/receive/fetchEvents'
+import type { WireEvent } from '@/app/sync/wire'
 import { catchUp } from '@/app/sync/receive/catchUp'
 import type { Aggregate } from '@/app/sync/aggregate'
 
@@ -40,7 +40,7 @@ describe('catchUp', () => {
     const outbox = await Outbox.load(memoryStorage())
     const dispatched: PayloadAction<unknown>[] = []
     await catchUp({
-      ledger: outbox,
+      cursors: outbox,
       dispatch: (action) => dispatched.push(action),
       fetchAggregates: () => Promise.resolve([list1]),
       domainPayloadOf: (_type, payload) => ({ ...payload }),
@@ -61,7 +61,7 @@ describe('catchUp', () => {
     const outbox = await Outbox.load(memoryStorage())
     const dispatched: PayloadAction<unknown>[] = []
     await catchUp({
-      ledger: outbox,
+      cursors: outbox,
       dispatch: (action) => dispatched.push(action),
       fetchAggregates: () => Promise.resolve([list1]),
       domainPayloadOf: (_type, payload) => ({ ...payload }),
@@ -92,7 +92,7 @@ describe('catchUp', () => {
     await outbox.advanceCursor(list1, '00000000000000000005')
     const asked: (string | null)[] = []
     await catchUp({
-      ledger: outbox,
+      cursors: outbox,
       dispatch: () => undefined,
       fetchAggregates: () =>
         Promise.resolve([{ kind: 'list', id: 'broken' } as const, list1]),
@@ -111,7 +111,7 @@ describe('catchUp', () => {
     const recipe: Aggregate = { kind: 'recipe', id: 'bolo' }
     const pulled: Aggregate[] = []
     await catchUp({
-      ledger: outbox,
+      cursors: outbox,
       dispatch: () => undefined,
       fetchAggregates: () => Promise.resolve([list1, recipe]),
       domainPayloadOf: (_type, payload) => ({ ...payload }),

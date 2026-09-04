@@ -5,13 +5,13 @@
 
 import type { PayloadAction } from '../../createSlice'
 import { cursorKeyOf, type Aggregate } from '../aggregate'
-import type { ReceiveLedger } from '../outbox'
-import { eventsConfirmed, type ConfirmedEvent } from '../withSync'
-import type { WireEvent } from './fetchEvents'
-import { toLocalAction } from './toLocalAction'
+import type { Cursors } from '../outbox'
+import { eventsConfirmed } from '../withSync'
+import type { WireEvent } from '../wire'
+import { toConfirmedEvent } from './toConfirmedEvent'
 
 export type CatchUpDeps = {
-  readonly ledger: ReceiveLedger
+  readonly cursors: Cursors
   readonly dispatch: (action: PayloadAction<unknown>) => void
   readonly fetchAggregates: () => Promise<readonly Aggregate[]>
   readonly fetchEventsSince: (
@@ -28,15 +28,6 @@ function byPosition(a: WireEvent, b: WireEvent): number {
   return a.meta.position < b.meta.position ? -1 : 1
 }
 
-function toConfirmedEvent(deps: CatchUpDeps, event: WireEvent): ConfirmedEvent {
-  const local = toLocalAction(event, deps.domainPayloadOf)
-  return {
-    type: local.type,
-    payload: local.payload,
-    meta: { ...event.meta, remote: true },
-  }
-}
-
 /** What the server holds beyond our cursor, in canonical order. */
 async function eventsSinceCursor(
   deps: CatchUpDeps,
@@ -44,7 +35,7 @@ async function eventsSinceCursor(
 ): Promise<readonly WireEvent[]> {
   const incoming = await deps.fetchEventsSince(
     aggregate,
-    deps.ledger.cursorFor(aggregate),
+    deps.cursors.cursorFor(aggregate),
   )
   // Delivery order is not guaranteed; the server position is canonical.
   return [...incoming].sort(byPosition)
@@ -55,7 +46,11 @@ function foldIntoConfirmedTree(
   deps: CatchUpDeps,
   incoming: readonly WireEvent[],
 ): void {
-  deps.dispatch(eventsConfirmed(incoming.map((event) => toConfirmedEvent(deps, event))))
+  deps.dispatch(
+    eventsConfirmed(
+      incoming.map((event) => toConfirmedEvent(event, deps.domainPayloadOf)),
+    ),
+  )
 }
 
 /**
@@ -69,12 +64,12 @@ async function advanceCursorPast(
 ): Promise<void> {
   const last = incoming.at(-1)
   if (!last) return
-  await deps.ledger.advanceCursor(aggregate, last.meta.position)
+  await deps.cursors.advanceCursor(aggregate, last.meta.position)
 }
 
 /**
- * Called at engine start, on app resume and on network reconnect. Pulls
- * every aggregate the caller may see, whatever its kind.
+ * The pull step of every sync cycle (SyncEngine.syncOnce), right after the
+ * push. Pulls every aggregate the caller may see, whatever its kind.
  * Failures are isolated per aggregate — one broken list never blocks the rest.
  *
  * Returns what the server showed. That set is authoritative about access:

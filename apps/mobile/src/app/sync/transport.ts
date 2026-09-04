@@ -4,14 +4,11 @@
 import type { Aggregate } from './aggregate'
 import type { OutboxEntry } from './outbox'
 import { sendEntry, type SendResult } from './send/sendEntry'
-import {
-  fetchAggregates,
-  fetchEventsSince,
-  type WireEvent,
-} from './receive/fetchEvents'
+import { fetchAggregates, fetchEventsSince } from './receive/fetchEvents'
+import type { WireEvent } from './wire'
 
 export type { SendResult } from './send/sendEntry'
-export type { WireEvent } from './receive/fetchEvents'
+export type { WireEvent } from './wire'
 
 /** The engine's view of the server: send one entry, list aggregates, pull deltas. */
 export type Transport = {

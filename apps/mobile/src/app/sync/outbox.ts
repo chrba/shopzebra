@@ -24,8 +24,8 @@ export interface SendQueue {
   removeHead(): Promise<void>
 }
 
-/** The receive path's view of the bridge (receive/catchUp.ts). */
-export interface ReceiveLedger {
+/** The receive path's view of the bridge (receive/catchUp.ts): one cursor per aggregate. */
+export interface Cursors {
   /** Last confirmed position of an aggregate, or null before the first catch-up. Goes into `?since=` when fetching the delta. */
   cursorFor(aggregate: Aggregate): string | null
   /** Moves the cursor after a confirmed batch was dispatched — never before, or events would be skipped forever. Resolves when persisted. */
@@ -57,7 +57,10 @@ const EMPTY: OutboxState = {
 
 function isOutboxEntry(candidate: unknown): candidate is OutboxEntry {
   if (candidate === null || typeof candidate !== 'object') return false
-  const entry = candidate as { readonly path?: unknown; readonly wire?: unknown }
+  const entry = candidate as {
+    readonly path?: unknown
+    readonly wire?: unknown
+  }
   return typeof entry.path === 'string' && typeof entry.wire === 'object'
 }
 
@@ -91,7 +94,7 @@ function parseOutboxState(raw: string | null): OutboxState {
   }
 }
 
-export class Outbox implements SendQueue, ReceiveLedger {
+export class Outbox implements SendQueue, Cursors {
   // Mutable infrastructure state behind an immutable-value API.
   private state: OutboxState
   private lastWrite: Promise<void> = Promise.resolve()
@@ -114,6 +117,7 @@ export class Outbox implements SendQueue, ReceiveLedger {
     return this.state.queue[0] ?? null
   }
 
+  /** Queue length. Used by tests; production code reads head()/queuedEntries(). */
   size(): number {
     return this.state.queue.length
   }

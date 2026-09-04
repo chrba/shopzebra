@@ -41,7 +41,7 @@ describe('SyncEngine.stop', () => {
     engine.stop()
 
     // Recorded while stopped — must buffer, not throw or drop silently.
-    engine.record(syncedAction('after-stop'))
+    engine.offer(syncedAction('after-stop'))
 
     await engine.start(() => undefined)
     await new Promise((resolve) => setTimeout(resolve, 0))
@@ -49,20 +49,24 @@ describe('SyncEngine.stop', () => {
     expect(sent).toHaveLength(1)
   })
 
-  it('makes refresh() a no-op after stop', async () => {
+  it('makes requestSync() a no-op after stop', async () => {
     const fetchAggregatesCalls: true[] = []
     const fetchEventsSinceCalls: true[] = []
-    const engine = new SyncEngine(memoryStorage(), {
-      sendEntry: () => Promise.resolve<SendResult>({ outcome: 'confirmed' }),
-      fetchAggregates: () => {
-        fetchAggregatesCalls.push(true)
-        return Promise.resolve([])
+    const engine = new SyncEngine(
+      memoryStorage(),
+      {
+        sendEntry: () => Promise.resolve<SendResult>({ outcome: 'confirmed' }),
+        fetchAggregates: () => {
+          fetchAggregatesCalls.push(true)
+          return Promise.resolve([])
+        },
+        fetchEventsSince: () => {
+          fetchEventsSinceCalls.push(true)
+          return Promise.resolve([])
+        },
       },
-      fetchEventsSince: () => {
-        fetchEventsSinceCalls.push(true)
-        return Promise.resolve([])
-      },
-    }, appSyncPolicy)
+      appSyncPolicy,
+    )
 
     await engine.start(() => undefined)
     await new Promise((resolve) => setTimeout(resolve, 0))
@@ -71,7 +75,7 @@ describe('SyncEngine.stop', () => {
     fetchAggregatesCalls.length = 0
     fetchEventsSinceCalls.length = 0
 
-    engine.refresh()
+    void engine.requestSync()
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     expect(fetchAggregatesCalls).toHaveLength(0)

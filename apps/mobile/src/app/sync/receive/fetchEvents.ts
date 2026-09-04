@@ -9,18 +9,7 @@ import {
   type Aggregate,
   type AggregateKind,
 } from '../aggregate'
-
-/** Server event in wire format — same shape as a Redux action. */
-export type WireEvent = {
-  readonly type: string
-  readonly payload: Record<string, unknown>
-  readonly meta: {
-    readonly eventId: string
-    readonly deviceId: string
-    readonly userId: string
-    readonly position: string
-  }
-}
+import type { WireEvent } from '../wire'
 
 function isWireEvent(candidate: unknown): candidate is WireEvent {
   if (candidate === null || typeof candidate !== 'object') return false

@@ -1,5 +1,5 @@
 // Everything the engine knows about aggregates lives in this file.
-// A new aggregate kind (plans) extends these tables — nothing else.
+// A new aggregate kind (plans) extends these tables and AggregateIdField in createSlice.ts.
 
 /** The aggregate kinds there are — the same words the server uses. */
 export type AggregateKind = 'list' | 'recipe' | 'plan'
@@ -52,7 +52,10 @@ function isAggregateKind(value: unknown): value is AggregateKind {
  */
 export function parseAggregate(value: unknown): Aggregate | null {
   if (value === null || typeof value !== 'object') return null
-  const { kind, id } = value as { readonly kind?: unknown; readonly id?: unknown }
+  const { kind, id } = value as {
+    readonly kind?: unknown
+    readonly id?: unknown
+  }
   if (!isAggregateKind(kind) || typeof id !== 'string') return null
   return { kind, id }
 }

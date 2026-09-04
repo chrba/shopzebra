@@ -1,4 +1,4 @@
-// The sync cycle: every trigger (record, boot, sign-in, reconnect, resume,
+// The sync cycle: every trigger (offer, boot, sign-in, reconnect, resume,
 // retry timer) funnels into requestSync(), which runs one push-then-pull
 // cycle at a time. The whole choreography lives in syncOnce(); outbox,
 // drain and catch-up are plain steps that report results. Module singleton —
@@ -23,7 +23,7 @@ const RETRY_BASE_MS = 1_000
 const RETRY_MAX_MS = 30_000
 
 export class SyncEngine {
-  // Holds entries dispatched before start() finished loading the outbox.
+  // Holds entries offered before openLocalLog() finished loading the outbox.
   private preStartBuffer: OutboxEntry[] = []
   private outbox: Outbox | null = null
   private dispatch: Dispatch | null = null
@@ -56,8 +56,11 @@ export class SyncEngine {
     private readonly policy: SyncPolicy,
   ) {}
 
-  /** Called by syncMiddleware for every dispatch. Buffers until start() ran. */
-  record(action: PayloadAction<unknown>): void {
+  /**
+   * syncMiddleware offers every dispatched action here; the policy decides
+   * whether it is queued. Buffers until openLocalLog() ran.
+   */
+  offer(action: PayloadAction<unknown>): void {
     const entry = this.policy.toOutboxEntry(action)
     if (!entry) return
     if (this.outbox) {
@@ -88,7 +91,9 @@ export class SyncEngine {
     // without it, offline edits would be invisible after a restart.
     dispatch(
       pendingRestored(
-        outbox.queuedEntries().map((entry) => this.policy.domainActionOf(entry.wire)),
+        outbox
+          .queuedEntries()
+          .map((entry) => this.policy.domainActionOf(entry.wire)),
       ),
     )
   }
@@ -97,17 +102,21 @@ export class SyncEngine {
    * Called once per identity (startSync). Opens the log if it is not open
    * yet, allows server contact from now on, and resolves when the first
    * sync cycle is done.
+   *
+   * @param deviceHoldings What this device holds and how to let go of one —
+   * Redux callbacks, installed here because the engine must not know about
+   * Redux.
    */
   async start(
     dispatch: Dispatch,
-    local?: {
+    deviceHoldings?: {
       readonly heldAggregates: () => readonly Aggregate[]
       readonly dropAggregate: (aggregate: Aggregate) => void
     },
   ): Promise<void> {
-    if (local) {
-      this.heldAggregates = local.heldAggregates
-      this.dropAggregate = local.dropAggregate
+    if (deviceHoldings) {
+      this.heldAggregates = deviceHoldings.heldAggregates
+      this.dropAggregate = deviceHoldings.dropAggregate
     }
     if (!this.outbox) await this.openLocalLog(dispatch)
     this.mayContactServer = true
@@ -129,14 +138,9 @@ export class SyncEngine {
     await this.outbox?.rewriteAuthor(previousUserId, userId)
   }
 
-  /** Called on app resume and network reconnect. Fire-and-forget cycle. */
-  refresh(): void {
-    void this.requestSync()
-  }
-
   /**
-   * Called on sign-out (stopSync). Cancels the retry timer, record()
-   * buffers again, refresh() no-ops — nothing is sent under a dying
+   * Called on sign-out (stopSync). Cancels the retry timer, offer()
+   * buffers again, requestSync() no-ops — nothing is sent under a dying
    * session. A later start() rebuilds everything from scratch.
    */
   stop(): void {
@@ -151,8 +155,9 @@ export class SyncEngine {
   }
 
   /**
-   * The single entry point for every sync trigger. Catches its own
-   * rejections — an offline cycle is a warning, not a crash.
+   * The single entry point for every sync trigger. Also the resume/reconnect
+   * trigger (startSync) and the retry timer. Catches its own rejections —
+   * an offline cycle is a warning, not a crash.
    */
   requestSync(): Promise<void> {
     const outbox = this.outbox
@@ -193,7 +198,7 @@ export class SyncEngine {
     const held = this.heldAggregates()
     const heldKeys = new Set(held.map(cursorKeyOf))
     const visible = await catchUp({
-      ledger: cursorsGuardedByFoldedState(outbox, (aggregate) =>
+      cursors: cursorsGuardedByFoldedState(outbox, (aggregate) =>
         heldKeys.has(cursorKeyOf(aggregate)),
       ),
       dispatch,
@@ -230,7 +235,10 @@ export class SyncEngine {
   // The retry timer is just another requestSync trigger.
   private scheduleRetry(): void {
     if (this.retryTimer) return
-    const delay = Math.min(RETRY_BASE_MS * 2 ** this.failedAttempts, RETRY_MAX_MS)
+    const delay = Math.min(
+      RETRY_BASE_MS * 2 ** this.failedAttempts,
+      RETRY_MAX_MS,
+    )
     this.failedAttempts += 1
     this.retryTimer = setTimeout(() => {
       this.retryTimer = null
@@ -240,5 +248,9 @@ export class SyncEngine {
 }
 
 /** The app's engine: device storage + HTTP transport. syncMiddleware
- *  records into it, startSync drives its lifecycle. */
-export const syncEngine = new SyncEngine({ getItem, setItem }, httpTransport, appSyncPolicy)
+ *  offers actions to it, startSync drives its lifecycle. */
+export const syncEngine = new SyncEngine(
+  { getItem, setItem },
+  httpTransport,
+  appSyncPolicy,
+)

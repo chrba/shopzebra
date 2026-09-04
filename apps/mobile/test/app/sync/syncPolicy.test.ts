@@ -14,7 +14,10 @@ const lists = createSlice({
       opens: 'list',
       reducer: (
         state: object,
-        _action: PayloadAction<{ readonly listId: string; readonly ownerId: string }>,
+        _action: PayloadAction<{
+          readonly listId: string
+          readonly ownerId: string
+        }>,
       ) => state,
     },
     renamed: {
@@ -53,7 +56,10 @@ const meta = { eventId: 'e1', deviceId: 'd1' }
 describe('reachesServer', () => {
   it('lässt Events auf einem Log zum Server', () => {
     expect(
-      policy.reachesServer({ ...lists.actions.renamed({ listId: 'l1' }), meta }),
+      policy.reachesServer({
+        ...lists.actions.renamed({ listId: 'l1' }),
+        meta,
+      }),
     ).toBe(true)
   })
 
@@ -67,14 +73,24 @@ describe('reachesServer', () => {
   })
 
   it('behält localEvent, observation und hydration auf dem Gerät', () => {
-    for (const creator of [lists.actions.dropped, lists.actions.observed, lists.actions.loaded]) {
-      expect(policy.reachesServer({ type: creator.type, payload: {}, meta })).toBe(false)
+    for (const creator of [
+      lists.actions.dropped,
+      lists.actions.observed,
+      lists.actions.loaded,
+    ]) {
+      expect(
+        policy.reachesServer({ type: creator.type, payload: {}, meta }),
+      ).toBe(false)
     }
   })
 
   it('kennt undeklarierte Actions nicht', () => {
     expect(
-      policy.reachesServer({ type: 'preferences/themeChanged', payload: {}, meta }),
+      policy.reachesServer({
+        type: 'preferences/themeChanged',
+        payload: {},
+        meta,
+      }),
     ).toBe(false)
   })
 
@@ -88,7 +104,9 @@ describe('reachesServer', () => {
   })
 
   it('schickt Actions ohne meta nie', () => {
-    expect(policy.reachesServer(lists.actions.renamed({ listId: 'l1' }))).toBe(false)
+    expect(policy.reachesServer(lists.actions.renamed({ listId: 'l1' }))).toBe(
+      false,
+    )
   })
 })
 
@@ -110,7 +128,10 @@ describe('toOutboxEntry', () => {
   })
 
   it('routet ein eröffnendes Event an die Collection und nennt den Ersteller createdBy', () => {
-    const action = { ...lists.actions.opened({ listId: 'l1', ownerId: 'u1' }), meta }
+    const action = {
+      ...lists.actions.opened({ listId: 'l1', ownerId: 'u1' }),
+      meta,
+    }
     expect(policy.toOutboxEntry(action)).toEqual({
       path: '/lists',
       wire: {
@@ -123,10 +144,18 @@ describe('toOutboxEntry', () => {
 
   it('gibt null für alles, was das Gerät nicht verlässt', () => {
     expect(
-      policy.toOutboxEntry({ type: lists.actions.dropped.type, payload: { listId: 'l1' }, meta }),
+      policy.toOutboxEntry({
+        type: lists.actions.dropped.type,
+        payload: { listId: 'l1' },
+        meta,
+      }),
     ).toBeNull()
     expect(
-      policy.toOutboxEntry({ type: 'preferences/themeChanged', payload: { listId: 'l1' }, meta }),
+      policy.toOutboxEntry({
+        type: 'preferences/themeChanged',
+        payload: { listId: 'l1' },
+        meta,
+      }),
     ).toBeNull()
     expect(
       policy.toOutboxEntry({
@@ -140,10 +169,16 @@ describe('toOutboxEntry', () => {
 describe('wire translation', () => {
   it('übersetzt createdBy zurück zu ownerId nur für eröffnende Events', () => {
     expect(
-      policy.domainPayloadOf('policyLists/opened', { listId: 'l1', createdBy: 'u1' }),
+      policy.domainPayloadOf('policyLists/opened', {
+        listId: 'l1',
+        createdBy: 'u1',
+      }),
     ).toEqual({ listId: 'l1', ownerId: 'u1' })
     expect(
-      policy.domainPayloadOf('policyLists/renamed', { listId: 'l1', createdBy: 'u1' }),
+      policy.domainPayloadOf('policyLists/renamed', {
+        listId: 'l1',
+        createdBy: 'u1',
+      }),
     ).toEqual({ listId: 'l1', createdBy: 'u1' })
   })
 
@@ -165,8 +200,8 @@ describe('wire translation', () => {
 
 describe('composeSyncPolicy', () => {
   it('lehnt einen doppelt deklarierten Action-Typ ab', () => {
-    expect(() => composeSyncPolicy(lists.declarations, lists.declarations)).toThrow(
-      /policyLists\/opened/,
-    )
+    expect(() =>
+      composeSyncPolicy(lists.declarations, lists.declarations),
+    ).toThrow(/policyLists\/opened/)
   })
 })

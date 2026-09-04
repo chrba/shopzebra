@@ -38,8 +38,12 @@ function syncedAction(eventId: string): PayloadAction<unknown> {
 describe('SyncEngine', () => {
   it('buffers actions recorded before start and sends them after start', async () => {
     const sent: OutboxEntry[] = []
-    const engine = new SyncEngine(memoryStorage(), recordingTransport(sent), appSyncPolicy)
-    engine.record(syncedAction('early'))
+    const engine = new SyncEngine(
+      memoryStorage(),
+      recordingTransport(sent),
+      appSyncPolicy,
+    )
+    engine.offer(syncedAction('early'))
     await engine.start(() => undefined)
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(sent).toHaveLength(1)
@@ -47,13 +51,17 @@ describe('SyncEngine', () => {
 
   it('ignores remote and unsynced actions', async () => {
     const sent: OutboxEntry[] = []
-    const engine = new SyncEngine(memoryStorage(), recordingTransport(sent), appSyncPolicy)
-    engine.record({
+    const engine = new SyncEngine(
+      memoryStorage(),
+      recordingTransport(sent),
+      appSyncPolicy,
+    )
+    engine.offer({
       type: 'app/appLoaded',
       payload: {},
       meta: { eventId: 'x', deviceId: 'd1' },
     })
-    engine.record({
+    engine.offer({
       ...syncedAction('r1'),
       meta: { eventId: 'r1', deviceId: 'd1', remote: true },
     })

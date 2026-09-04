@@ -1,8 +1,8 @@
-// The stage-2 core (sync-engine.md §3): a higher-order reducer keeping two
-// trees. `confirmed` folds the server-ordered log, `visible` is confirmed
-// plus the own pending events replayed on top — the rebase. Feature
-// reducers stay unchanged; all devices converge because they all fold the
-// same log in the same position order.
+// The sync core (architecture/sync-engine.md §3): a higher-order reducer
+// keeping two trees. `confirmed` folds the server-ordered log, `visible` is
+// confirmed plus the own pending events replayed on top — the rebase.
+// Feature reducers stay unchanged; all devices converge because they all
+// fold the same log in the same position order.
 
 import type { ActionMeta, PayloadAction } from '../createSlice'
 import { withRewrittenAuthorFields } from './authorRewrite'
@@ -93,8 +93,9 @@ type PendingDiscardedAction = {
 
 /**
  * Creates the action that removes one pending event for good after the
- * server rejected it (4xx). Dispatched by the engine's onRejected hook.
- * The rebase then drops the event's optimistic effect from `visible`.
+ * server rejected it (4xx). Dispatched by SyncEngine.syncOnce for every
+ * eventId the drain reported as rejected. The rebase then drops the event's
+ * optimistic effect from `visible`.
  */
 export function pendingDiscarded(eventId: string): PendingDiscardedAction {
   return { type: PENDING_DISCARDED, payload: { eventId } }
@@ -142,15 +143,16 @@ function byPosition(a: ConfirmedEvent, b: ConfirmedEvent): number {
 }
 
 /**
- * Wraps the root reducer with the confirmed/pending split. `isSynced`
+ * Wraps the root reducer with the confirmed/pending split. `reachesServer`
  * decides which actions are own domain events (they fold into `visible`
  * and wait in `pending`); everything else folds into BOTH trees — if it
  * only reached `visible`, the next rebase would erase it, because
- * `visible` is recomputed from confirmed + pending.
+ * `visible` is recomputed from confirmed + pending. Called once in
+ * app/store.ts, wrapping the combined feature reducer.
  */
 export function withSync<S>(
   rootReducer: RootReducer<S>,
-  isSynced: (action: PayloadAction<unknown>) => boolean,
+  reachesServer: (action: PayloadAction<unknown>) => boolean,
 ) {
   return function syncReducer(
     state: SyncState<S> | undefined,
@@ -195,11 +197,7 @@ export function withSync<S>(
       const { previousUserId, userId } = action.payload
       const pending = state.pending.map((own) => ({
         ...own,
-        payload: withRewrittenAuthorFields(
-          own.payload,
-          previousUserId,
-          userId,
-        ),
+        payload: withRewrittenAuthorFields(own.payload, previousUserId, userId),
       }))
       return {
         ...state,
@@ -226,11 +224,16 @@ export function withSync<S>(
     }
 
     const visible = rootReducer(state.visible, action)
-    // Only actions with an eventId can ever be confirmed and leave
-    // pending again — anything else counts as local.
-    // TODO: debug if thre are any events without id 
-    return isSynced(action) && action.meta?.eventId !== undefined
-      ? { confirmed: state.confirmed, pending: [...state.pending, action], visible }
-      : { confirmed: rootReducer(state.confirmed, action), pending: state.pending, visible }
+    return reachesServer(action)
+      ? {
+          confirmed: state.confirmed,
+          pending: [...state.pending, action],
+          visible,
+        }
+      : {
+          confirmed: rootReducer(state.confirmed, action),
+          pending: state.pending,
+          visible,
+        }
   }
 }

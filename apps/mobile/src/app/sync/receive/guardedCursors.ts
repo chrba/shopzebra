@@ -1,8 +1,10 @@
+// Read-side guard for cursors: a cursor is only honoured while this device still holds the fold it describes.
 import type { Aggregate } from '../aggregate'
-import type { ReceiveLedger } from '../outbox'
+import type { Cursors } from '../outbox'
 
 /**
- * A ledger that only hands out cursors whose fold still exists.
+ * Cursors that are only handed out while their fold still exists.
+ * Called by SyncEngine.syncOnce, which wraps the outbox before handing the cursors to catchUp.
  *
  * A cursor is a claim: "everything up to this position was folded into my
  * tree." Once that tree is gone — the aggregate was left, the owner
@@ -19,19 +21,19 @@ import type { ReceiveLedger } from '../outbox'
  * Starting over is safe: folding a log twice yields the same tree
  * (reducer totality, architecture/sync-engine.md §5).
  *
- * @param ledger The real ledger, usually the outbox.
+ * @param cursors The real cursors, usually the outbox.
  * @param holdsFoldedStateFor Whether this device still holds that
  *   aggregate's folded state. Not a permission question — what the caller
  *   may see is what fetchAggregates answers.
  */
 export function cursorsGuardedByFoldedState(
-  ledger: ReceiveLedger,
+  cursors: Cursors,
   holdsFoldedStateFor: (aggregate: Aggregate) => boolean,
-): ReceiveLedger {
+): Cursors {
   return {
     cursorFor: (aggregate) =>
-      holdsFoldedStateFor(aggregate) ? ledger.cursorFor(aggregate) : null,
+      holdsFoldedStateFor(aggregate) ? cursors.cursorFor(aggregate) : null,
     advanceCursor: (aggregate, position) =>
-      ledger.advanceCursor(aggregate, position),
+      cursors.advanceCursor(aggregate, position),
   }
 }

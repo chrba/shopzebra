@@ -1,5 +1,4 @@
-// Lifecycle of the engine singleton + the reconnect triggers
-// (stage 1 has no push; catch-up is the receive path).
+// Lifecycle of the engine singleton + the resume/reconnect triggers.
 
 import { App as CapacitorApp } from '@capacitor/app'
 import { Network } from '@capacitor/network'
@@ -7,7 +6,10 @@ import { store, type RootState } from '../store'
 import { removeItem } from '../clientStorage'
 import { initialSyncCompleted } from '../appSlice'
 import { selectHasIdentity } from '../../features/auth/domain/authSlice'
-import { listDropped, selectAllLists } from '../../features/lists/domain/listsSlice'
+import {
+  listDropped,
+  selectAllLists,
+} from '../../features/lists/domain/listsSlice'
 import {
   recipeDropped,
   selectAllRecipes,
@@ -55,11 +57,12 @@ function heldAggregates(state: RootState): readonly Aggregate[] {
 }
 
 /**
- * Letting go of something we are no longer a member of. The same local-only
- * actions leaving uses — nothing is destroyed anywhere, this device just
- * stops holding it.
+ * The local fact that this device no longer holds an aggregate — the same
+ * action leaving dispatches. Nothing is destroyed anywhere; this device just
+ * stops holding it. Called by the engine for every aggregate the server no
+ * longer shows us.
  */
-function dropped(aggregate: Aggregate) {
+function droppedActionFor(aggregate: Aggregate) {
   return aggregate.kind === 'recipe'
     ? recipeDropped({ recipeId: aggregate.id })
     : listDropped({ listId: aggregate.id })
@@ -82,7 +85,7 @@ export function startSync(): void {
   void syncEngine
     .start((action) => store.dispatch(action), {
       heldAggregates: () => heldAggregates(store.getState()),
-      dropAggregate: (aggregate) => store.dispatch(dropped(aggregate)),
+      dropAggregate: (aggregate) => store.dispatch(droppedActionFor(aggregate)),
     })
     .finally(() => store.dispatch(initialSyncCompleted()))
     .catch((error: unknown) => {
@@ -93,10 +96,10 @@ export function startSync(): void {
   listenersRegistered = true
 
   void Network.addListener('networkStatusChange', (status) => {
-    if (status.connected) syncEngine.refresh()
+    if (status.connected) void syncEngine.requestSync()
   })
   void CapacitorApp.addListener('appStateChange', (state) => {
-    if (state.isActive) syncEngine.refresh()
+    if (state.isActive) void syncEngine.requestSync()
   })
 }
 

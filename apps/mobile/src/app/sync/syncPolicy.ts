@@ -10,14 +10,19 @@ import type {
   PayloadAction,
   SyncDeclarations,
 } from '../createSlice'
-import { collectionPathFor, eventsPathFor, idFieldOf } from './aggregate'
+import {
+  collectionPathFor,
+  eventsPathFor,
+  idFieldOf,
+  type AggregateKind,
+} from './aggregate'
 import type { OutboxEntry } from './outbox'
 import { createdByToOwnerId, ownerIdToCreatedBy } from './wire'
 
 export type SyncPolicy = {
   /** True for own domain events — they wait in pending. Called by withSync on every dispatch. */
   readonly reachesServer: (action: PayloadAction<unknown>) => boolean
-  /** The queued send for an action, or null when it stays on the device. Called by SyncEngine.record. */
+  /** The queued send for an action, or null when it stays on the device. Called by SyncEngine.offer. */
   readonly toOutboxEntry: (action: PayloadAction<unknown>) => OutboxEntry | null
   /** Wire → domain for one fetched payload (createdBy → ownerId on opening events). Called by catch-up. */
   readonly domainPayloadOf: (
@@ -25,7 +30,9 @@ export type SyncPolicy = {
     payload: Readonly<Record<string, unknown>>,
   ) => Record<string, unknown>
   /** Wire → domain for a whole queued action. Called once at engine start for pendingRestored. */
-  readonly domainActionOf: (wire: PayloadAction<unknown>) => PayloadAction<unknown>
+  readonly domainActionOf: (
+    wire: PayloadAction<unknown>,
+  ) => PayloadAction<unknown>
 }
 
 /**
@@ -44,8 +51,25 @@ function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === 'object' && value !== null
 }
 
-function opensAggregate(declaration: ActionDeclaration): boolean {
+type OpeningDeclaration = Extract<
+  ActionDeclaration,
+  { readonly opens: AggregateKind }
+>
+type AppendingDeclaration = Extract<
+  ActionDeclaration,
+  { readonly on: AggregateKind }
+>
+
+function opensAggregate(
+  declaration: ActionDeclaration,
+): declaration is OpeningDeclaration {
   return 'opens' in declaration
+}
+
+function appendsToAggregate(
+  declaration: ActionDeclaration,
+): declaration is AppendingDeclaration {
+  return 'on' in declaration
 }
 
 function routeOf(
@@ -53,13 +77,13 @@ function routeOf(
   action: PayloadAction<unknown>,
 ): OutboxEntry | null {
   if (!isRecord(action.payload)) return null
-  if ('opens' in declaration) {
+  if (opensAggregate(declaration)) {
     return {
       path: collectionPathFor(declaration.opens),
       wire: { ...action, payload: ownerIdToCreatedBy(action.payload) },
     }
   }
-  if ('on' in declaration) {
+  if (appendsToAggregate(declaration)) {
     // The compiler already made the field mandatory; this only narrows unknown.
     const id = action.payload[idFieldOf(declaration.on)]
     if (typeof id !== 'string') return null
@@ -82,8 +106,11 @@ export function composeSyncPolicy(
     }
   }
 
+  const isOwnAction = (action: PayloadAction<unknown>): boolean =>
+    action.meta !== undefined && !action.meta.remote
+
   const reachesServer = (action: PayloadAction<unknown>): boolean => {
-    if (!action.meta || action.meta.remote) return false
+    if (!isOwnAction(action)) return false
     const declaration = declarations.get(action.type)
     return declaration !== undefined && REACHES_SERVER[declaration.role]
   }
@@ -101,14 +128,19 @@ export function composeSyncPolicy(
   return {
     reachesServer,
     toOutboxEntry: (action) => {
-      if (!reachesServer(action)) return null
+      if (!isOwnAction(action)) return null
       const declaration = declarations.get(action.type)
-      return declaration ? routeOf(declaration, action) : null
+      if (!declaration || !REACHES_SERVER[declaration.role]) return null
+      return routeOf(declaration, action)
     },
     domainPayloadOf,
     domainActionOf: (wire) => {
       const declaration = declarations.get(wire.type)
-      if (!declaration || !opensAggregate(declaration) || !isRecord(wire.payload)) {
+      if (
+        !declaration ||
+        !opensAggregate(declaration) ||
+        !isRecord(wire.payload)
+      ) {
         return wire
       }
       return { ...wire, payload: createdByToOwnerId(wire.payload) }

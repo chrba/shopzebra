@@ -51,7 +51,7 @@ describe('SyncEngine sync cycle', () => {
     await engine.start(() => undefined)
     expect(transport.pulls()).toBe(1)
 
-    engine.record(syncedAction('e1'))
+    engine.offer(syncedAction('e1'))
     await settle()
     expect(transport.pulls()).toBe(2)
   })
@@ -61,7 +61,7 @@ describe('SyncEngine sync cycle', () => {
     const engine = new SyncEngine(memoryStorage(), transport, appSyncPolicy)
     await engine.start(() => undefined)
 
-    engine.record(syncedAction('e1'))
+    engine.offer(syncedAction('e1'))
     await settle()
     await settle()
     expect(transport.pulls()).toBe(2)
@@ -83,7 +83,7 @@ describe('SyncEngine sync cycle', () => {
     const engine = new SyncEngine(memoryStorage(), transport, appSyncPolicy)
     await engine.start(() => undefined)
 
-    engine.record(syncedAction('e1'))
+    engine.offer(syncedAction('e1'))
     await settle()
     expect(order).toEqual(['pull', 'push:e1', 'pull'])
   })
@@ -112,12 +112,12 @@ describe('SyncEngine sync cycle', () => {
     const engine = new SyncEngine(memoryStorage(), transport, appSyncPolicy)
     await engine.start(() => undefined)
 
-    engine.record(syncedAction('e1'))
+    engine.offer(syncedAction('e1'))
     await settle()
     expect(pulls).toBe(2)
 
     // Recorded while cycle 2 is still pulling — must wait, not overlap.
-    engine.record(syncedAction('e2'))
+    engine.offer(syncedAction('e2'))
     await settle()
     expect(pulls).toBe(2)
     expect(sent).toEqual(['e1'])
@@ -135,19 +135,23 @@ describe('SyncEngine retry backoff', () => {
   it('retries a blocked queue with exponential backoff until delivered', async () => {
     vi.useFakeTimers()
     let attempts = 0
-    const engine = new SyncEngine(memoryStorage(), {
-      sendEntry: () => {
-        attempts += 1
-        return Promise.resolve<SendResult>(
-          attempts < 3 ? { outcome: 'retry' } : { outcome: 'confirmed' },
-        )
+    const engine = new SyncEngine(
+      memoryStorage(),
+      {
+        sendEntry: () => {
+          attempts += 1
+          return Promise.resolve<SendResult>(
+            attempts < 3 ? { outcome: 'retry' } : { outcome: 'confirmed' },
+          )
+        },
+        fetchAggregates: () => Promise.resolve([]),
+        fetchEventsSince: () => Promise.resolve([]),
       },
-      fetchAggregates: () => Promise.resolve([]),
-      fetchEventsSince: () => Promise.resolve([]),
-    }, appSyncPolicy)
+      appSyncPolicy,
+    )
     await engine.start(() => undefined)
 
-    engine.record(syncedAction('e1'))
+    engine.offer(syncedAction('e1'))
     await vi.advanceTimersByTimeAsync(0)
     expect(attempts).toBe(1)
     await vi.advanceTimersByTimeAsync(1_000)
@@ -161,17 +165,21 @@ describe('SyncEngine retry backoff', () => {
   it('stop cancels the scheduled retry', async () => {
     vi.useFakeTimers()
     let attempts = 0
-    const engine = new SyncEngine(memoryStorage(), {
-      sendEntry: () => {
-        attempts += 1
-        return Promise.resolve<SendResult>({ outcome: 'retry' })
+    const engine = new SyncEngine(
+      memoryStorage(),
+      {
+        sendEntry: () => {
+          attempts += 1
+          return Promise.resolve<SendResult>({ outcome: 'retry' })
+        },
+        fetchAggregates: () => Promise.resolve([]),
+        fetchEventsSince: () => Promise.resolve([]),
       },
-      fetchAggregates: () => Promise.resolve([]),
-      fetchEventsSince: () => Promise.resolve([]),
-    }, appSyncPolicy)
+      appSyncPolicy,
+    )
     await engine.start(() => undefined)
 
-    engine.record(syncedAction('e1'))
+    engine.offer(syncedAction('e1'))
     await vi.advanceTimersByTimeAsync(0)
     expect(attempts).toBe(1)
 

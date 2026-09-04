@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { toLocalAction } from '@/app/sync/receive/toLocalAction'
-import type { WireEvent } from '@/app/sync/receive/fetchEvents'
+import { toConfirmedEvent } from '@/app/sync/receive/toConfirmedEvent'
+import type { WireEvent } from '@/app/sync/wire'
 import { appSyncPolicy } from '@/app/sync/appSyncPolicy'
 
-describe('toLocalAction', () => {
+describe('toConfirmedEvent', () => {
   const wireMeta = {
     eventId: 'e1',
     deviceId: 'other',
@@ -17,7 +17,7 @@ describe('toLocalAction', () => {
       payload: { listId: 'l1', itemId: 'x' },
       meta: wireMeta,
     }
-    expect(toLocalAction(event, appSyncPolicy.domainPayloadOf)).toEqual({
+    expect(toConfirmedEvent(event, appSyncPolicy.domainPayloadOf)).toEqual({
       type: 'shopping/itemChecked',
       payload: { listId: 'l1', itemId: 'x' },
       meta: { ...wireMeta, remote: true },
@@ -30,7 +30,9 @@ describe('toLocalAction', () => {
       payload: { listId: 'l1', name: 'REWE', createdBy: 'u2' },
       meta: wireMeta,
     }
-    expect(toLocalAction(event, appSyncPolicy.domainPayloadOf).payload).toEqual({
+    expect(
+      toConfirmedEvent(event, appSyncPolicy.domainPayloadOf).payload,
+    ).toEqual({
       listId: 'l1',
       name: 'REWE',
       ownerId: 'u2',
