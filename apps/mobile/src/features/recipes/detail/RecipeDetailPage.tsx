@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useAppDispatch, useAppSelector } from '../../../app/store'
 import { selectRecipeById } from '../domain/recipesSlice'
+import { selectCurrentUserId } from '../../auth/domain/authSlice'
+import { MEMBER_NAME_FALLBACK } from '../../sharing/memberDisplayName'
 import { scaleIngredients, type Ingredient } from '../domain/recipesDomain'
 import {
   recipePreferencesSet,
@@ -24,10 +26,16 @@ function BackIcon() {
 function RecipeHero({
   emoji,
   name,
+  ownerName,
   onPickIcon,
 }: {
   readonly emoji: string
   readonly name: string
+  /**
+   * Whose recipe this is — null for one's own. Named here because the
+   * collection tile says it too, but nobody looks at that while cooking.
+   */
+  readonly ownerName: string | null
   readonly onPickIcon: () => void
 }) {
   return (
@@ -43,6 +51,13 @@ function RecipeHero({
       <h2 className="font-display mt-4 text-2xl font-extrabold tracking-[-0.3px]">
         {name}
       </h2>
+      {/* Same wording and colour as a shared shopping list, so the two read
+          as one thing rather than two features. */}
+      {ownerName !== null && (
+        <div className="text-teal mt-1 text-[12.5px] font-semibold">
+          Geteilt von {ownerName}
+        </div>
+      )}
     </div>
   )
 }
@@ -172,6 +187,14 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
   const preferences = useAppSelector((state) =>
     selectRecipePreferences(state, recipeId),
   )
+  const currentUserId = useAppSelector(selectCurrentUserId)
+
+  // Only a foreign recipe names its owner; one's own would state the obvious.
+  const ownerName =
+    !recipe || recipe.ownerId === currentUserId
+      ? null
+      : (recipe.memberNames?.[recipe.ownerId] ?? MEMBER_NAME_FALLBACK)
+
   // Ephemeral view state: how many portions the cook is looking at now.
   const [portions, setPortions] = useState<number | null>(null)
   const [pickingIcon, setPickingIcon] = useState(false)
@@ -206,6 +229,7 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
       <RecipeHero
         emoji={preferences?.emoji ?? DEFAULT_RECIPE_EMOJI}
         name={recipe.name}
+        ownerName={ownerName}
         onPickIcon={() => setPickingIcon(true)}
       />
       <MetaChips

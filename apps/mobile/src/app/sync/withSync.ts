@@ -228,6 +228,7 @@ export function withSync<S>(
     const visible = rootReducer(state.visible, action)
     // Only actions with an eventId can ever be confirmed and leave
     // pending again — anything else counts as local.
+    // TODO: debug if thre are any events without id 
     return isSynced(action) && action.meta?.eventId !== undefined
       ? { confirmed: state.confirmed, pending: [...state.pending, action], visible }
       : { confirmed: rootReducer(state.confirmed, action), pending: state.pending, visible }

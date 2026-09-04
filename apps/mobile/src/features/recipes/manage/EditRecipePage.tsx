@@ -1,16 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useAppDispatch, useAppSelector } from '../../../app/store'
-import {
-  recipeUpdated,
-  selectRecipeById,
-  selectRecipeMembers,
-} from '../domain/recipesSlice'
-import {
-  selectCurrentUserId,
-  selectDisplayName,
-} from '../../auth/domain/authSlice'
-import { ShareWithRow } from '../../sharing/ShareWithRow'
-import { memberDisplayName } from '../../sharing/memberDisplayName'
+import { recipeUpdated, selectRecipeById } from '../domain/recipesSlice'
 import {
   recipePreferencesSet,
   selectRecipePreferences,
@@ -25,6 +15,9 @@ type EditRecipePageProps = {
 /**
  * Page for changing an existing recipe. Shares the form with creating one,
  * so both look and behave the same.
+ *
+ * Sharing is deliberately absent: who a recipe belongs to is decided in the
+ * collection, on its tile. Editing is about the recipe itself.
  * @param props.recipeId Which recipe is being edited (from the route).
  */
 export function EditRecipePage({ recipeId }: EditRecipePageProps) {
@@ -34,15 +27,6 @@ export function EditRecipePage({ recipeId }: EditRecipePageProps) {
   const preferences = useAppSelector((state) =>
     selectRecipePreferences(state, recipeId),
   )
-  const members = useAppSelector((state) =>
-    selectRecipeMembers(state, recipeId),
-  )
-  const currentUserId = useAppSelector(selectCurrentUserId)
-  const viewer = {
-    id: currentUserId,
-    name: useAppSelector(selectDisplayName),
-  }
-
   // A recipe that was deleted on another device while this page was open.
   if (!recipe) return null
 
@@ -58,22 +42,6 @@ export function EditRecipePage({ recipeId }: EditRecipePageProps) {
         ingredients: recipe.ingredients,
         steps: recipe.steps,
       }}
-      extraSection={
-        <ShareWithRow
-          members={members
-            .filter((member) => member.id !== currentUserId)
-            .map((member) => ({
-              id: member.id,
-              label: memberDisplayName(member, viewer),
-            }))}
-          onInvite={() =>
-            void navigate({
-              to: '/recipes/$recipeId/members',
-              params: { recipeId },
-            })
-          }
-        />
-      }
       onSubmit={(result) => {
         dispatch(
           recipeUpdated({
