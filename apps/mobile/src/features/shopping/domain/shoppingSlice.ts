@@ -61,181 +61,207 @@ const shoppingSlice = createSlice({
   initialState,
   reducers: {
     // Local hydration from clientStorage — not a domain event.
-    shoppingLoaded: (
-      _state: ShoppingState,
-      action: PayloadAction<{
-        readonly itemsByListId: ItemsByListId
-        readonly customVariantsByListId: CustomVariantsByListId
-      }>,
-    ): ShoppingState => ({
-      itemsByListId: action.payload.itemsByListId,
-      customVariantsByListId: action.payload.customVariantsByListId,
-    }),
+    shoppingLoaded: {
+      role: 'hydration',
+      reducer: (
+        _state: ShoppingState,
+        action: PayloadAction<{
+          readonly itemsByListId: ItemsByListId
+          readonly customVariantsByListId: CustomVariantsByListId
+        }>,
+      ): ShoppingState => ({
+        itemsByListId: action.payload.itemsByListId,
+        customVariantsByListId: action.payload.customVariantsByListId,
+      }),
+    },
 
-    itemAdded: (
-      state: ShoppingState,
-      action: PayloadAction<{
-        readonly listId: string
-        readonly itemId: string
-        readonly name: string
-        readonly quantity: number
-        readonly unit: string
-        readonly category: string
-        readonly addedBy: string
-        readonly parentId?: string
-      }>,
-    ): ShoppingState => {
-      const { listId, itemId } = action.payload
-      const items = itemsOf(state, listId)
-      const existing = items.find((item) => item.id === itemId)
+    itemAdded: {
+      role: 'event',
+      reducer: (
+        state: ShoppingState,
+        action: PayloadAction<{
+          readonly listId: string
+          readonly itemId: string
+          readonly name: string
+          readonly quantity: number
+          readonly unit: string
+          readonly category: string
+          readonly addedBy: string
+          readonly parentId?: string
+        }>,
+      ): ShoppingState => {
+        const { listId, itemId } = action.payload
+        const items = itemsOf(state, listId)
+        const existing = items.find((item) => item.id === itemId)
 
-      // Deterministic item ids collapse duplicate adds: adding an item that
-      // is already on the list merges quantities and re-activates it.
-      if (existing) {
-        return withItems(
+        // Deterministic item ids collapse duplicate adds: adding an item that
+        // is already on the list merges quantities and re-activates it.
+        if (existing) {
+          return withItems(
+            state,
+            listId,
+            items.map((item) =>
+              item.id === itemId
+                ? {
+                    ...item,
+                    quantity: item.quantity + action.payload.quantity,
+                    checked: false,
+                  }
+                : item,
+            ),
+          )
+        }
+
+        const added: ListItem = {
+          id: itemId,
+          name: action.payload.name,
+          quantity: action.payload.quantity,
+          unit: action.payload.unit,
+          category: action.payload.category,
+          checked: false,
+          addedBy: action.payload.addedBy,
+          ...(action.payload.parentId !== undefined
+            ? { parentId: action.payload.parentId }
+            : {}),
+        }
+        return withItems(state, listId, [...items, added])
+      },
+    },
+
+    itemChecked: {
+      role: 'event',
+      reducer: (
+        state: ShoppingState,
+        action: PayloadAction<{
+          readonly listId: string
+          readonly itemId: string
+          readonly checkedBy: string
+        }>,
+      ): ShoppingState =>
+        withItems(
           state,
-          listId,
-          items.map((item) =>
-            item.id === itemId
+          action.payload.listId,
+          itemsOf(state, action.payload.listId).map((item) =>
+            item.id === action.payload.itemId
+              ? { ...item, checked: true }
+              : item,
+          ),
+        ),
+    },
+
+    itemUnchecked: {
+      role: 'event',
+      reducer: (
+        state: ShoppingState,
+        action: PayloadAction<{
+          readonly listId: string
+          readonly itemId: string
+        }>,
+      ): ShoppingState =>
+        withItems(
+          state,
+          action.payload.listId,
+          itemsOf(state, action.payload.listId).map((item) =>
+            item.id === action.payload.itemId
+              ? { ...item, checked: false }
+              : item,
+          ),
+        ),
+    },
+
+    itemRemoved: {
+      role: 'event',
+      reducer: (
+        state: ShoppingState,
+        action: PayloadAction<{
+          readonly listId: string
+          readonly itemId: string
+        }>,
+      ): ShoppingState =>
+        withItems(
+          state,
+          action.payload.listId,
+          itemsOf(state, action.payload.listId).filter(
+            (item) => item.id !== action.payload.itemId,
+          ),
+        ),
+    },
+
+    itemUpdated: {
+      role: 'event',
+      reducer: (
+        state: ShoppingState,
+        action: PayloadAction<{
+          readonly listId: string
+          readonly itemId: string
+          readonly quantity?: number
+          readonly name?: string
+        }>,
+      ): ShoppingState =>
+        withItems(
+          state,
+          action.payload.listId,
+          itemsOf(state, action.payload.listId).map((item) =>
+            item.id === action.payload.itemId
               ? {
                   ...item,
-                  quantity: item.quantity + action.payload.quantity,
-                  checked: false,
+                  quantity: action.payload.quantity ?? item.quantity,
+                  name: action.payload.name ?? item.name,
                 }
               : item,
           ),
-        )
-      }
-
-      const added: ListItem = {
-        id: itemId,
-        name: action.payload.name,
-        quantity: action.payload.quantity,
-        unit: action.payload.unit,
-        category: action.payload.category,
-        checked: false,
-        addedBy: action.payload.addedBy,
-        ...(action.payload.parentId !== undefined
-          ? { parentId: action.payload.parentId }
-          : {}),
-      }
-      return withItems(state, listId, [...items, added])
+        ),
     },
 
-    itemChecked: (
-      state: ShoppingState,
-      action: PayloadAction<{
-        readonly listId: string
-        readonly itemId: string
-        readonly checkedBy: string
-      }>,
-    ): ShoppingState =>
-      withItems(
-        state,
-        action.payload.listId,
-        itemsOf(state, action.payload.listId).map((item) =>
-          item.id === action.payload.itemId ? { ...item, checked: true } : item,
+    itemNoteUpdated: {
+      role: 'event',
+      reducer: (
+        state: ShoppingState,
+        action: PayloadAction<{
+          readonly listId: string
+          readonly itemId: string
+          readonly note: string
+        }>,
+      ): ShoppingState =>
+        withItems(
+          state,
+          action.payload.listId,
+          itemsOf(state, action.payload.listId).map((item) =>
+            item.id === action.payload.itemId
+              ? { ...item, note: action.payload.note }
+              : item,
+          ),
         ),
-      ),
+    },
 
-    itemUnchecked: (
-      state: ShoppingState,
-      action: PayloadAction<{
-        readonly listId: string
-        readonly itemId: string
-      }>,
-    ): ShoppingState =>
-      withItems(
-        state,
-        action.payload.listId,
-        itemsOf(state, action.payload.listId).map((item) =>
-          item.id === action.payload.itemId
-            ? { ...item, checked: false }
-            : item,
-        ),
-      ),
+    customVariantAdded: {
+      role: 'event',
+      reducer: (
+        state: ShoppingState,
+        action: PayloadAction<{
+          readonly listId: string
+          readonly productId: string
+          readonly variantName: string
+        }>,
+      ): ShoppingState => {
+        const { listId, productId, variantName } = action.payload
+        const listVariants = state.customVariantsByListId[listId] ?? {}
+        const productVariants = listVariants[productId] ?? []
 
-    itemRemoved: (
-      state: ShoppingState,
-      action: PayloadAction<{
-        readonly listId: string
-        readonly itemId: string
-      }>,
-    ): ShoppingState =>
-      withItems(
-        state,
-        action.payload.listId,
-        itemsOf(state, action.payload.listId).filter(
-          (item) => item.id !== action.payload.itemId,
-        ),
-      ),
+        // Duplicate adds must be no-ops so replays stay deterministic.
+        if (productVariants.includes(variantName)) return state
 
-    itemUpdated: (
-      state: ShoppingState,
-      action: PayloadAction<{
-        readonly listId: string
-        readonly itemId: string
-        readonly quantity?: number
-        readonly name?: string
-      }>,
-    ): ShoppingState =>
-      withItems(
-        state,
-        action.payload.listId,
-        itemsOf(state, action.payload.listId).map((item) =>
-          item.id === action.payload.itemId
-            ? {
-                ...item,
-                quantity: action.payload.quantity ?? item.quantity,
-                name: action.payload.name ?? item.name,
-              }
-            : item,
-        ),
-      ),
-
-    itemNoteUpdated: (
-      state: ShoppingState,
-      action: PayloadAction<{
-        readonly listId: string
-        readonly itemId: string
-        readonly note: string
-      }>,
-    ): ShoppingState =>
-      withItems(
-        state,
-        action.payload.listId,
-        itemsOf(state, action.payload.listId).map((item) =>
-          item.id === action.payload.itemId
-            ? { ...item, note: action.payload.note }
-            : item,
-        ),
-      ),
-
-    customVariantAdded: (
-      state: ShoppingState,
-      action: PayloadAction<{
-        readonly listId: string
-        readonly productId: string
-        readonly variantName: string
-      }>,
-    ): ShoppingState => {
-      const { listId, productId, variantName } = action.payload
-      const listVariants = state.customVariantsByListId[listId] ?? {}
-      const productVariants = listVariants[productId] ?? []
-
-      // Duplicate adds must be no-ops so replays stay deterministic.
-      if (productVariants.includes(variantName)) return state
-
-      return {
-        ...state,
-        customVariantsByListId: {
-          ...state.customVariantsByListId,
-          [listId]: {
-            ...listVariants,
-            [productId]: [...productVariants, variantName],
+        return {
+          ...state,
+          customVariantsByListId: {
+            ...state.customVariantsByListId,
+            [listId]: {
+              ...listVariants,
+              [productId]: [...productVariants, variantName],
+            },
           },
-        },
-      }
+        }
+      },
     },
   },
   extraReducers: [
