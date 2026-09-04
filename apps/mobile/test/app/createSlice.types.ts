@@ -18,7 +18,10 @@ createSlice({
       on: 'list',
       reducer: (
         _state: Demo,
-        action: PayloadAction<{ readonly listId: string; readonly name: string }>,
+        action: PayloadAction<{
+          readonly listId: string
+          readonly name: string
+        }>,
       ): Demo => ({ seen: action.payload.name }),
     },
     created: {
@@ -59,6 +62,28 @@ createSlice({
   // @ts-expect-error role 'event' needs on or opens
   reducers: {
     renamed: { role: 'event', reducer: (state: Demo): Demo => state },
+  },
+})
+
+// An event is on a log or opens one — never both.
+createSlice({
+  name: 'typesOnAndOpens',
+  synced: true,
+  initialState,
+  // @ts-expect-error on and opens are mutually exclusive
+  reducers: {
+    confused: {
+      role: 'event',
+      on: 'list',
+      opens: 'recipe',
+      reducer: (
+        _state: Demo,
+        action: PayloadAction<{
+          readonly listId: string
+          readonly recipeId: string
+        }>,
+      ): Demo => ({ seen: action.payload.listId }),
+    },
   },
 })
 

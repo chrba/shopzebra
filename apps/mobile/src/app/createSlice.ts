@@ -16,8 +16,8 @@ import type { AggregateKind } from './sync/aggregate'
  * - hydration: restoring data this device already knew, from local storage
  */
 export type ActionDeclaration =
-  | { readonly role: 'event'; readonly on: AggregateKind }
-  | { readonly role: 'event'; readonly opens: AggregateKind }
+  | { readonly role: 'event'; readonly on: AggregateKind; readonly opens?: never }
+  | { readonly role: 'event'; readonly opens: AggregateKind; readonly on?: never }
   | { readonly role: 'localEvent' }
   | { readonly role: 'observation' }
   | { readonly role: 'hydration' }

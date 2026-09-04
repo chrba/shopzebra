@@ -46,7 +46,10 @@ export type RootState = FeatureState & {
   }
 }
 
-const syncedReducer = withSync<FeatureState>(featureReducer, appSyncPolicy.reachesServer)
+const syncedReducer = withSync<FeatureState>(
+  featureReducer,
+  appSyncPolicy.reachesServer,
+)
 
 function toSyncState(state: RootState): SyncState<FeatureState> {
   const { sync, ...visible } = state

@@ -49,7 +49,8 @@ function withoutMember(
     ...state,
     recipes: state.recipes.map((recipe) => {
       if (recipe.id !== recipeId) return recipe
-      const { [memberId]: _removed, ...remainingNames } = recipe.memberNames ?? {}
+      const { [memberId]: _removed, ...remainingNames } =
+        recipe.memberNames ?? {}
       return {
         ...recipe,
         memberIds: recipe.memberIds.filter((id) => id !== memberId),
@@ -210,7 +211,12 @@ const recipesSlice = createSlice({
           readonly name: string
         }>,
       ): RecipesState =>
-        withMember(state, action.payload.recipeId, action.payload.memberId, action.payload.name),
+        withMember(
+          state,
+          action.payload.recipeId,
+          action.payload.memberId,
+          action.payload.name,
+        ),
     },
 
     // Class-2 event, counterpart of recipeMemberAdded.
@@ -219,7 +225,10 @@ const recipesSlice = createSlice({
       on: 'recipe',
       reducer: (
         state: RecipesState,
-        action: PayloadAction<{ readonly recipeId: string; readonly memberId: string }>,
+        action: PayloadAction<{
+          readonly recipeId: string
+          readonly memberId: string
+        }>,
       ): RecipesState =>
         withoutMember(state, action.payload.recipeId, action.payload.memberId),
     },
@@ -237,7 +246,12 @@ const recipesSlice = createSlice({
           readonly name: string
         }>,
       ): RecipesState =>
-        withMember(state, action.payload.recipeId, action.payload.memberId, action.payload.name),
+        withMember(
+          state,
+          action.payload.recipeId,
+          action.payload.memberId,
+          action.payload.name,
+        ),
     },
 
     // Local-only: the server already wrote recipeMemberRemoved (or refused an
@@ -247,7 +261,10 @@ const recipesSlice = createSlice({
       role: 'localEvent',
       reducer: (
         state: RecipesState,
-        action: PayloadAction<{ readonly recipeId: string; readonly memberId: string }>,
+        action: PayloadAction<{
+          readonly recipeId: string
+          readonly memberId: string
+        }>,
       ): RecipesState =>
         withoutMember(state, action.payload.recipeId, action.payload.memberId),
     },

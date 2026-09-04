@@ -96,6 +96,26 @@ describe('appSyncPolicy', () => {
     })
   })
 
+  it('renames createdBy back to ownerId when folding recipeCreated from the server', () => {
+    expect(
+      appSyncPolicy.domainPayloadOf('recipes/recipeCreated', {
+        recipeId: 'bolo',
+        name: 'Bolognese',
+        createdBy: 'u2',
+        portions: 4,
+        ingredients: [],
+        steps: [],
+      }),
+    ).toEqual({
+      recipeId: 'bolo',
+      name: 'Bolognese',
+      ownerId: 'u2',
+      portions: 4,
+      ingredients: [],
+      steps: [],
+    })
+  })
+
   it('keeps hydrations and server echoes off the wire', () => {
     expect(
       appSyncPolicy.toOutboxEntry({
