@@ -1,5 +1,5 @@
 // Opening events cross the wire with `createdBy` where the domain says
-// `ownerId` (services/events.md). Both directions live here as a pair —
+// `ownerId`. Both directions live here as a pair —
 // whoever changes one sees the other. Which events that applies to is the
 // sync policy's knowledge (`opens` in the slice declaration), not this file's.
 // The wire shape of a server event lives here too.

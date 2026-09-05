@@ -1,4 +1,4 @@
-// The sync core (architecture/sync-engine.md §3): a higher-order reducer
+// The sync core: a higher-order reducer
 // keeping two trees. `confirmed` folds the server-ordered log, `visible` is
 // confirmed plus the own pending events replayed on top — the rebase.
 // Feature reducers stay unchanged; all devices converge because they all

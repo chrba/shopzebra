@@ -19,7 +19,7 @@ import type { Cursors } from '../outbox'
  * bypassed.
  *
  * Starting over is safe: folding a log twice yields the same tree
- * (reducer totality, architecture/sync-engine.md §5).
+ * (reducer totality).
  *
  * @param cursors The real cursors, usually the outbox.
  * @param holdsFoldedStateFor Whether this device still holds that

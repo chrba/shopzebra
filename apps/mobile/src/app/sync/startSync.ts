@@ -72,7 +72,7 @@ function droppedActionFor(aggregate: Aggregate) {
 export function startSync(): void {
   if (started) return
 
-  // The binary rule (accountless-first-planned.md): no identity, no server
+  // The binary rule: no identity, no server
   // contact. Nothing is on its way in either, so the boot skeleton must
   // stop waiting — otherwise it hides the "new list" card forever.
   if (!selectHasIdentity(store.getState())) {
