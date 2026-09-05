@@ -1,5 +1,4 @@
 import { createSlice, type PayloadAction } from '../../../app/createSlice'
-import { LOCAL_USER_ID } from './localUser'
 
 // --- Types ---
 
@@ -10,19 +9,16 @@ import { LOCAL_USER_ID } from './localUser'
 export type AuthProvider = 'email' | 'google' | 'apple'
 
 /**
- * Who this device is, in three states (accountless-first-planned.md):
- * `none` before the first share — everything is local and the sentinel
- * authors it; `guest` once the shadow account exists; `linked` once an
- * email or a social account was attached to that same Cognito user. The
- * userId never changes between guest and linked — linking upgrades the
- * account, it does not migrate anything.
+ * Who this device is, in three states. `local`: the id is minted, no account
+ * exists — everything stays on the device. `guest`: the shadow account
+ * exists under that same id. `linked`: an email or a social account was
+ * attached to the same Cognito user. The userId never changes across the
+ * three — the account is created under it, linking upgrades the account.
  *
- * A name exists in **every** state, drawn at the very first start. Nobody
- * is ever asked for it, so there is no state in which we do not know what
- * to call this device.
+ * A name exists in every state, drawn at the very first start.
  */
 export type Identity =
-  | { readonly kind: 'none'; readonly name: string }
+  | { readonly kind: 'local'; readonly userId: string; readonly name: string }
   | { readonly kind: 'guest'; readonly userId: string; readonly name: string }
   | {
       readonly kind: 'linked'
@@ -32,8 +28,8 @@ export type Identity =
       readonly provider: AuthProvider
     }
 
-/** An identity that exists — everything the app can act as. */
-export type EstablishedIdentity = Exclude<Identity, { readonly kind: 'none' }>
+/** An identity with an account behind it — what may talk to the server. */
+export type EstablishedIdentity = Exclude<Identity, { readonly kind: 'local' }>
 
 type AuthState = {
   readonly identity: Identity
@@ -42,8 +38,8 @@ type AuthState = {
 // --- Slice ---
 
 const initialState: AuthState = {
-  // Empty only until the boot hands the drawn name over — see deviceName.ts.
-  identity: { kind: 'none', name: '' },
+  // Empty only until the boot hands id and name over.
+  identity: { kind: 'local', userId: '', name: '' },
 }
 
 const authSlice = createSlice({
@@ -51,16 +47,20 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     /**
-     * The name this device goes by, drawn once at the first start and
+     * Who this device is: id and name, both minted at the first start and
      * restored from storage on every later one. Dispatched before the
-     * identity is restored, so a name that Cognito knows still wins.
+     * identity is restored, so an account Cognito knows still wins.
      */
-    deviceNamed: (
+    deviceIdentified: (
       state: AuthState,
-      action: PayloadAction<{ readonly name: string }>,
+      action: PayloadAction<{ readonly userId: string; readonly name: string }>,
     ): AuthState => ({
       ...state,
-      identity: { ...state.identity, name: action.payload.name },
+      identity: {
+        kind: 'local',
+        userId: action.payload.userId,
+        name: action.payload.name,
+      },
     }),
 
     // The shadow account exists from now on. Dispatched by ensureIdentity
@@ -89,7 +89,7 @@ const authSlice = createSlice({
         readonly provider: AuthProvider
       }>,
     ): AuthState =>
-      state.identity.kind === 'none'
+      state.identity.kind === 'local'
         ? state
         : {
             ...state,
@@ -119,33 +119,28 @@ const authSlice = createSlice({
       },
     }),
 
-    // Announces the docking. Folded by lists/recipes via extraReducers —
-    // the auth slice itself holds no per-aggregate data.
-    identityAttached: (
-      state: AuthState,
-      _action: PayloadAction<{
-        readonly previousUserId: string
-        readonly userId: string
-      }>,
-    ): AuthState => state,
-
     // The name lives in Cognito; this mirrors the accepted write so the
     // profile and the members screen agree without a session refresh.
     displayNameChanged: (
       state: AuthState,
       action: PayloadAction<{ readonly name: string }>,
-    ): AuthState =>
-      state.identity.kind === 'none'
-        ? state
-        : {
-            ...state,
-            identity: { ...state.identity, name: action.payload.name },
-          },
-
-    // Signing out ends the account, not the device — the name stays.
-    identityCleared: (state: AuthState): AuthState => ({
+    ): AuthState => ({
       ...state,
-      identity: { kind: 'none', name: state.identity.name },
+      identity: { ...state.identity, name: action.payload.name },
+    }),
+
+    // Signing out ends the account, not the device — the name stays, the id
+    // is fresh: the old one belongs to the account that just left.
+    identityCleared: (
+      state: AuthState,
+      action: PayloadAction<{ readonly userId: string }>,
+    ): AuthState => ({
+      ...state,
+      identity: {
+        kind: 'local',
+        userId: action.payload.userId,
+        name: state.identity.name,
+      },
     }),
   },
 })
@@ -153,11 +148,10 @@ const authSlice = createSlice({
 // --- Actions ---
 
 export const {
-  deviceNamed,
+  deviceIdentified,
   guestIdentityCreated,
   identityLinked,
   linkedIdentityRestored,
-  identityAttached,
   displayNameChanged,
   identityCleared,
 } = authSlice.actions
@@ -172,8 +166,8 @@ export const selectIdentity = (state: StateWithAuth): Identity =>
   state.auth.identity
 
 /** True once a Cognito account exists — the binary sync rule reads this. */
-export const selectHasIdentity = (state: StateWithAuth): boolean =>
-  state.auth.identity.kind !== 'none'
+export const selectHasAccount = (state: StateWithAuth): boolean =>
+  state.auth.identity.kind !== 'local'
 
 export const selectIsGuest = (state: StateWithAuth): boolean =>
   state.auth.identity.kind === 'guest'
@@ -182,8 +176,6 @@ export const selectIsGuest = (state: StateWithAuth): boolean =>
 export const selectDisplayName = (state: StateWithAuth): string =>
   state.auth.identity.name
 
-/** The author of everything this device writes — sentinel until attached. */
+/** The author of everything this device writes — the same id in every state. */
 export const selectCurrentUserId = (state: StateWithAuth): string =>
-  state.auth.identity.kind === 'none'
-    ? LOCAL_USER_ID
-    : state.auth.identity.userId
+  state.auth.identity.userId

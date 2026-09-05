@@ -1,6 +1,6 @@
 # Implementierungs-Stand — ShopZebra
 
-**Stand: 2026-09-04** · Branch `feat/implement-backend`
+**Stand: 2026-09-05** · Branch `feat/implement-backend`
 
 Alle anderen Dokumente in `architecture/` und `services/events.md` beschreiben den **Zielzustand**. Dieses Dokument beschreibt, was davon heute existiert. Wer den Code bewertet, plant oder erweitert, liest es zuerst — sonst bewertet er eine App, die es so noch nicht gibt.
 
@@ -41,12 +41,12 @@ Alle anderen Dokumente in `architecture/` und `services/events.md` beschreiben d
 
 Bewusst noch offen gegenüber den Prototypen: Emoji-Picker im Sheet (braucht `productPrefs` in preferences), Produkt-Memory beim Reselect, Spracheingabe (Capacitor). Celebration folgt `design/shadcn/list.html` (2026-07-29): Konfetti, Erledigt-Sektion bleibt sichtbar (automatisch zugeklappt), Kategorie-Zähler zählt auch erledigte Items.
 
-**Ohne Konto starten (M1, 2026-08-03)** — `features/auth/domain/` (`localUser`, `shadowAccount`, `identityThunks`, `restoredIdentity`) + `features/sharing/FirstShareNameSheet`. Plan: `.claude/plans/2026-08-02-ohne-konto-starten.md`.
+**Ohne Konto starten (M1, 2026-08-03)** — `features/auth/domain/` (`shadowAccount`, `identityThunks`, `restoredIdentity`) + `features/sharing/FirstShareNameSheet`. Plan: `.claude/plans/2026-08-02-ohne-konto-starten.md`.
 
-- **Identität ist ein Summentyp** `none | guest | linked` (`authSlice`). `AuthUser`, `sessionRestored`, die ganze Sign-in-Familie und die Seiten `sign-in`/`sign-up`/`forgot-password` sind **gelöscht** — Anmelden kommt mit M3 als OTP-Flow neu. `selectCurrentUserId` liefert vor der ersten Identität die Sentinel-Id `local-user`, danach die Cognito-`sub`
+- **Identität ist ein Summentyp** `local | guest | linked` (`authSlice`) — alle drei tragen die `userId`, die das Gerät beim ersten Start prägt (`shadowAccount.ts`, Username der Schatten-Credentials); `selectCurrentUserId` hat eine Bedeutung. `AuthUser`, `sessionRestored`, die ganze Sign-in-Familie und die Seiten `sign-in`/`sign-up`/`forgot-password` sind **gelöscht** — Anmelden kommt mit M3 als OTP-Flow neu.
 - **Kein Login-Zwang:** `requireAuth`/`requireGuest` sind weg, jede Route ist ohne Konto erreichbar. Listen anlegen, einkaufen und Rezepte schreiben funktioniert sofort
-- **Schattenkonto beim ersten Teilen/Beitreten:** `ensureIdentity` legt einen normalen Cognito-User an (Username = UUID, Zufallspasswort, ohne E-Mail; Credentials im clientStorage), schreibt den Namen als `name`-Attribut und startet danach den Sync. Der Pool bestätigt jeden Sign-up per Pre-SignUp-Trigger — ohne E-Mail gibt es keinen Code
-- **Andocken:** In einem Zug und **vor** dem ersten Server-Kontakt werden umgeschrieben: die Outbox-Queue (`Outbox.rewriteAuthor`), die gefalteten Trees (`identityAttached` per `extraReducers` in lists/recipes/shopping) und die Pending-Queue des Reducers (`pendingAuthorRewritten`). Nur Autoren-**Felder** werden ersetzt, nie Werte — eine Liste namens „local-user" überlebt
+- **Schattenkonto beim ersten Teilen/Beitreten:** `ensureIdentity` legt einen normalen Cognito-User an (Username = die geräteeigene Nutzer-Id, Zufallspasswort, ohne E-Mail; Credentials im clientStorage), schreibt den Namen als `name`-Attribut und startet danach den Sync. Der Pool bestätigt jeden Sign-up per Pre-SignUp-Trigger — ohne E-Mail gibt es keinen Code
+- **Kein Andocken mehr (2026-09-05):** Weil die Id vor dem Konto existiert und dessen Username ist, tragen alle Events von Anfang an den Autor, den das JWT beweist. Der Server liest `username` statt `sub`.
 - **Binäre Sync-Regel an zwei Stellen:** `startSync()` startet die Engine nur mit Identität, und die Engine selbst lässt ohne `mayContactServer` keinen Zyklus laufen. Ein POST ohne Session käme als 401 zurück und `drainOutbox` würde das Event endgültig verwerfen
 - **Das lokale Log lebt trotzdem:** `syncEngine.openLocalLog()` läuft bei **jedem** Boot — ohne ihn wären die Events eines Gastes nur im RAM (die Storage-Handler persistieren nur den `confirmed`-Tree, und der bleibt ohne Server leer) und ein Reload würde alles löschen
 - **Profil ist zustandsabhängig:** E-Mail, Passwort ändern, Abmelden und Konto löschen erscheinen nur für ein verknüpftes Konto; ein Gast hat nichts davon, und „Abmelden" wäre für ihn ein getarnter Löschknopf. Der Namens-Block erscheint ab der ersten Identität

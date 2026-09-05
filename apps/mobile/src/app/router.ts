@@ -32,9 +32,15 @@ import {
   FRIEND_INTENT_KEY,
   JOIN_INTENT_KEY,
 } from '../features/lists/join/joinIntentClientStorageHandler'
-import { friendsLoaded, friendsRestored } from '../features/friends/domain/friendsSlice'
+import {
+  friendsLoaded,
+  friendsRestored,
+} from '../features/friends/domain/friendsSlice'
 import { FRIENDS_STORAGE_KEY } from '../features/friends/domain/friendsClientStorageHandler'
-import { createFriendInvite, fetchFriends } from '../features/friends/friendCommands'
+import {
+  createFriendInvite,
+  fetchFriends,
+} from '../features/friends/friendCommands'
 import { FriendsPage } from '../features/friends/FriendsPage'
 import { FriendInvitePage } from '../features/friends/FriendInvitePage'
 import { AcceptFriendPage } from '../features/friends/AcceptFriendPage'
@@ -73,18 +79,18 @@ import { RECIPES_KEY } from '../features/recipes/domain/recipesClientStorageHand
 import { RECIPE_PREFS_KEY } from '../features/preferences/domain/preferencesClientStorageHandler'
 import type { Recipe } from '../features/recipes/domain/recipesDomain'
 import {
-  deviceNamed,
+  deviceIdentified,
   guestIdentityCreated,
   linkedIdentityRestored,
   selectCurrentUserId,
-  selectHasIdentity,
+  selectHasAccount,
   type EstablishedIdentity,
 } from '../features/auth/domain/authSlice'
 import { restoredIdentity } from '../features/auth/domain/restoredIdentity'
 import { ensureDeviceName } from '../features/auth/domain/deviceName'
 import {
-  ensureShadowAccount,
-  loadShadowCredentials,
+  ensureShadowCredentials,
+  restoreShadowSession,
 } from '../features/auth/domain/shadowAccount'
 import { appLoaded, selectIsAppLoaded } from './appSlice'
 import { openLocalLog, startSync } from './sync/startSync'
@@ -152,7 +158,7 @@ async function identityOfSession(): Promise<EstablishedIdentity | null> {
     const cognitoUser = await getCurrentUser()
     const session = await fetchAuthSession()
     const claims = session.tokens?.idToken?.payload ?? {}
-    return restoredIdentity(cognitoUser.userId, {
+    return restoredIdentity(cognitoUser.username, {
       email: textClaim(claims.email),
       name: textClaim(claims.name),
       provider: providerOfSession(claims.identities),
@@ -165,12 +171,11 @@ async function identityOfSession(): Promise<EstablishedIdentity | null> {
 /**
  * Signs the stored shadow credentials back in. Reached when this device
  * has an account but no session — the token cache was cleared, or the
- * refresh token expired.
+ * refresh token expired. A device that never shared makes no network call.
  */
 async function identityOfStoredCredentials(): Promise<EstablishedIdentity | null> {
-  if ((await loadShadowCredentials()) === null) return null
   try {
-    await ensureShadowAccount()
+    if (!(await restoreShadowSession())) return null
     return await identityOfSession()
   } catch (error: unknown) {
     // Offline at boot: stay local, the outbox holds everything.
@@ -182,7 +187,7 @@ async function identityOfStoredCredentials(): Promise<EstablishedIdentity | null
 /**
  * Puts the identity of a returning device back into the store. Called once
  * per app start, before anything renders. A device that never shared has
- * no identity — that is a normal state here, not a failure.
+ * no account — that is a normal state here, not a failure.
  */
 async function restoreIdentity(): Promise<void> {
   const restored =
@@ -201,11 +206,11 @@ async function restoreIdentity(): Promise<void> {
 
 /**
  * The binary rule for the direct-fetch commands: a device without an
- * identity has no session, so every read would come back 401. The screens
+ * account has no session, so every read would come back 401. The screens
  * behind these loaders show the name sheet instead.
  */
 function canReachServer(): boolean {
-  return selectHasIdentity(store.getState())
+  return selectHasAccount(store.getState())
 }
 
 // --- Background refreshes ---
@@ -257,9 +262,16 @@ const rootRoute = createRootRoute({
     // keeps the pending skeleton from flashing on in-app navigations.
     if (selectIsAppLoaded(store.getState())) return
 
-    // 1. The device's own name — drawn on the very first start, kept ever
-    //    after. Before the identity, so a name Cognito already knows wins.
-    store.dispatch(deviceNamed({ name: await ensureDeviceName() }))
+    // 1. Who this device is — id and name, minted on the very first start,
+    //    kept ever after. The shadow credentials' username is the id. Before
+    //    the identity, so an account Cognito already knows still wins.
+    const { username } = await ensureShadowCredentials()
+    store.dispatch(
+      deviceIdentified({
+        userId: username,
+        name: await ensureDeviceName(),
+      }),
+    )
 
     // 2. Restore the identity. A live Amplify session wins; stored shadow
     //    credentials without one mean the token cache was cleared — sign in

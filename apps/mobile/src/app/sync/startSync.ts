@@ -5,7 +5,7 @@ import { Network } from '@capacitor/network'
 import { store, type RootState } from '../store'
 import { removeItem } from '../clientStorage'
 import { initialSyncCompleted } from '../appSlice'
-import { selectHasIdentity } from '../../features/auth/domain/authSlice'
+import { selectHasAccount } from '../../features/auth/domain/authSlice'
 import {
   listDropped,
   selectAllLists,
@@ -72,10 +72,10 @@ function droppedActionFor(aggregate: Aggregate) {
 export function startSync(): void {
   if (started) return
 
-  // The binary rule: no identity, no server
+  // The binary rule: no account, no server
   // contact. Nothing is on its way in either, so the boot skeleton must
   // stop waiting — otherwise it hides the "new list" card forever.
-  if (!selectHasIdentity(store.getState())) {
+  if (!selectHasAccount(store.getState())) {
     store.dispatch(initialSyncCompleted())
     return
   }

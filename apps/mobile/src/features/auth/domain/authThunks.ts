@@ -29,9 +29,16 @@ import {
 import { RECIPE_PREFS_KEY } from '../../preferences/domain/preferencesClientStorageHandler'
 import { recipesLoaded } from '../../recipes/domain/recipesSlice'
 import { RECIPES_KEY } from '../../recipes/domain/recipesClientStorageHandler'
-import { SHADOW_CREDENTIALS_KEY } from './shadowAccount'
+import {
+  ensureShadowCredentials,
+  forgetShadowCredentials,
+} from './shadowAccount'
 import { rememberDeviceName } from './deviceName'
-import { displayNameChanged, identityCleared, selectHasIdentity } from './authSlice'
+import {
+  displayNameChanged,
+  identityCleared,
+  selectHasAccount,
+} from './authSlice'
 
 // Mirrors router.ts's bootstrap keys — per-user storage purged on
 // sign-out so a shared device never leaks one user's data to the next.
@@ -53,9 +60,10 @@ export const performSignOut = () => async (dispatch: AppDispatch) => {
   try {
     await signOut()
   } finally {
-    // Per-user data purge: device id and theme are per-device and
-    // survive; everything else must not leak into the next user's
-    // session on this device.
+    // Per-user data purge: the shopzebra_device_id and the theme are
+    // per-device and survive (the identity blob below is rotated on
+    // purpose); everything else must not leak into the next user's session
+    // on this device.
     await removeItem(LISTS_KEY)
     await removeItem(PREFS_KEY)
     await removeItem(SHOPPING_STORAGE_KEY)
@@ -64,9 +72,11 @@ export const performSignOut = () => async (dispatch: AppDispatch) => {
     await removeItem(FRIENDS_STORAGE_KEY)
     await removeItem(RECIPES_KEY)
     await removeItem(RECIPE_PREFS_KEY)
-    // The shadow credentials are this identity too: left behind, the next
-    // share on this device would silently resurrect the old account.
-    await removeItem(SHADOW_CREDENTIALS_KEY)
+    // The shadow credentials ARE this identity — id and account in one blob.
+    // It leaves with the account; the device goes on under a fresh one, so
+    // the next share can never resurrect the old account.
+    await forgetShadowCredentials()
+    const { username } = await ensureShadowCredentials()
     dispatch(listsLoaded({ lists: [] }))
     dispatch(recipesLoaded({ recipes: [] }))
     dispatch(recipePreferencesLoaded({}))
@@ -77,7 +87,7 @@ export const performSignOut = () => async (dispatch: AppDispatch) => {
     dispatch(joinIntentCleared())
     dispatch(friendIntentCleared())
     dispatch(friendsLoaded({ friends: [] }))
-    dispatch(identityCleared())
+    dispatch(identityCleared({ userId: username }))
   }
 }
 
@@ -98,7 +108,7 @@ export const performChangeDisplayName =
     await rememberDeviceName(name)
     dispatch(displayNameChanged({ name }))
 
-    if (!selectHasIdentity(getState())) return
+    if (!selectHasAccount(getState())) return
     try {
       await updateUserAttributes({ userAttributes: { name } })
     } catch (error: unknown) {

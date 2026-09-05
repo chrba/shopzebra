@@ -73,7 +73,9 @@ Firebase-Wechsel):**
 
 - Beim ersten Server-Bedarf legt die App still einen normalen Cognito-User an
   (Username = UUID, Zufallspasswort, ohne E-Mail), Credentials im
-  Keychain/Keystore. JWT, Authorizer, `sub`, Backend: alles unverändert
+  Keychain/Keystore. JWT und Authorizer unverändert; das Backend liest den
+  Username-Claim — die Nutzer-Id ist die UUID, die das Gerät beim ersten Start
+  prägt und als Cognito-Username verwendet
 - **Verknüpfen = denselben User aufwerten**, nie migrieren: E-Mail als Alias
   nachrüsten (`updateUserAttributes` + Verifikation) bzw. Google/Apple per
   `AdminLinkProviderForUser` über einen kleinen Command-Endpunkt. Gleiche `sub`
@@ -187,8 +189,8 @@ Der Implementierungsplan liegt in
 **Gebaut wird zunächst nur M1** — M2 und M3 sind dort mit allen offenen Punkten
 und Review-Findings vermerkt und bekommen eigene Pläne, wenn sie drankommen:
 
-1. **M1 — Gast-Betrieb:** Start ohne Login, lokale Urheberschaft
-   (Sentinel-UserId, beim ersten Teilen auf die echte `sub` umgeschrieben),
+1. **M1 — Gast-Betrieb:** Start ohne Login, Urheberschaft von Anfang an unter
+   der geräteeigenen Id (seit 2026-09-05; bis dahin Sentinel + Rewrite),
    Schattenkonto beim ersten Teilen/Beitreten, binäre Sync-Regel
 2. **M2 — Sichern (Schreibseite, vertagt):** Google/Apple/E-Mail verknüpfen,
    `ListUsers`-Guard, Konflikt-Screen 5B ohne Anmelden-Zweig. Kein Sign-in
@@ -212,8 +214,9 @@ der Plan die Sync-Engine unangetastet lassen wollte und das nicht trägt:
   Server leer bleibt), hätte ein Gast bei jedem Reload alles verloren.
   Umgesetzt: `syncEngine.openLocalLog()` beim Boot, Server-Kontakt separat
   freigeschaltet (`mayContactServer`)
-- **Die Pending-Queue des Reducers muss beim Andocken mitwandern.** Sie
-  spiegelt die Outbox; wird nur die Outbox umgeschrieben, holt der nächste
-  Rebase die Sentinel-Autoren zurück. Umgesetzt als vierte Protokoll-Action
-  `pendingAuthorRewritten` neben `eventsConfirmed`/`pendingRestored`/
-  `pendingDiscarded`
+- **Docking ist Geschichte (2026-09-05).** Die Id wird beim ersten Start
+  geprägt und ist der Cognito-Username; der Server liest `username` statt
+  `sub`. Damit entfällt die Umschreibung an drei Orten (Outbox, Bäume,
+  Pending) samt `pendingAuthorRewritten` und `identityAttached`. Der Bug, den
+  der alte Absatz beschrieb, kann nicht mehr entstehen. Design:
+  `docs/superpowers/specs/2026-09-05-client-minted-identity-design.md`.

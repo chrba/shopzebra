@@ -1,17 +1,17 @@
 import { describe, expect, test } from 'vitest'
 import {
   authReducer,
+  deviceIdentified,
   guestIdentityCreated,
   identityLinked,
   displayNameChanged,
   identityCleared,
   selectIdentity,
-  selectHasIdentity,
+  selectHasAccount,
   selectIsGuest,
   selectDisplayName,
   selectCurrentUserId,
 } from '@/features/auth/domain/authSlice'
-import { LOCAL_USER_ID } from '@/features/auth/domain/localUser'
 
 const fold = (actions: readonly { type: string }[]) =>
   actions.reduce(
@@ -20,23 +20,26 @@ const fold = (actions: readonly { type: string }[]) =>
   )
 
 describe('identity', () => {
-  test('starts as none — a fresh install owes nobody an account', () => {
-    const auth = fold([])
-    expect(selectHasIdentity({ auth })).toBe(false)
+  test('starts local — the device has an id, nobody owes an account', () => {
+    const auth = fold([
+      deviceIdentified({ userId: 'dev-1', name: 'Naschzebra' }),
+    ])
+    expect(selectHasAccount({ auth })).toBe(false)
     expect(selectIsGuest({ auth })).toBe(false)
+    expect(selectCurrentUserId({ auth })).toBe('dev-1')
+    expect(selectDisplayName({ auth })).toBe('Naschzebra')
   })
 
-  // Events authored before any account exists still need an author.
-  test('without an identity the current user is the local sentinel', () => {
-    expect(selectCurrentUserId({ auth: fold([]) })).toBe(LOCAL_USER_ID)
-  })
-
-  test('becomes a guest when the shadow account is created', () => {
-    const auth = fold([guestIdentityCreated({ userId: 'u1', name: 'Chris' })])
-    expect(selectHasIdentity({ auth })).toBe(true)
+  // The account is created under the id the device already had.
+  test('becomes a guest with the same id when the shadow account exists', () => {
+    const auth = fold([
+      deviceIdentified({ userId: 'dev-1', name: 'Naschzebra' }),
+      guestIdentityCreated({ userId: 'dev-1', name: 'Chris' }),
+    ])
+    expect(selectHasAccount({ auth })).toBe(true)
     expect(selectIsGuest({ auth })).toBe(true)
     expect(selectDisplayName({ auth })).toBe('Chris')
-    expect(selectCurrentUserId({ auth })).toBe('u1')
+    expect(selectCurrentUserId({ auth })).toBe('dev-1')
   })
 
   // Linking must not mint a new identity — the userId is the whole point.
@@ -52,19 +55,23 @@ describe('identity', () => {
     })
   })
 
-  test('renaming works in both states', () => {
+  test('renaming works in every state', () => {
     const auth = fold([
-      guestIdentityCreated({ userId: 'u1', name: 'Chris' }),
+      deviceIdentified({ userId: 'dev-1', name: 'Naschzebra' }),
       displayNameChanged({ name: 'Christian' }),
     ])
     expect(selectDisplayName({ auth })).toBe('Christian')
   })
 
-  test('clearing returns to none', () => {
+  // Signing out ends the account; the device goes on under a fresh id, or
+  // the next share would collide with the username that just left.
+  test('clearing returns to local under a new id, keeping the name', () => {
     const auth = fold([
       guestIdentityCreated({ userId: 'u1', name: 'Chris' }),
-      identityCleared(),
+      identityCleared({ userId: 'dev-2' }),
     ])
-    expect(selectHasIdentity({ auth })).toBe(false)
+    expect(selectHasAccount({ auth })).toBe(false)
+    expect(selectCurrentUserId({ auth })).toBe('dev-2')
+    expect(selectDisplayName({ auth })).toBe('Chris')
   })
 })

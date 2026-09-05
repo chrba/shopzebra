@@ -9,7 +9,6 @@ import { getItem, setItem } from '../clientStorage'
 import { Outbox, type OutboxEntry, type SyncStorage } from './outbox'
 import { cursorsGuardedByFoldedState } from './receive/guardedCursors'
 import { cursorKeyOf, type Aggregate } from './aggregate'
-import { withRewrittenAuthor } from './authorRewrite'
 import { drainOutbox } from './send/drainOutbox'
 import { catchUp } from './receive/catchUp'
 import { httpTransport, type Transport } from './transport'
@@ -121,21 +120,6 @@ export class SyncEngine {
     if (!this.outbox) await this.openLocalLog(dispatch)
     this.mayContactServer = true
     return this.requestSync()
-  }
-
-  /**
-   * Moves the whole queued log to a new author. Called by ensureIdentity
-   * the moment the shadow account exists — before server contact is
-   * allowed, so no cycle can ever ship an event under the old author.
-   */
-  async rewriteQueuedAuthor(
-    previousUserId: string,
-    userId: string,
-  ): Promise<void> {
-    this.preStartBuffer = this.preStartBuffer.map((entry) =>
-      withRewrittenAuthor(entry, previousUserId, userId),
-    )
-    await this.outbox?.rewriteAuthor(previousUserId, userId)
   }
 
   /**

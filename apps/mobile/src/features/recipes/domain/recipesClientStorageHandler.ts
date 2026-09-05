@@ -1,6 +1,5 @@
 import { setItem } from '../../../app/clientStorage'
 import { isEventsConfirmed } from '../../../app/sync/withSync'
-import { identityAttached } from '../../auth/domain/authSlice'
 import { recipeDropped, recipeOwnerNamesLoaded } from './recipesSlice'
 import type { Recipe } from './recipesDomain'
 
@@ -20,13 +19,11 @@ export function recipesClientStorageHandler(
   action: { readonly type: string; readonly payload?: unknown },
   getState: () => unknown,
 ): void {
-  // Docking rewrites the confirmed tree in place; without this the
-  // sentinel would come back on the next start. Owner names come from
-  // GET /recipes rather than from an event, and are just as needed on
-  // disk — otherwise a restart shows "Mitglied" until the network answers.
+  // Owner names come from GET /recipes rather than from an event, and are
+  // just as needed on disk — otherwise a restart shows "Mitglied" until
+  // the network answers.
   if (
     !isEventsConfirmed(action) &&
-    !identityAttached.match(action) &&
     !recipeDropped.match(action) &&
     !recipeOwnerNamesLoaded.match(action)
   ) {
@@ -35,5 +32,8 @@ export function recipesClientStorageHandler(
   const state = getState() as {
     readonly sync: { readonly confirmed: { readonly recipes: RecipesState } }
   }
-  void setItem(RECIPES_KEY, JSON.stringify(state.sync.confirmed.recipes.recipes))
+  void setItem(
+    RECIPES_KEY,
+    JSON.stringify(state.sync.confirmed.recipes.recipes),
+  )
 }

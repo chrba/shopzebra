@@ -14,8 +14,8 @@ const DEFAULT_VALUES = {
 /**
  * Page for creating a new shopping list. Whoever uses this device becomes
  * the owner (owner model — members join later via invites, never at
- * creation time). No account needed: before one exists the local sentinel
- * authors the event and docking rewrites it (accountless-first-planned.md).
+ * creation time). No account needed: the device's own id authors it from
+ * the first start.
  */
 export function CreateListPage() {
   const dispatch = useAppDispatch()

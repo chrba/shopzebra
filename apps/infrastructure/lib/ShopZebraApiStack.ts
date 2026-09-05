@@ -160,16 +160,16 @@ export class ShopZebraApiStack extends cdk.Stack {
     membershipTable.grantReadData(getFriendsFunction)
     eventsTable.grantReadWriteData(addMemberFunction)
 
-    // The joiner's and the owner's display names come from the user pool —
-    // the access token carries only `sub`, so names have to be looked up.
-    const listUsersPolicy = new iam.PolicyStatement({
-      actions: ['cognito-idp:ListUsers'],
+    // Display names live in the user pool, keyed by username — which is the
+    // user id the client minted, so one AdminGetUser per name.
+    const readUserPolicy = new iam.PolicyStatement({
+      actions: ['cognito-idp:AdminGetUser'],
       resources: [identity.userPool.userPoolArn],
     })
-    joinListFunction.addToRolePolicy(listUsersPolicy)
-    getListsFunction.addToRolePolicy(listUsersPolicy)
-    addMemberFunction.addToRolePolicy(listUsersPolicy)
-    getFriendsFunction.addToRolePolicy(listUsersPolicy)
+    joinListFunction.addToRolePolicy(readUserPolicy)
+    getListsFunction.addToRolePolicy(readUserPolicy)
+    addMemberFunction.addToRolePolicy(readUserPolicy)
+    getFriendsFunction.addToRolePolicy(readUserPolicy)
 
     const httpApi = new apigwv2.HttpApi(this, 'HttpApi', {
       apiName: 'shopzebra-api',

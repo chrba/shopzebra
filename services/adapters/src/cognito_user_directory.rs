@@ -4,11 +4,9 @@ use aws_sdk_cognitoidentityprovider::Client;
 use domain::event::UserId;
 use domain::ports::{StoreError, UserDirectory};
 
-/// Resolves display names from the Cognito user pool.
-///
-/// The lookup goes through `list_users` with a `sub` filter rather than
-/// `admin_get_user`, because the pool's username is the sign-up e-mail,
-/// not the `sub` we get from the verified JWT.
+/// Resolves display names from the Cognito user pool. The user id IS the
+/// pool username, so one `admin_get_user` answers; a user that is gone
+/// (deleted account) resolves to None like a user without a name.
 pub struct CognitoUserDirectory {
     client: Client,
     user_pool_id: String,
@@ -26,21 +24,27 @@ impl CognitoUserDirectory {
 #[async_trait]
 impl UserDirectory for CognitoUserDirectory {
     async fn display_name(&self, user_id: &UserId) -> Result<Option<String>, StoreError> {
-        let response = self
+        let response = match self
             .client
-            .list_users()
+            .admin_get_user()
             .user_pool_id(&self.user_pool_id)
-            .filter(format!("sub = \"{}\"", user_id.0))
-            .limit(1)
+            .username(&user_id.0)
             .send()
             .await
-            .map_err(|error| StoreError(error.to_string()))?;
+        {
+            Ok(response) => response,
+            Err(error)
+                if error
+                    .as_service_error()
+                    .is_some_and(|e| e.is_user_not_found_exception()) =>
+            {
+                return Ok(None)
+            }
+            Err(error) => return Err(StoreError(error.to_string())),
+        };
 
         let name = response
-            .users()
-            .first()
-            .map(|found| found.attributes())
-            .unwrap_or_default()
+            .user_attributes()
             .iter()
             .find(|attribute| attribute.name() == "name")
             .and_then(|attribute| attribute.value())

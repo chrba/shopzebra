@@ -3,40 +3,29 @@
 
 import type { AppDispatch, RootState } from '../../../app/store'
 import { startSync } from '../../../app/sync/startSync'
-import { syncEngine } from '../../../app/sync/syncEngine'
-import { pendingAuthorRewritten } from '../../../app/sync/withSync'
 import { ensureShadowAccount } from './shadowAccount'
-import { LOCAL_USER_ID } from './localUser'
 import {
   guestIdentityCreated,
-  identityAttached,
+  selectCurrentUserId,
   selectDisplayName,
-  selectHasIdentity,
+  selectHasAccount,
 } from './authSlice'
 
 /**
  * Turns a purely local device into one the server knows: creates the shadow
- * account, moves everything written so far onto it and lets the sync engine
- * off the leash. Called at the first share or join — never with a question
- * to the user, because the device has had a name since its first start.
- *
- * The order is the point. Everything is rewritten to the new author while
- * server contact is still forbidden — the queued log first, then the folded
- * state, then the reducer's mirror of the queue. Only after that may a
- * cycle run, and it finds a backlog the server will accept.
+ * account under the id the device has had since its first start, then lets
+ * the sync engine off the leash. Called at the first share or join — never
+ * with a question to the user, because the device has had a name since its
+ * first start. Nothing is rewritten: every event already names this id.
  */
 export const ensureIdentity =
   () =>
   async (dispatch: AppDispatch, getState: () => RootState): Promise<void> => {
-    if (selectHasIdentity(getState())) return
+    if (selectHasAccount(getState())) return
 
-    // The name the account is born with — the one the device already uses.
+    const userId = selectCurrentUserId(getState())
     const name = selectDisplayName(getState())
-    const userId = await ensureShadowAccount(name)
-
-    await syncEngine.rewriteQueuedAuthor(LOCAL_USER_ID, userId)
-    dispatch(identityAttached({ previousUserId: LOCAL_USER_ID, userId }))
-    dispatch(pendingAuthorRewritten(LOCAL_USER_ID, userId))
+    await ensureShadowAccount(name)
     dispatch(guestIdentityCreated({ userId, name }))
 
     // Only now is there something to sync with — the queued events flush.

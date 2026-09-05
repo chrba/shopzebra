@@ -5,7 +5,6 @@
 // fold the same log in the same position order.
 
 import type { ActionMeta, PayloadAction } from '../createSlice'
-import { withRewrittenAuthorFields } from './authorRewrite'
 
 /** A root reducer as withSync expects it — total and replay-pure. */
 export type RootReducer<S> = (
@@ -108,36 +107,6 @@ export function isPendingDiscarded(action: {
   return action.type === PENDING_DISCARDED
 }
 
-const PENDING_AUTHOR_REWRITTEN = 'sync/pendingAuthorRewritten'
-
-type PendingAuthorRewrittenAction = {
-  readonly type: typeof PENDING_AUTHOR_REWRITTEN
-  readonly payload: {
-    readonly previousUserId: string
-    readonly userId: string
-  }
-}
-
-/**
- * Creates the action that moves the pending queue to a new author, in step
- * with the outbox it mirrors. Dispatched once by ensureIdentity, after the
- * queued sends were rewritten: without it the next rebase would replay the
- * old actions and resurrect the local sentinel in the visible tree.
- */
-export function pendingAuthorRewritten(
-  previousUserId: string,
-  userId: string,
-): PendingAuthorRewrittenAction {
-  return { type: PENDING_AUTHOR_REWRITTEN, payload: { previousUserId, userId } }
-}
-
-/** True for pendingAuthorRewritten actions. */
-export function isPendingAuthorRewritten(action: {
-  readonly type: string
-}): action is PendingAuthorRewrittenAction {
-  return action.type === PENDING_AUTHOR_REWRITTEN
-}
-
 function byPosition(a: ConfirmedEvent, b: ConfirmedEvent): number {
   return a.meta.position < b.meta.position ? -1 : 1
 }
@@ -186,19 +155,6 @@ export function withSync<S>(
         (own) => own.meta?.eventId !== action.payload.eventId,
       )
       if (pending.length === state.pending.length) return state
-      return {
-        ...state,
-        pending,
-        visible: pending.reduce(rootReducer, state.confirmed),
-      }
-    }
-
-    if (isPendingAuthorRewritten(action)) {
-      const { previousUserId, userId } = action.payload
-      const pending = state.pending.map((own) => ({
-        ...own,
-        payload: withRewrittenAuthorFields(own.payload, previousUserId, userId),
-      }))
       return {
         ...state,
         pending,
