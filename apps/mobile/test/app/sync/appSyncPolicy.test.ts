@@ -98,14 +98,18 @@ describe('appSyncPolicy', () => {
 
   it('renames createdBy back to ownerId when folding recipeCreated from the server', () => {
     expect(
-      appSyncPolicy.domainPayloadOf('recipes/recipeCreated', {
-        recipeId: 'bolo',
-        name: 'Bolognese',
-        createdBy: 'u2',
-        portions: 4,
-        ingredients: [],
-        steps: [],
-      }),
+      appSyncPolicy.domainActionOf({
+        type: 'recipes/recipeCreated',
+        payload: {
+          recipeId: 'bolo',
+          name: 'Bolognese',
+          createdBy: 'u2',
+          portions: 4,
+          ingredients: [],
+          steps: [],
+        },
+        meta,
+      }).payload,
     ).toEqual({
       recipeId: 'bolo',
       name: 'Bolognese',

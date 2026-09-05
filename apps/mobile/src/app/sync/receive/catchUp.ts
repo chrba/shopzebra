@@ -18,10 +18,9 @@ export type CatchUpDeps = {
     aggregate: Aggregate,
     since: string | null,
   ) => Promise<readonly WireEvent[]>
-  readonly domainPayloadOf: (
-    type: string,
-    payload: Readonly<Record<string, unknown>>,
-  ) => Record<string, unknown>
+  readonly domainActionOf: (
+    wire: PayloadAction<unknown>,
+  ) => PayloadAction<unknown>
 }
 
 function byPosition(a: WireEvent, b: WireEvent): number {
@@ -48,7 +47,7 @@ function foldIntoConfirmedTree(
 ): void {
   deps.dispatch(
     eventsConfirmed(
-      incoming.map((event) => toConfirmedEvent(event, deps.domainPayloadOf)),
+      incoming.map((event) => toConfirmedEvent(event, deps.domainActionOf)),
     ),
   )
 }

@@ -17,7 +17,7 @@ describe('toConfirmedEvent', () => {
       payload: { listId: 'l1', itemId: 'x' },
       meta: wireMeta,
     }
-    expect(toConfirmedEvent(event, appSyncPolicy.domainPayloadOf)).toEqual({
+    expect(toConfirmedEvent(event, appSyncPolicy.domainActionOf)).toEqual({
       type: 'shopping/itemChecked',
       payload: { listId: 'l1', itemId: 'x' },
       meta: { ...wireMeta, remote: true },
@@ -31,7 +31,7 @@ describe('toConfirmedEvent', () => {
       meta: wireMeta,
     }
     expect(
-      toConfirmedEvent(event, appSyncPolicy.domainPayloadOf).payload,
+      toConfirmedEvent(event, appSyncPolicy.domainActionOf).payload,
     ).toEqual({
       listId: 'l1',
       name: 'REWE',

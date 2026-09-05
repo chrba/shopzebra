@@ -166,23 +166,8 @@ describe('toOutboxEntry', () => {
   })
 })
 
-describe('wire translation', () => {
-  it('übersetzt createdBy zurück zu ownerId nur für eröffnende Events', () => {
-    expect(
-      policy.domainPayloadOf('policyLists/opened', {
-        listId: 'l1',
-        createdBy: 'u1',
-      }),
-    ).toEqual({ listId: 'l1', ownerId: 'u1' })
-    expect(
-      policy.domainPayloadOf('policyLists/renamed', {
-        listId: 'l1',
-        createdBy: 'u1',
-      }),
-    ).toEqual({ listId: 'l1', createdBy: 'u1' })
-  })
-
-  it('übersetzt eine gequeuete Wire-Action zurück in Domain-Form', () => {
+describe('domainActionOf', () => {
+  it('übersetzt createdBy zurück zu ownerId für eröffnende Events', () => {
     const wire = {
       type: 'policyLists/opened',
       payload: { listId: 'l1', createdBy: 'u1' },
@@ -193,6 +178,18 @@ describe('wire translation', () => {
       payload: { listId: 'l1', ownerId: 'u1' },
       meta,
     })
+  })
+
+  it('lässt ein createdBy auf einem nicht eröffnenden Event stehen', () => {
+    const wire = {
+      type: 'policyLists/renamed',
+      payload: { listId: 'l1', createdBy: 'u1' },
+      meta,
+    }
+    expect(policy.domainActionOf(wire)).toBe(wire)
+  })
+
+  it('gibt eine Action ohne etwas zu übersetzen unverändert zurück', () => {
     const plain = { ...lists.actions.renamed({ listId: 'l1' }), meta }
     expect(policy.domainActionOf(plain)).toBe(plain)
   })

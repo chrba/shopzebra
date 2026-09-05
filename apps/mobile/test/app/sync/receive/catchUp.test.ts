@@ -43,7 +43,7 @@ describe('catchUp', () => {
       cursors: outbox,
       dispatch: (action) => dispatched.push(action),
       fetchAggregates: () => Promise.resolve([list1]),
-      domainPayloadOf: (_type, payload) => ({ ...payload }),
+      domainActionOf: (wire) => wire,
       fetchEventsSince: () =>
         Promise.resolve([
           wireEvent('f2', '00000000000000000002'),
@@ -64,7 +64,7 @@ describe('catchUp', () => {
       cursors: outbox,
       dispatch: (action) => dispatched.push(action),
       fetchAggregates: () => Promise.resolve([list1]),
-      domainPayloadOf: (_type, payload) => ({ ...payload }),
+      domainActionOf: (wire) => wire,
       fetchEventsSince: () =>
         Promise.resolve([
           {
@@ -96,7 +96,7 @@ describe('catchUp', () => {
       dispatch: () => undefined,
       fetchAggregates: () =>
         Promise.resolve([{ kind: 'list', id: 'broken' } as const, list1]),
-      domainPayloadOf: (_type, payload) => ({ ...payload }),
+      domainActionOf: (wire) => wire,
       fetchEventsSince: (aggregate, since) => {
         if (aggregate.id === 'broken') return Promise.reject(new Error('boom'))
         asked.push(since)
@@ -114,7 +114,7 @@ describe('catchUp', () => {
       cursors: outbox,
       dispatch: () => undefined,
       fetchAggregates: () => Promise.resolve([list1, recipe]),
-      domainPayloadOf: (_type, payload) => ({ ...payload }),
+      domainActionOf: (wire) => wire,
       fetchEventsSince: (aggregate) => {
         pulled.push(aggregate)
         return Promise.resolve([])

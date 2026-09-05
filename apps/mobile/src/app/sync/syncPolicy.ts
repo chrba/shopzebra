@@ -1,8 +1,9 @@
-// The one place that knows what an action means to sync: whether it leaves
-// the device (its role) and where it goes (the aggregate it is on or opens).
-// Composed once from the declarations of every synced slice; withSync, the
-// engine and the receive path only consume it
-// (design: docs/superpowers/specs/2026-09-04-sync-declaration-design.md).
+// The one place that knows what an action means to sync — whether it leaves
+// the device (its role) and where it goes (the log it is `on` or `opens`) —
+// plus the reverse for anything coming back. Composed once from the
+// declarations of every synced slice; withSync, the engine and the receive
+// path only consume it. Nothing here inspects an action's name or payload
+// shape: every answer comes from the declaration at its reducer.
 
 import type {
   ActionDeclaration,
@@ -20,16 +21,34 @@ import type { OutboxEntry } from './outbox'
 import { createdByToOwnerId, ownerIdToCreatedBy } from './wire'
 
 export type SyncPolicy = {
-  /** True for own domain events — they wait in pending. Called by withSync on every dispatch. */
+  /**
+   * Does this action leave the device? Called by withSync on every dispatch:
+   * true → optimistic in `visible`, waiting in `pending`; false → folded into
+   * both trees. Only `role: 'event'` travels; own action, never a server echo.
+   */
   readonly reachesServer: (action: PayloadAction<unknown>) => boolean
-  /** The queued send for an action, or null when it stays on the device. Called by SyncEngine.offer. */
+
+  /**
+   * Where does it go? Called by SyncEngine.offer for every dispatch.
+   *
+   *   itemChecked({ listId: 'abc', … })     → { path: '/lists/abc/events', wire: action }
+   *   listCreated({ …, ownerId: 'u1' })     → { path: '/lists', wire: … createdBy: 'u1' }
+   *   listDropped({ listId: 'abc' })        → null (stays here)
+   */
   readonly toOutboxEntry: (action: PayloadAction<unknown>) => OutboxEntry | null
-  /** Wire → domain for one fetched payload (createdBy → ownerId on opening events). Called by catch-up. */
-  readonly domainPayloadOf: (
-    type: string,
-    payload: Readonly<Record<string, unknown>>,
-  ) => Record<string, unknown>
-  /** Wire → domain for a whole queued action. Called once at engine start for pendingRestored. */
+
+  /**
+   * Wire → domain: the wire says `createdBy`, the domain says `ownerId`, and
+   * only opening events carry the field. Called for every event the catch-up
+   * fetched from the server, and at engine start for every entry still in
+   * the outbox (it stores what was sent, so in wire form) — a list created
+   * offline lives only there until the server confirms it, and would come
+   * back without an owner. Returns the same reference when nothing changes.
+   *
+   *   { type: 'lists/listCreated', payload: { …, createdBy: 'u1' } }
+   *     → { type: 'lists/listCreated', payload: { …, ownerId: 'u1' } }
+   *   { type: 'shopping/itemChecked', … }  → unchanged
+   */
   readonly domainActionOf: (
     wire: PayloadAction<unknown>,
   ) => PayloadAction<unknown>
@@ -115,16 +134,6 @@ export function composeSyncPolicy(
     return declaration !== undefined && REACHES_SERVER[declaration.role]
   }
 
-  const domainPayloadOf = (
-    type: string,
-    payload: Readonly<Record<string, unknown>>,
-  ): Record<string, unknown> => {
-    const declaration = declarations.get(type)
-    return declaration && opensAggregate(declaration)
-      ? createdByToOwnerId(payload)
-      : { ...payload }
-  }
-
   return {
     reachesServer,
     toOutboxEntry: (action) => {
@@ -133,7 +142,6 @@ export function composeSyncPolicy(
       if (!declaration || !REACHES_SERVER[declaration.role]) return null
       return routeOf(declaration, action)
     },
-    domainPayloadOf,
     domainActionOf: (wire) => {
       const declaration = declarations.get(wire.type)
       if (

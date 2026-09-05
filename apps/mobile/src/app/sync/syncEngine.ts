@@ -28,7 +28,7 @@ export class SyncEngine {
   private outbox: Outbox | null = null
   private dispatch: Dispatch | null = null
 
-  // The binary sync rule (accountless-first-planned.md): until the device
+  // The binary sync rule: until the device
   // has an identity there is no account to send under. A cycle would POST
   // without a session, collect a 401 and drop the event as a 4xx — for
   // good. The log stays local instead, and waits.
@@ -73,7 +73,7 @@ export class SyncEngine {
   /**
    * Opens the local event log. Called at every app start, with or without
    * an identity: before the first account exists the outbox IS the local
-   * log (accountless-first-planned.md), so it has to load and persist even
+   * log, so it has to load and persist even
    * though nothing may be sent yet. Contacts no server.
    *
    * `dispatch` arrives here, not in the constructor — the store is built
@@ -204,7 +204,7 @@ export class SyncEngine {
       dispatch,
       fetchAggregates: this.transport.fetchAggregates,
       fetchEventsSince: this.transport.fetchEventsSince,
-      domainPayloadOf: this.policy.domainPayloadOf,
+      domainActionOf: this.policy.domainActionOf,
     })
     this.dropWhatIsNoLongerOurs(outbox, held, visible)
   }
