@@ -26,6 +26,14 @@ State in ShopZebra zerfällt in zwei unabhängige Konzepte. Sie zu trennen ist D
 
 Jedes Aggregate ist eine Konsistenzgrenze. Events gehören zu genau einem Aggregate. Aggregates referenzieren sich gegenseitig **nur per ID** — nie durch eingebettete Objekte.
 
+**Ein Aggregate ist ein geteiltes Ding mit eigenem Event-Log.** An dieser Grenze hängt alles, was das System über Zusammenarbeit weiß: der Log und seine server-vergebene Ordnung ([sync-engine.md](./sync-engine.md) §6), der Cursor pro Gerät und Log, Owner, Mitglieder und Invite-Token ([sharing-model.md](./sharing-model.md)), die Membership-Projektion, die einen Append autorisiert. Das erste Event *eröffnet* den Log (`listCreated`, `recipeCreated`); der Server bootstrappt dabei die Ownership.
+
+### Aggregate im Client: eine Identität, kein Objekt
+
+Der Client-State ist nach Slices geschnitten, nicht nach Aggregates — der Listen-Log speist `listsSlice` **und** `shoppingSlice`. Deshalb ist ein Aggregate im Client nur eine Identität `{ kind, id }`, dieselben Wörter wie auf dem Server (`Aggregate { kind, id }`, [backend-structure.md](./backend-structure.md)). Sie reicht, um Events zu routen, Cursor zu führen und Mitglieder zu verwalten; die Fachlogik liegt in den Reducern.
+
+Welche Aggregat-Arten es gibt und wie sich eine Art im Payload (`listId`) und auf dem Wire (`/lists`) nennt, deklariert **genau eine Stelle**: `apps/mobile/src/app/sync/aggregate.ts` (`AGGREGATE_KINDS`). `AggregateKind`, der Typ des Id-Felds (den `createSlice` für `on`/`opens` erzwingt), die Routen und der Catch-up-Fan-out lesen diese Tabelle. Eine neue Art (der Wochenplan) ist ein Eintrag dort plus die Slices, die Events `on` ihr deklarieren — sonst nichts. Arten stehen erst dann in der Tabelle, wenn sie Ende-zu-Ende existieren: Jeder Eintrag wird gesynct.
+
 ### Kein Family-Aggregate (entschieden 2026-07-25)
 
 **Es gibt kein Familien-Konzept.** Die Einheit von Zugriff und Kollaboration ist die **Liste**: Sie hat einen **Owner** (ihren Ersteller); nur er erzeugt Invites und entfernt Mitglieder, jedes Mitglied kann sich selbst entfernen. Mitglieder-Anzeigedaten (Name) kommen aus dem server-geschriebenen `listMemberAdded`-Event. Nachrichten und Reaktionen leben auf dem ShoppingList-Aggregate. Offen: Ernährungspräferenzen und geteilte Wochenpläne ([status.md](./status.md) §7).

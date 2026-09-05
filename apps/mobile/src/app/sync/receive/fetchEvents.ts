@@ -2,10 +2,10 @@
 
 import { authFetch, type Fetcher } from '../../authFetch'
 import {
+  ALL_KINDS,
   collectionKeyOf,
   collectionPathFor,
   eventsPathFor,
-  SYNCED_KINDS,
   type Aggregate,
   type AggregateKind,
 } from '../aggregate'
@@ -52,7 +52,7 @@ export async function fetchAggregates(
   fetcher: Fetcher = authFetch,
 ): Promise<readonly Aggregate[]> {
   const perKind = await Promise.all(
-    SYNCED_KINDS.map(async (kind) => {
+    ALL_KINDS.map(async (kind) => {
       try {
         return await fetchAggregatesOfKind(kind, fetcher)
       } catch (error: unknown) {

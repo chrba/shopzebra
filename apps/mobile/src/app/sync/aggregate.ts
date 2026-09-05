@@ -1,8 +1,29 @@
-// Everything the engine knows about aggregates lives in this file.
-// A new aggregate kind (plans) extends these tables and AggregateIdField in createSlice.ts.
+// An aggregate is a shared thing with its own event log — the boundary that
+// order, cursor, membership and sharing all hang on.
+// The client knows it only as an identity `{ kind, id }`, because state is
+// cut by slice, not by aggregate (the list log feeds lists AND shopping).
+// The kinds are declared once, below; everything else in this file reads
+// that table. A new kind = one entry here + the slices declaring events on it.
+
+/**
+ * Every aggregate kind, with its payload id field and its wire collection.
+ * Every entry is synced — a kind belongs here only once its server
+ * endpoint exists.
+ */
+export const AGGREGATE_KINDS = {
+  list: { idField: 'listId', collection: 'lists' },
+  recipe: { idField: 'recipeId', collection: 'recipes' },
+} as const satisfies Record<
+  string,
+  { readonly idField: string; readonly collection: string }
+>
 
 /** The aggregate kinds there are — the same words the server uses. */
-export type AggregateKind = 'list' | 'recipe' | 'plan'
+export type AggregateKind = keyof typeof AGGREGATE_KINDS
+
+/** The payload field that names an aggregate of kind K (`listId` for `list`). */
+export type AggregateIdField<K extends AggregateKind> =
+  (typeof AGGREGATE_KINDS)[K]['idField']
 
 /** Identity of one aggregate: which kind, and which one of that kind. */
 export type Aggregate = {
@@ -10,39 +31,17 @@ export type Aggregate = {
   readonly id: string
 }
 
-/**
- * How each kind names itself in an event payload. Every event of a list
- * aggregate carries a `listId`, whichever slice dispatched it; recipes
- * carry a `recipeId` (services/events.md).
- */
-const ID_FIELD_OF: Readonly<Record<AggregateKind, string>> = {
-  list: 'listId',
-  recipe: 'recipeId',
-  plan: 'planId',
+function isAggregateKind(value: unknown): value is AggregateKind {
+  return typeof value === 'string' && value in AGGREGATE_KINDS
 }
+
+/** Every kind, in declaration order. Called by the catch-up fan-out (receive/fetchEvents). */
+export const ALL_KINDS: readonly AggregateKind[] =
+  Object.keys(AGGREGATE_KINDS).filter(isAggregateKind)
 
 /** The payload field that names an aggregate of this kind. Called by the sync policy to route an event. */
 export function idFieldOf(kind: AggregateKind): string {
-  return ID_FIELD_OF[kind]
-}
-
-/** How each kind names itself in a route — and in its collection response. */
-const COLLECTION_OF: Readonly<Record<AggregateKind, string>> = {
-  list: 'lists',
-  recipe: 'recipes',
-  plan: 'plans',
-}
-
-/**
- * The kinds the catch-up fans out over. Plans have no endpoint yet — they
- * join this list the day they get one, and nothing else has to change.
- */
-export const SYNCED_KINDS: readonly AggregateKind[] = ['list', 'recipe']
-
-const ALL_KINDS: readonly AggregateKind[] = ['list', 'recipe', 'plan']
-
-function isAggregateKind(value: unknown): value is AggregateKind {
-  return ALL_KINDS.some((kind) => kind === value)
+  return AGGREGATE_KINDS[kind].idField
 }
 
 /**
@@ -60,19 +59,19 @@ export function parseAggregate(value: unknown): Aggregate | null {
   return { kind, id }
 }
 
-/** Where the ids of one kind are listed. Called at the start of a catch-up. */
+/** Where the ids of one kind are listed. Called at the start of a catch-up and by the sharing commands. */
 export function collectionPathFor(kind: AggregateKind): string {
-  return `/${COLLECTION_OF[kind]}`
+  return `/${AGGREGATE_KINDS[kind].collection}`
 }
 
-/** The field a collection response carries its ids under. */
+/** The field a collection response carries its ids under. Called by receive/fetchEvents. */
 export function collectionKeyOf(kind: AggregateKind): string {
-  return COLLECTION_OF[kind]
+  return AGGREGATE_KINDS[kind].collection
 }
 
-/** Event-log endpoint of an aggregate. Called at enqueue time and by catch-up. */
+/** Event-log endpoint of an aggregate. Called by the sync policy at enqueue time and by catch-up. */
 export function eventsPathFor(aggregate: Aggregate): string {
-  return `/${COLLECTION_OF[aggregate.kind]}/${aggregate.id}/events`
+  return `/${AGGREGATE_KINDS[aggregate.kind].collection}/${aggregate.id}/events`
 }
 
 /**

@@ -1,23 +1,38 @@
 // Custom createSlice — same API as RTK, but without Immer.
 // Reducer functions MUST return new state (spread instead of mutation).
 
-import type { AggregateKind } from './sync/aggregate'
+import type { AggregateIdField, AggregateKind } from './sync/aggregate'
 
 /**
- * How a synced slice classifies one of its actions
- * (design: docs/superpowers/specs/2026-09-04-sync-declaration-design.md).
+ * How a synced slice classifies one of its actions.
  *
- * - event: a domain fact. `on` names the aggregate whose log it is
- *   appended to; `opens` names the kind of aggregate it brings into being —
- *   no log exists yet, so it goes to the collection endpoint, where the
- *   server bootstraps ownership. Both travel to the server.
+ * - event: a domain fact, appended to an aggregate's log. Two cases, and
+ *   there can be no third — the log exists, or this event opens it:
+ *     `on: 'list'`     → POST /lists/abc/events  (the server checks membership)
+ *     `opens: 'list'`  → POST /lists             (no membership can exist yet:
+ *                        the server claims ownership, then appends the event)
  * - localEvent: a domain fact whose reach is deliberately this device only
  * - observation: a current value a query reported — no user action, no log entry
  * - hydration: restoring data this device already knew, from local storage
+ *
+ * The aggregate has to be named because the action does not reveal it: code
+ * is cut by slice, sync by consistency boundary, and they differ on purpose.
+ * `shopping/itemChecked` is declared `on: 'list'` — items live on the list's
+ * log, so name, items and messages of one list share one order.
+ * Naming it also lets the compiler demand `listId` in the payload, so an
+ * action that may be sent but cannot be routed is not expressible.
  */
 export type ActionDeclaration =
-  | { readonly role: 'event'; readonly on: AggregateKind; readonly opens?: never }
-  | { readonly role: 'event'; readonly opens: AggregateKind; readonly on?: never }
+  | {
+      readonly role: 'event'
+      readonly on: AggregateKind
+      readonly opens?: never
+    }
+  | {
+      readonly role: 'event'
+      readonly opens: AggregateKind
+      readonly on?: never
+    }
   | { readonly role: 'localEvent' }
   | { readonly role: 'observation' }
   | { readonly role: 'hydration' }
@@ -141,13 +156,6 @@ type InferPayload<R> = R extends {
 // compiler checks the field is there, so no event can ever be admitted for
 // sending and then turn out unroutable.
 
-/** Mirrors ID_FIELD_OF in sync/aggregate.ts — the two must agree. */
-type AggregateIdField<K extends AggregateKind> = K extends 'list'
-  ? 'listId'
-  : K extends 'recipe'
-    ? 'recipeId'
-    : 'planId'
-
 type AggregateOf<D> = D extends { readonly on: infer K extends AggregateKind }
   ? K
   : D extends { readonly opens: infer K extends AggregateKind }
@@ -213,7 +221,10 @@ export function createSlice<
   readonly synced?: false
 }): {
   readonly actions: ActionCreators<Name, R>
-  readonly reducer: (state: S | undefined, action: { readonly type: string }) => S
+  readonly reducer: (
+    state: S | undefined,
+    action: { readonly type: string },
+  ) => S
   readonly declarations: SyncDeclarations
 }
 
@@ -231,7 +242,10 @@ export function createSlice<
   readonly synced: true
 }): {
   readonly actions: ActionCreators<Name, R>
-  readonly reducer: (state: S | undefined, action: { readonly type: string }) => S
+  readonly reducer: (
+    state: S | undefined,
+    action: { readonly type: string },
+  ) => S
   readonly declarations: SyncDeclarations
 }
 
@@ -255,7 +269,9 @@ export function createSlice(config: {
     const definition = config.reducers[key] as
       | ((state: any, action: any) => any)
       | (ActionDeclaration & {
-          readonly prepare?: (...args: unknown[]) => { readonly payload: unknown }
+          readonly prepare?: (...args: unknown[]) => {
+            readonly payload: unknown
+          }
           readonly reducer: (state: any, action: any) => any
         })
 
