@@ -23,7 +23,7 @@ Alle anderen Dokumente in `architecture/` und `services/events.md` beschreiben d
 | Sync zum Server | ✅ **Stufe 1 (Outbox, Cursor, Retry)** live verifiziert + **Stufe 2 (`withSync`-Rebase)** implementiert (2026-07-29, **nur unit-getestet, nicht live verifiziert**) |
 | Offline-Queue | ✅ persistente Outbox mit Retry/Backoff (Retry-Pfad nur unit-getestet, nicht live) |
 | Echtzeit (AppSync) | ❌ existiert nicht |
-| Tests | 🟡 Frontend: 258 Tests; Backend: 93 Tests (81 Domain, 12 Adapter); Infrastruktur: 52 |
+| Tests | 🟡 Frontend: 272 Tests; Backend: 93 Tests (81 Domain, 12 Adapter); Infrastruktur: 52 |
 
 ---
 
@@ -64,7 +64,7 @@ Bewusst noch offen gegenüber den Prototypen: Emoji-Picker im Sheet (braucht `pr
 
 **Live verifiziert (2026-07-29, Chrome gegen deployte API):** Outbox-POST → 201, Event landet im DynamoDB-Log, Cursor-Catch-up mit `?since`, eventId-Dedup (kein Doppel-Fold nach Reload), Duplikat-Healing bei der Hydration. **Nicht live verifiziert:** Offline-Retry/Backoff (nur Unit-Tests), Reconnect-Trigger nativ (Capacitor-Plugins deklarieren Peer-Core ≥8, App pinnt Core ^7 — vor Native-Builds auflösen).
 
-**Sync-Engine Stufe 2 — `withSync` (2026-07-29, nur unit-getestet, nicht live verifiziert):** Higher-Order Reducer `app/sync/withSync.ts` um den kombinierten Feature-Reducer (`store.ts`): `SyncState = { confirmed, pending, visible }`, `visible` bleibt auf Top-Level (Selektoren/Middleware unverändert), Bookkeeping unter `state.sync` (reservierter Key). Synced Actions (Prädikat `appSyncPolicy.reachesServer`, dieselbe Policy wie der Send-Pfad) laufen optimistisch in `visible` + `pending`; alles andere in beide Bäume. Der Catch-up dispatcht pro Liste einen `eventsConfirmed`-Batch (eigene Events inklusive — kein Skip mehr, `appliedEventIds` ist entfernt); der Reducer faltet in Positions-Ordnung nach `confirmed`, entfernt geackte `eventId`s aus `pending` und rebased `visible = pending.reduce(rootReducer, confirmed)`. 4xx-Ablehnungen rollen ihren optimistischen Effekt per `pendingDiscarded` zurück. Persistenz umgestellt: Die Storage-Handler (lists/shopping) persistieren den **confirmed**-Baum bei jedem `eventsConfirmed`; Offline-Edits überleben Neustarts über die Outbox-Queue + `pendingRestored` beim Engine-Start (Rückübersetzung `domainActionOf`). Damit strukturell gelöst: Ordnungs-Divergenz bei nebenläufigen Edits, das Flush↔Catch-up-Race und stille 4xx-Effekte. **Verbleibende Grenzen:** Crash-Fenster zwischen Confirmed-Persist (Handler, fire-and-forget) und Cursor-Persist kann den Tail einer Liste doppelt nach `confirmed` falten (`itemAdded` merged Mengen by design → Verdopplung möglich); sichtbarer UI-Sprung beim Rebase; „last sync wins" bei Offline-Konflikten. Sign-in/Sign-out-Lifecycle: Der In-Session-Sign-in (`performSignIn`) startet die Engine genauso wie das Boot-`beforeLoad`; `performSignOut` stoppt die Engine zuerst und purged danach den Per-User-Storage (`shopzebra_sync`, `shopzebra_lists`, `shopzebra_list_preferences`, Shopping-Blob), damit auf einem geteilten Gerät kein Cross-User-Leak entsteht.
+**Sync-Engine Stufe 2 — `withSync` (2026-07-29, nur unit-getestet, nicht live verifiziert):** Higher-Order Reducer `app/sync/withSync.ts` um den kombinierten Feature-Reducer (`store.ts`): `SyncState = { confirmed, pending, visible }`, `visible` bleibt auf Top-Level (Selektoren/Middleware unverändert), Bookkeeping unter `state.sync` (reservierter Key). Synced Actions (Prädikat `appSyncPolicy.reachesServer`, dieselbe Policy wie der Send-Pfad) laufen optimistisch in `visible` + `pending`; alles andere in beide Bäume. Der Catch-up dispatcht pro Liste einen `eventsConfirmed`-Batch (eigene Events inklusive — kein Skip mehr, `appliedEventIds` ist entfernt); der Reducer faltet in Positions-Ordnung nach `confirmed`, entfernt geackte `eventId`s aus `pending` und rebased `visible = pending.reduce(rootReducer, confirmed)`. 4xx-Ablehnungen rollen ihren optimistischen Effekt per `pendingDiscarded` zurück. Persistenz umgestellt: Die Storage-Handler (lists/shopping) persistieren den **confirmed**-Baum bei jedem `eventsConfirmed`; Offline-Edits überleben Neustarts über die Outbox-Queue + `pendingRestored` beim Engine-Start (Rückübersetzung `domainActionOf`). Damit strukturell gelöst: Ordnungs-Divergenz bei nebenläufigen Edits, das Flush↔Catch-up-Race und stille 4xx-Effekte. **Verbleibende Grenzen:** Crash-Fenster zwischen Confirmed-Persist (Handler, fire-and-forget) und Cursor-Persist kann den Tail einer Liste doppelt nach `confirmed` falten (`itemAdded` merged Mengen by design → Verdopplung möglich); sichtbarer UI-Sprung beim Rebase; „last sync wins" bei Offline-Konflikten; **eine gelöschte Liste bleibt in der Membership-Projektion** (siehe §3 „Offen"). Sign-in/Sign-out-Lifecycle: Der In-Session-Sign-in (`performSignIn`) startet die Engine genauso wie das Boot-`beforeLoad`; `performSignOut` stoppt die Engine zuerst und purged danach den Per-User-Storage (`shopzebra_sync`, `shopzebra_lists`, `shopzebra_list_preferences`, Shopping-Blob), damit auf einem geteilten Gerät kein Cross-User-Leak entsteht.
 
 **Sync-Zyklus-Refactoring (2026-07-31, nur unit-getestet, nicht live verifiziert):** Die Callback-Choreografie der Engine (record→flush, catchUp→flush im `finally`, Flusher-Timer) ist durch einen **Push-then-Pull-Zyklus** ersetzt: Jeder Trigger — recorded Action, Boot, Sign-in, Reconnect, Resume, Retry-Timer — mündet in `requestSync()`; die gesamte Choreografie steht linear in `syncOnce()` (drainen → `pendingDiscarded` für Abgelehntes → Catch-up). Damit holt **jede eigene Aktion nach dem bestätigten Send sofort die Events vom Server** (prompter Ack + Quasi-Echtzeit beim aktiven Ko-Editieren); Pull-nach-Push per Konstruktion, kein Race POST↔GET, keine Rückkopplungsschleife. Single-Flight + Koaleszierung („läuft schon → danach genau einmal") leben einmal in der Engine. `flush.ts` → `send/drainOutbox.ts`: ein Queue-Durchlauf, gibt `{ delivered, rejected, blocked }` zurück, keine Timer/Callbacks mehr; Backoff (1s→30s) wohnt in der Engine, `stop()` cancelt den Retry-Timer (fixt einen Alt-Bug: der Flusher-Timer feuerte nach Sign-out weiter). Tests: `drainOutbox.test.ts` (ersetzt `flush.test.ts`) + `syncEngine.cycle.test.ts` (Zyklus, Ordering, Koaleszierung, Engine-Backoff, Stop-Cancel); `syncEngine.test.ts`/`syncEngine.stop.test.ts` unverändert grün — Public API der Engine unverändert.
 
@@ -110,6 +110,22 @@ Alle Binaries leben unter `lambdas/` (Workspace-Glob `lambdas/*`); die drei Arch
 - **`EventPublisher` ist ein Noop** — kein echtes AppSync-Publish, andere Geräte erfahren nichts in Echtzeit
 - Snapshot Table / Snapshot-Endpunkte
 - Rate Limiting (API-Gateway-Usage-Plan)
+- **Löschen beendet keine Mitgliedschaft** (gefunden 2026-09-06). `listDeleted`
+  ist ein Klasse-1-Event; der generische Append-Pfad liest kein Payload und
+  rührt die server-eigene Membership-Projektion nicht an. Also nennt
+  `GET /lists` eine gelöschte Liste **für immer**. Folge auf dem Client: Das
+  Gerät hält die Liste nach dem Fold nicht mehr, der Cursor-Guard
+  (`receive/guardedCursors.ts`) gibt darum `null` heraus, und **jeder**
+  Sync-Zyklus holt ihren kompletten Log erneut. Das Ergebnis bleibt korrekt
+  (der Log endet mit `listDeleted`), die Kosten wachsen mit jeder je
+  gelöschten Liste — auf einem Mobilgerät unbegrenzt.
+  **Der Fix gehört hierher:** Löschen wird ein Klasse-2-Command, das die
+  Mitgliedschaften beendet. Client-seitig wäre er nicht billig: ein
+  `releases` auf `listDeleted` (die naheliegende Übertragung des
+  Verlassen-Mechanismus) würde das Delete entweder nie in `confirmed`
+  ankommen lassen — nach einem Reload wäre die Liste zurück — oder ein noch
+  unbestätigtes Delete in `confirmed` falten und damit genau den stillen
+  4xx-Effekt wieder einführen, den `withSync` abschafft.
 
 ### Altlast
 
