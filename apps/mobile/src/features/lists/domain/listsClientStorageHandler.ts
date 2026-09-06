@@ -1,6 +1,6 @@
 import { setItem } from '../../../app/clientStorage'
 import { isEventsConfirmed } from '../../../app/sync/withSync'
-import { listDropped, listRestored, ownerNamesLoaded } from './listsSlice'
+import { listDropped, ownerNamesLoaded } from './listsSlice'
 import type { ShoppingList } from './listsDomain'
 
 type ListsState = {
@@ -29,7 +29,6 @@ export function listsClientStorageHandler(
   if (
     !isEventsConfirmed(action) &&
     !listDropped.match(action) &&
-    !listRestored.match(action) &&
     !ownerNamesLoaded.match(action)
   ) {
     return

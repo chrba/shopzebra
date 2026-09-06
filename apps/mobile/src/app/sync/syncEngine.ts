@@ -248,8 +248,8 @@ export class SyncEngine {
     }
     const held = this.heldAggregates()
     const heldKeys = new Set(held.map(cursorKeyOf))
-    // Holding it again means this device never let go after all — leaving
-    // was refused and the list came back.
+    // Holding it again means the list is back on this device — a fresh
+    // invitation, redeemed after the leave.
     await this.reclaimWhatIsHeldAgain(outbox, heldKeys)
     const collections = await this.readCollections()
     const named = collections.flatMap((collection) => collection.named)

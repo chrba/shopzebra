@@ -9,8 +9,8 @@ import { silenceForReleasedAggregates } from '@/app/sync/receive/silenceForRelea
 import type { WireEvent } from '@/app/sync/wire'
 import {
   listDropped,
+  listMemberRemovedLocally,
   listRenamed,
-  listRestored,
 } from '@/features/lists/domain/listsSlice'
 import { recipeDropped } from '@/features/recipes/domain/recipesSlice'
 
@@ -56,16 +56,7 @@ describe('which action lets go of which aggregate', () => {
     ).toBeNull()
     expect(
       appSyncPolicy.releasedAggregateOf(
-        own(
-          listRestored({
-            list: {
-              id: 'l1',
-              name: 'Wocheneinkauf',
-              ownerId: 'eiszebra',
-              memberIds: ['eiszebra'],
-            },
-          }),
-        ),
+        own(listMemberRemovedLocally({ listId: 'l1', memberId: 'tom' })),
       ),
     ).toBeNull()
   })

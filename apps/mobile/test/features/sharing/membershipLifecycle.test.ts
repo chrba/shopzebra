@@ -432,20 +432,19 @@ describe('a member leaves a list somebody else shared with them', () => {
     expect(restarted.listIds()).toEqual([])
   })
 
-  // A refused removal is not a leave: the membership still exists, so the
-  // list comes back — and it has to keep syncing afterwards.
-  test('comes back when the server refuses, and syncs again', async () => {
+  // A refused removal is still a leave: the server is told, not asked. Its
+  // own membership survives, so the collection keeps naming the list and
+  // the log keeps growing — and the release keeps this device deaf to all
+  // of it. The device is right; the membership over there is what leaks,
+  // and nothing retries the command today.
+  test('stays gone when the server refuses, and stays deaf to the log', async () => {
     const backend = new Backend()
     sharedWith(backend, 'me')
     const member = deviceOf(backend, 'me', 'd-me')
     await member.start()
 
-    const refused = await member.leave('l1', refusing(500)).then(
-      () => false,
-      () => true,
-    )
-    expect(refused).toBe(true)
-    expect(member.listIds()).toEqual(['l1'])
+    await member.leave('l1', refusing(500))
+    expect(member.listIds()).toEqual([])
 
     backend.append(groceries, {
       type: 'lists/listRenamed',
@@ -454,7 +453,7 @@ describe('a member leaves a list somebody else shared with them', () => {
     })
     await member.sync()
 
-    expect(member.listIds()).toEqual(['l1'])
+    expect(member.listIds()).toEqual([])
   })
 
   // Letting go must not be forever: a new invitation is the one thing that

@@ -22,7 +22,6 @@ import { SummaryChips } from './SummaryChips'
 import { ListSummaryCard } from './ListSummaryCard'
 import { SwipeAction } from '../../../components/SwipeAction'
 import { DangerConfirmDialog } from '../../../components/DangerConfirmDialog'
-import { useToast } from '../../../components/Toast'
 import { ListCardSkeleton } from './ListsPageSkeleton'
 import { Card } from '@/components/ui/card'
 
@@ -118,7 +117,6 @@ export function ListsPage() {
   const currentUserId = useAppSelector(selectCurrentUserId)
   const displayName = useAppSelector(selectDisplayName)
   const friendCount = useAppSelector(selectFriendCount)
-  const toast = useToast()
 
   const lists = shoppingLists.map((list) => {
     const prefs = preferences[list.id]
@@ -168,8 +166,9 @@ export function ListsPage() {
   }
 
   // Deleting is mine to do and takes the list from everyone; leaving only
-  // ends my own membership. Both take effect at once — the leave thunk
-  // puts the list back if the server refuses.
+  // ends my own membership. Both take effect at once — leaving is a local
+  // decision, so the server is told rather than asked and there is nothing
+  // it could answer that would make this screen say it went wrong.
   const handleConfirmParting = () => {
     const target = partingTarget
     closeParting()
@@ -179,10 +178,7 @@ export function ListsPage() {
       dispatch(listDeleted({ listId: target.id }))
       return
     }
-    void dispatch(leaveList(target.id)).catch((error: unknown) => {
-      console.warn('leaving the list failed', error)
-      toast.show('Verlassen fehlgeschlagen')
-    })
+    void dispatch(leaveList(target.id))
   }
 
   return (
@@ -248,8 +244,6 @@ export function ListsPage() {
         onConfirm={handleConfirmParting}
         onCancel={closeParting}
       />
-
-      {toast.element}
     </div>
   )
 }
