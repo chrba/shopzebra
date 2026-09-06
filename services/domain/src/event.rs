@@ -81,6 +81,12 @@ pub const RECIPE_MEMBER_REMOVED: &str = "recipes/recipeMemberRemoved";
 pub const PLAN_MEMBER_ADDED: &str = "plans/planMemberAdded";
 pub const PLAN_MEMBER_REMOVED: &str = "plans/planMemberRemoved";
 
+// Deleting ends every membership, so the server writes the delete event
+// itself (`DELETE /{collection}/{id}`) rather than taking it from a client.
+pub const LIST_DELETED: &str = "lists/listDeleted";
+pub const RECIPE_DELETED: &str = "recipes/recipeDeleted";
+pub const PLAN_DELETED: &str = "plans/planDeleted";
+
 impl Aggregate {
     pub fn list(id: impl Into<String>) -> Self {
         Self { kind: AggregateKind::List, id: id.into() }
@@ -112,6 +118,17 @@ impl Aggregate {
             AggregateKind::List => LIST_MEMBER_REMOVED,
             AggregateKind::Recipe => RECIPE_MEMBER_REMOVED,
             AggregateKind::Plan => PLAN_MEMBER_REMOVED,
+        }
+    }
+
+    /// Event type that closes this aggregate's log. Like the member events
+    /// it exists once per kind, so the client folds it into the slice that
+    /// owns the aggregate.
+    pub fn deleted_event(&self) -> &'static str {
+        match self.kind {
+            AggregateKind::List => LIST_DELETED,
+            AggregateKind::Recipe => RECIPE_DELETED,
+            AggregateKind::Plan => PLAN_DELETED,
         }
     }
 

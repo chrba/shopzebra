@@ -1,6 +1,6 @@
 # Implementierungs-Stand — ShopZebra
 
-**Stand: 2026-09-05** · Branch `feat/implement-backend`
+**Stand: 2026-09-06** · Branch `feat/implement-backend`
 
 Alle anderen Dokumente in `architecture/` und `services/events.md` beschreiben den **Zielzustand**. Dieses Dokument beschreibt, was davon heute existiert. Wer den Code bewertet, plant oder erweitert, liest es zuerst — sonst bewertet er eine App, die es so noch nicht gibt.
 
@@ -19,11 +19,11 @@ Alle anderen Dokumente in `architecture/` und `services/events.md` beschreiben d
 | **Rezepte** | ✅ funktionsfähig, **live verifiziert (2026-08-02)** — Sammlung, Anlegen/Bearbeiten, Detail mit Portions-Umrechnung, Teilen wie eine Liste |
 | Adressbuch (Freunde) | ✅ funktionsfähig (2026-08-01) — Freundes-Invite, Annahme, Liste, Entfernen; Beitritt befreundet automatisch |
 | Wochenplan, Aktivität, Family | ❌ existiert nicht |
-| Backend-API | ✅ 13 Lambdas / 20 Routen, **alle deployed und live verifiziert (2026-08-02)**: Create-List, Create-Recipe, Append, Get-Events, Get-Lists, Get-Recipes, Create-Invite, Join, Add-Member, Remove-Member, 4× Friends. Sharing- und Event-Routen bedienen Listen **und** Rezepte auf denselben Lambdas; AppSync fehlt weiterhin |
+| Backend-API | ✅ 14 Lambdas / 21 Routen: Create-List, Create-Recipe, Append, Get-Events, Get-Lists, Get-Recipes, Create-Invite, Join, Add-Member, Remove-Member, Delete-Aggregate, 4× Friends. Sharing- und Event-Routen bedienen Listen **und** Rezepte auf denselben Lambdas; AppSync fehlt weiterhin. Alle bis auf `delete-aggregate` deployed und live verifiziert (2026-08-02); **`delete-aggregate` (2026-09-06) ist noch nicht ausgerollt** |
 | Sync zum Server | ✅ **Stufe 1 (Outbox, Cursor, Retry)** live verifiziert + **Stufe 2 (`withSync`-Rebase)** implementiert (2026-07-29, **nur unit-getestet, nicht live verifiziert**) |
 | Offline-Queue | ✅ persistente Outbox mit Retry/Backoff (Retry-Pfad nur unit-getestet, nicht live) |
 | Echtzeit (AppSync) | ❌ existiert nicht |
-| Tests | 🟡 Frontend: 272 Tests; Backend: 93 Tests (81 Domain, 12 Adapter); Infrastruktur: 52 |
+| Tests | 🟡 Frontend: 272 Tests; Backend: 103 Tests (89 Domain, 12 Adapter, 2 `lib`); Infrastruktur: 52 |
 
 ---
 
@@ -103,29 +103,21 @@ Bewusst noch offen gegenüber den Prototypen: Emoji-Picker im Sheet (braucht `pr
 
 Alle Binaries leben unter `lambdas/` (Workspace-Glob `lambdas/*`); die drei Architektur-Crates `domain`/`adapters`/`lib` auf Root-Ebene — siehe [backend-structure.md](./backend-structure.md).
 
-**`services/lib/`** — dünne HTTP-Hilfscrate (`auth.rs`, `error.rs`, `response.rs`, `wire.rs` für das Redux-Action-Wire-Format). Kein Domain-Code — der lebt in `domain/`.
+**`services/lambdas/delete-aggregate/`** — Lambda für `DELETE /lists/{listId}` und `DELETE /recipes/{recipeId}` (2026-09-06). **Löschen ist ein Klasse-2-Command:** Der Server appended das Delete-Event und **beendet danach alle Mitgliedschaften**, so wie `remove_member` die Projektion besitzt. Nur der Owner darf löschen (`check_can_delete`). Damit verschwindet die Liste aus `GET /lists`, und der Dauer-Refetch ihres kompletten Logs pro Sync-Zyklus hört auf. Ein Lambda für alle Aggregat-Arten — die Route sagt, welche (`aggregate_from_path`), Teilen und Un-Teilen sind ein Mechanismus ([sharing-model.md](./sharing-model.md)). Die übrigen Mitglieder bekommen das Event nicht mehr — mit ihrer Mitgliedschaft endet ihr Lesezugriff; ihr Client wirft die Liste weg, weil sie nicht mehr in der Collection steht.
+
+**`services/lib/`** — dünne HTTP-Hilfscrate (`auth.rs`, `error.rs`, `response.rs`, `wire.rs` für das Redux-Action-Wire-Format). Kein Domain-Code — der lebt in `domain/`. `ApiError` kennt seit 2026-09-06 **`NotFound` → 404**: `DELETE /lists/{id}/members/{memberId}` antwortete bei „ist schon kein Mitglied mehr" mit **400** — das behauptet einen fehlerhaften Request, obwohl der Request in Ordnung war und nur die Mitgliedschaft fehlt. Der Client liest 403/404 als „schon weg"; 400 kam als harter Fehler an.
 
 ### Offen
 
 - **`EventPublisher` ist ein Noop** — kein echtes AppSync-Publish, andere Geräte erfahren nichts in Echtzeit
 - Snapshot Table / Snapshot-Endpunkte
 - Rate Limiting (API-Gateway-Usage-Plan)
-- **Löschen beendet keine Mitgliedschaft** (gefunden 2026-09-06). `listDeleted`
-  ist ein Klasse-1-Event; der generische Append-Pfad liest kein Payload und
-  rührt die server-eigene Membership-Projektion nicht an. Also nennt
-  `GET /lists` eine gelöschte Liste **für immer**. Folge auf dem Client: Das
-  Gerät hält die Liste nach dem Fold nicht mehr, der Cursor-Guard
-  (`receive/guardedCursors.ts`) gibt darum `null` heraus, und **jeder**
-  Sync-Zyklus holt ihren kompletten Log erneut. Das Ergebnis bleibt korrekt
-  (der Log endet mit `listDeleted`), die Kosten wachsen mit jeder je
-  gelöschten Liste — auf einem Mobilgerät unbegrenzt.
-  **Der Fix gehört hierher:** Löschen wird ein Klasse-2-Command, das die
-  Mitgliedschaften beendet. Client-seitig wäre er nicht billig: ein
-  `releases` auf `listDeleted` (die naheliegende Übertragung des
-  Verlassen-Mechanismus) würde das Delete entweder nie in `confirmed`
-  ankommen lassen — nach einem Reload wäre die Liste zurück — oder ein noch
-  unbestätigtes Delete in `confirmed` falten und damit genau den stillen
-  4xx-Effekt wieder einführen, den `withSync` abschafft.
+- **Client-Umstellung auf `DELETE /lists/{listId}`** (offen seit 2026-09-06).
+  Der Endpunkt steht (siehe unten), aber der Client löscht weiter per
+  Klasse-1-Append. Solange er das tut, bleibt `lists/listDeleted` in der
+  Allowlist von `envelope.rs` — und damit ein Weg am Membership-Teardown
+  vorbei. Sobald der Client umgestellt ist: Eintrag aus der Allowlist
+  entfernen, dasselbe für `recipes/recipeDeleted`.
 
 ### Altlast
 
@@ -139,6 +131,8 @@ Alle Binaries leben unter `lambdas/` (Workspace-Glob `lambdas/*`); die drei Arch
 
 Seit 2026-08-03 liegt der **User Pool in CDK** (`lib/ShopZebraUserPool.ts`): E-Mail als Alias statt als Username, kein Pflichtattribut, Pre-SignUp-Trigger, `RemovalPolicy.RETAIN`. Beides — Alias und Pflichtattribute — ist nach Pool-Erstellung unveränderlich, deshalb war ein **neuer Pool zwingend** (Spike-Befund). Der alte Pool `eu-central-1_z6PK2KOsC` wird nicht mehr referenziert; **bestehende Konten wandern nicht mit**, das ist vor dem Launch bewusst akzeptiert. Pool-Id, Client-Id und Domain kommen als CfnOutputs heraus und gehören in `apps/mobile/.env.local` (`VITE_USER_POOL_ID`, `VITE_USER_POOL_CLIENT_ID`, `VITE_USER_POOL_DOMAIN`) — `amplify.ts` hat keine hartkodierten Ids mehr.
 
+Seit 2026-09-06 dazu `delete-aggregate` mit den Routen `DELETE /lists/{listId}` und `DELETE /recipes/{recipeId}` — ein Lambda für beide, Grants `grantReadWriteData` auf **beide** Tabellen (es appended das Delete-Event und räumt die Membership-Zeilen ab). `cdk synth` grün.
+
 Noch nicht im Stack: AppSync Events, Rate Limiting (Usage Plan). Der Cognito User Pool selbst lebt außerhalb dieses Stacks (ID hartkodiert).
 
 **Nicht deployed:** Der Stand vom 2026-08-03 (neuer Pool + Pre-SignUp-Trigger + Authorizer auf den neuen Pool) ist `cdk synth`- und `cdk diff`-geprüft, aber **noch nicht ausgerollt**. Bis dahin läuft die App gegen einen Pool, den es noch nicht gibt — nach dem Deploy müssen die drei Outputs in `.env.local`.
@@ -149,7 +143,7 @@ Noch nicht im Stack: AppSync Events, Rate Limiting (Usage Plan). Der Cognito Use
 
 **Frontend:** Vitest ist eingerichtet (`pnpm test` in `apps/mobile`). `listsSlice` hat 15 Verhaltens-Tests (Actions rein, Beobachtung nur über Selektoren — keine Mocks, kein State-Shape): Listen-CRUD, Präferenzen, Totalität bei unbekannten IDs, Referenzstabilität, Replay-Determinismus. Sie nageln das heutige Verhalten fest — inklusive des Full-State-`listUpdated`, das laut Spec noch in Intention-Events zerlegt werden muss (beim Umbau ändern sich diese Tests bewusst mit).
 
-**Backend:** 20 Tests im `domain`-Crate gegen die In-Memory-Ports (`cargo test`): Envelope/Schema-Ablehnungen, Membership-Regeln, Append-Semantik (Monotonie, Dedup-Retry, Cursor). Die DynamoDB-Adapter selbst sind ungetestet (Integrationstests offen).
+**Backend:** 103 Tests (`cargo test` in `services/`): 89 im `domain`-Crate gegen die In-Memory-Ports — Envelope/Schema-Ablehnungen, Membership-Regeln (inkl. „nur der Owner löscht"), Append-Semantik (Monotonie, Dedup-Retry, Cursor), Löschen (Event geschrieben, alle Mitgliedschaften weg, Nicht-Owner und Fremde abgewiesen) —, 12 im `adapters`-Crate über reine Mapping-Funktionen und 2 in `lib` über die HTTP-Statuscodes (404 ≠ 400). Die DynamoDB-Zugriffe selbst sind ungetestet (Integrationstests offen).
 
 Relevant für die geplante Sync Engine: Der Rebase-Mechanismus und die Replay-Purity der Reducer sind genau die Art Logik, die ohne Tests unbemerkt kaputtgeht.
 

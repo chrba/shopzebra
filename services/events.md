@@ -41,7 +41,7 @@ Aggregate-ID: `LIST#{listId}`
 | `listCreated` | **1, eigener Endpunkt** — eröffnet den Log: `POST /lists`, Server prüft `createdBy` = Aufrufer, claimt Ownership atomar und appended das Event des Clients |
 | `messageSent`, `reactionAdded` | 1 |
 | `listRenamed` | 1 |
-| `listDeleted` | 1 |
+| `listDeleted` | **2** (seit 2026-09-06) — `DELETE /lists/{listId}`, nur der Owner; der Server schreibt das Event **und beendet alle Mitgliedschaften** |
 | `listMemberAdded` | **2** |
 | `listMemberRemoved` | **2** |
 | `itemAdded`, `itemChecked`, `itemUnchecked`, `itemRemoved`, `itemUpdated`, `itemNoteUpdated`, `customVariantAdded` | 1 |
@@ -63,12 +63,27 @@ Aggregate-ID: `LIST#{listId}`
 }}
 ```
 
-### listDeleted
+### listDeleted — **Klasse 2**
 ```json
 { "type": "lists/listDeleted", "payload": {
     "listId": "uuid"
 }}
 ```
+Entsteht serverseitig aus `DELETE /lists/{listId}` — **nur der Owner**. Der
+Server appended das Event und **löscht danach alle Mitgliedschaften**.
+Genau darum ist Löschen Klasse 2: Als Klasse-1-Append blieben die
+Membership-Zeilen stehen, `GET /lists` nannte die gelöschte Liste weiter, und
+jeder Sync-Zyklus holte ihren kompletten Log erneut.
+
+Die anderen Mitglieder bekommen das Event **nicht** mehr — mit ihrer
+Mitgliedschaft endet ihr Lesezugriff auf den Log. Das ist beabsichtigt: Ihr
+Client sieht die Liste nicht mehr in der Collection und wirft sie lokal weg.
+
+> **Übergang:** `lists/listDeleted` steht vorerst weiter in der Klasse-1-
+> Allowlist, damit ausgelieferte Clients nicht brechen. Sobald der Client auf
+> `DELETE /lists/{listId}` umgestellt ist, gehört der Eintrag aus
+> `services/domain/src/envelope.rs` entfernt — sonst bleibt der alte Weg am
+> Membership-Teardown vorbei offen.
 
 ### listMemberAdded — **Klasse 2**
 ```json
@@ -194,7 +209,9 @@ Nachrichten und Reaktionen leben auf dem **ShoppingList-Aggregate** (Feed pro Li
 
 Aggregate-ID: `RECIPE#{recipeId}`
 
-`recipeUpdated` und `recipeDeleted` sind **Klasse 1**. `recipeCreated` ist —
+`recipeUpdated` ist **Klasse 1**, `recipeDeleted` seit 2026-09-06 **Klasse 2**
+(`DELETE /recipes/{recipeId}`, dasselbe Lambda wie beim Löschen einer Liste —
+Teilen und Un-Teilen sind ein Mechanismus). `recipeCreated` ist —
 wie `listCreated` — ein **eröffnendes Klasse-1-Event**: Es steht in der
 Allowlist (Envelope und Schema prüfen es) und geht an den eigenen Endpunkt
 `POST /recipes`, weil noch kein Log existiert.
@@ -248,12 +265,14 @@ reist in eigenen Events und wird nie überschrieben.
 }}
 ```
 
-### recipeDeleted
+### recipeDeleted — **Klasse 2**
 ```json
 { "type": "recipes/recipeDeleted", "payload": {
     "recipeId": "uuid"
 }}
 ```
+Entsteht serverseitig aus `DELETE /recipes/{recipeId}`, nur für den Owner —
+identisch zu `listDeleted`, bis auf den Namen des Aggregats.
 
 ---
 
