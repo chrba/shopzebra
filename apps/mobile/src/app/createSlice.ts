@@ -11,7 +11,11 @@ import type { AggregateIdField, AggregateKind } from './sync/aggregate'
  *     `on: 'list'`     → POST /lists/abc/events  (the server checks membership)
  *     `opens: 'list'`  → POST /lists             (no membership can exist yet:
  *                        the server claims ownership, then appends the event)
- * - localEvent: a domain fact whose reach is deliberately this device only
+ * - localEvent: a domain fact whose reach is deliberately this device only.
+ *   One of them says more — `releases: 'list'` means this device lets go of
+ *   that aggregate. Nothing in the log records that, so the receive path has
+ *   to be told: it folds `confirmed` from the log, and a fact the log does
+ *   not carry is gone the moment the log is folded again
  * - observation: a current value a query reported — no user action, no log entry
  * - hydration: restoring data this device already knew, from local storage
  *
@@ -33,7 +37,8 @@ export type ActionDeclaration =
       readonly opens: AggregateKind
       readonly on?: never
     }
-  | { readonly role: 'localEvent' }
+  | { readonly role: 'localEvent'; readonly releases: AggregateKind }
+  | { readonly role: 'localEvent'; readonly releases?: never }
   | { readonly role: 'observation' }
   | { readonly role: 'hydration' }
 
@@ -160,7 +165,9 @@ type AggregateOf<D> = D extends { readonly on: infer K extends AggregateKind }
   ? K
   : D extends { readonly opens: infer K extends AggregateKind }
     ? K
-    : never
+    : D extends { readonly releases: infer K extends AggregateKind }
+      ? K
+      : never
 
 type NamesItsAggregate<D> = [AggregateOf<D>] extends [never]
   ? D

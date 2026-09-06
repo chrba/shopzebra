@@ -23,6 +23,23 @@ import {
   type AggregateKind,
 } from '../../app/sync/aggregate'
 
+/**
+ * A command the server turned down, carrying the status it answered with.
+ * The status is a field and not a phrase in the message on purpose: the
+ * message names the path, the path carries list and member ids, and an id
+ * may contain any three digits — so a `403` read out of the text can just
+ * as well be a slice of a UUID. Callers that act on a status read this one.
+ */
+export class CommandRefused extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message)
+    this.name = 'CommandRefused'
+  }
+}
+
 export type Invite = {
   readonly token: string
   readonly expiresAt: number
@@ -44,7 +61,9 @@ export async function fetchInvite(
 ): Promise<Invite> {
   const path = pathOf(aggregate, '/invites')
   const response = await fetcher(path, { method: 'POST' })
-  if (!response.ok) throw new Error(`POST ${path} → ${response.status}`)
+  if (!response.ok) {
+    throw new CommandRefused(response.status, `POST ${path} → ${response.status}`)
+  }
 
   const body: unknown = await response.json()
   const { token, expiresAt } = body as {
@@ -71,7 +90,9 @@ export async function joinByToken(
     method: 'POST',
     body: JSON.stringify({ payload: { token }, meta }),
   })
-  if (!response.ok) throw new Error(`POST /lists/join → ${response.status}`)
+  if (!response.ok) {
+    throw new CommandRefused(response.status, `POST /lists/join → ${response.status}`)
+  }
 
   const body: unknown = await response.json()
   const joined = parseAggregate(
@@ -96,7 +117,18 @@ export async function removeMember(
     method: 'DELETE',
     body: JSON.stringify({ meta }),
   })
-  if (!response.ok) throw new Error(`DELETE ${path} → ${response.status}`)
+  if (!response.ok) {
+    throw new CommandRefused(response.status, `DELETE ${path} → ${response.status}`)
+  }
+}
+
+/**
+ * The server's "no room left": the member cap of the aggregate is reached.
+ * Its own function because two screens ask it and both used to look for the
+ * digits in the message, where an id can supply them just as well.
+ */
+export function refusedBecauseFull(error: unknown): boolean {
+  return error instanceof CommandRefused && error.status === 409
 }
 
 /**
@@ -114,7 +146,9 @@ export async function addMember(
     method: 'POST',
     body: JSON.stringify({ payload: { memberId }, meta }),
   })
-  if (!response.ok) throw new Error(`POST ${path} → ${response.status}`)
+  if (!response.ok) {
+    throw new CommandRefused(response.status, `POST ${path} → ${response.status}`)
+  }
 }
 
 /**
@@ -161,7 +195,9 @@ export async function fetchSharingProjection(
 ): Promise<SharingProjection> {
   const path = collectionPathFor(kind)
   const response = await fetcher(path)
-  if (!response.ok) throw new Error(`GET ${path} → ${response.status}`)
+  if (!response.ok) {
+    throw new CommandRefused(response.status, `GET ${path} → ${response.status}`)
+  }
 
   const body: unknown = await response.json()
   const { ownerNames, maxMembers } = body as {

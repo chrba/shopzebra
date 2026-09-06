@@ -10,6 +10,7 @@ import { memberAvatarColor, memberInitial } from '../lists/domain/memberAvatar'
 import { MEMBER_NAME_FALLBACK, memberDisplayName } from './memberDisplayName'
 import {
   addMember,
+  refusedBecauseFull,
   memberAddedLocally,
   memberRemovedLocally,
   removeMember,
@@ -201,9 +202,7 @@ export function MembersPage({
       console.warn('adding the friend failed', error)
       store.dispatch(memberRemovedLocally(aggregate, friendId))
       toast.show(
-        String(error).includes('409')
-          ? wording.full
-          : 'Hinzufügen fehlgeschlagen',
+        refusedBecauseFull(error) ? wording.full : 'Hinzufügen fehlgeschlagen',
       )
     })
   }

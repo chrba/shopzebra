@@ -104,6 +104,18 @@ describe('shadow credentials lifecycle', () => {
     expect(updateUserAttributes).not.toHaveBeenCalled()
   })
 
+  // A mark that was never written left the device signed out for everything
+  // but sharing: every command collected a 401 and the outbox filled up. A
+  // cursor proves the server once answered, so the sign-in happens anyway.
+  test('restoreShadowSession signs in when prior sync vouches for the account', async () => {
+    await ensureShadowCredentials()
+
+    expect(await restoreShadowSession(() => Promise.resolve(true))).toBe(true)
+    expect(signIn).toHaveBeenCalledTimes(1)
+    expect(signUp).not.toHaveBeenCalled()
+    expect(storedBlob().accountCreated).toBe(true)
+  })
+
   // Sign-out takes the id along; the device goes on under a fresh one.
   test('forgetting the credentials yields a different username next time', async () => {
     const before = await ensureShadowCredentials()
