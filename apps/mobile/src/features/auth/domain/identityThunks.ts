@@ -13,10 +13,11 @@ import {
 
 /**
  * Turns a purely local device into one the server knows: creates the shadow
- * account under the id the device has had since its first start, then lets
- * the sync engine off the leash. Called at the first share or join — never
- * with a question to the user, because the device has had a name since its
- * first start. Nothing is rewritten: every event already names this id.
+ * account under the id the device has had since its first start, lets the
+ * sync engine off the leash and waits for its first cycle. Called at the
+ * first share or join — never with a question to the user, because the
+ * device has had a name since its first start. Nothing is rewritten: every
+ * event already names this id.
  */
 export const ensureIdentity =
   () =>
@@ -29,5 +30,9 @@ export const ensureIdentity =
     dispatch(guestIdentityCreated({ userId, name }))
 
     // Only now is there something to sync with — the queued events flush.
-    startSync()
+    // Awaited, because whoever shares next speaks to the server about
+    // something it has to know already: everything written while this device
+    // was purely local sits in the outbox, the opening listCreated included.
+    // An invite for a list the server has never heard of comes back 403.
+    await startSync()
   }

@@ -44,10 +44,8 @@ import {
 import { FriendsPage } from '../features/friends/FriendsPage'
 import { FriendInvitePage } from '../features/friends/FriendInvitePage'
 import { AcceptFriendPage } from '../features/friends/AcceptFriendPage'
-import {
-  fetchInvite,
-  fetchSharingProjection,
-} from '../features/sharing/memberCommands'
+import { fetchSharingProjection } from '../features/sharing/memberCommands'
+import { inviteStateOf } from '../features/sharing/inviteStateOf'
 import { joinWithToken } from '../features/sharing/joinWithToken'
 import { ensureIdentity } from '../features/auth/domain/identityThunks'
 import type { AggregateKind } from './sync/aggregate'
@@ -371,7 +369,7 @@ const rootRoute = createRootRoute({
     // catches up with the server log in the background — no await, so
     // the app never blocks the first render on network. Without one this
     // is a no-op: the log stays on the device.
-    startSync()
+    void startSync()
   },
 })
 
@@ -458,17 +456,7 @@ const listInviteRoute = createRoute({
       const refused: InviteState = { status: 'notOwner' }
       return { state: refused }
     }
-    try {
-      const invite = await fetchInvite({ kind: 'list', id: params.listId })
-      const ready: InviteState = { status: 'ready', invite }
-      return { state: ready }
-    } catch (error: unknown) {
-      // Offline, blocked or a server that said no — anything but a verdict
-      // on who owns this. The screen offers another try instead of blaming.
-      console.warn('reading the list invite failed', error)
-      const unreachable: InviteState = { status: 'unreachable' }
-      return { state: unreachable }
-    }
+    return { state: await inviteStateOf({ kind: 'list', id: params.listId }) }
   },
   component: () => {
     const { listId } = listInviteRoute.useParams()
@@ -598,16 +586,8 @@ const recipeInviteRoute = createRoute({
       const refused: InviteState = { status: 'notOwner' }
       return { state: refused }
     }
-    try {
-      const invite = await fetchInvite({ kind: 'recipe', id: params.recipeId })
-      const ready: InviteState = { status: 'ready', invite }
-      return { state: ready }
-    } catch (error: unknown) {
-      // Offline, blocked or a server that said no — anything but a verdict
-      // on who owns this. The screen offers another try instead of blaming.
-      console.warn('reading the recipe invite failed', error)
-      const unreachable: InviteState = { status: 'unreachable' }
-      return { state: unreachable }
+    return {
+      state: await inviteStateOf({ kind: 'recipe', id: params.recipeId }),
     }
   },
   component: () => {
