@@ -7,7 +7,7 @@ import { selectDeviceId } from '../../app/appSlice'
 import { syncEngine } from '../../app/sync/syncEngine'
 import type { Aggregate } from '../../app/sync/aggregate'
 import { joinIntentCleared } from '../lists/join/joinIntentSlice'
-import { joinByToken } from './memberCommands'
+import { joinByToken, refusedBecauseFull } from './memberCommands'
 
 /** What redeeming a token led to. `full` deserves its own message. */
 export type JoinOutcome =
@@ -35,7 +35,6 @@ export async function joinWithToken(token: string): Promise<JoinOutcome> {
   } catch (error: unknown) {
     store.dispatch(joinIntentCleared())
     // 409 is the server's "this list is full" — worth its own message.
-    const message = error instanceof Error ? error.message : ''
-    return { status: message.includes('409') ? 'full' : 'invalid' }
+    return { status: refusedBecauseFull(error) ? 'full' : 'invalid' }
   }
 }
