@@ -62,7 +62,10 @@ export async function fetchInvite(
   const path = pathOf(aggregate, '/invites')
   const response = await fetcher(path, { method: 'POST' })
   if (!response.ok) {
-    throw new CommandRefused(response.status, `POST ${path} → ${response.status}`)
+    throw new CommandRefused(
+      response.status,
+      `POST ${path} → ${response.status}`,
+    )
   }
 
   const body: unknown = await response.json()
@@ -91,7 +94,10 @@ export async function joinByToken(
     body: JSON.stringify({ payload: { token }, meta }),
   })
   if (!response.ok) {
-    throw new CommandRefused(response.status, `POST /lists/join → ${response.status}`)
+    throw new CommandRefused(
+      response.status,
+      `POST /lists/join → ${response.status}`,
+    )
   }
 
   const body: unknown = await response.json()
@@ -118,7 +124,10 @@ export async function removeMember(
     body: JSON.stringify({ meta }),
   })
   if (!response.ok) {
-    throw new CommandRefused(response.status, `DELETE ${path} → ${response.status}`)
+    throw new CommandRefused(
+      response.status,
+      `DELETE ${path} → ${response.status}`,
+    )
   }
 }
 
@@ -147,7 +156,10 @@ export async function addMember(
     body: JSON.stringify({ payload: { memberId }, meta }),
   })
   if (!response.ok) {
-    throw new CommandRefused(response.status, `POST ${path} → ${response.status}`)
+    throw new CommandRefused(
+      response.status,
+      `POST ${path} → ${response.status}`,
+    )
   }
 }
 
@@ -196,7 +208,10 @@ export async function fetchSharingProjection(
   const path = collectionPathFor(kind)
   const response = await fetcher(path)
   if (!response.ok) {
-    throw new CommandRefused(response.status, `GET ${path} → ${response.status}`)
+    throw new CommandRefused(
+      response.status,
+      `GET ${path} → ${response.status}`,
+    )
   }
 
   const body: unknown = await response.json()

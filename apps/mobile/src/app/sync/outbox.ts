@@ -210,9 +210,7 @@ export class Outbox implements SendQueue, Cursors, Releases {
   /** True while this device has let go of the aggregate. Called by the pull, per aggregate the server named. */
   hasReleased(aggregate: Aggregate): boolean {
     const key = cursorKeyOf(aggregate)
-    return this.state.released.some(
-      (released) => cursorKeyOf(released) === key,
-    )
+    return this.state.released.some((released) => cursorKeyOf(released) === key)
   }
 
   /** Every unsettled release. Called at both ends of a sync cycle. */
