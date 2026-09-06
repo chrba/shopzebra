@@ -145,17 +145,45 @@ export async function ensureShadowAccount(name?: string): Promise<void> {
 }
 
 /**
- * Called at boot when the token cache is gone. Signs in only if an account
- * is known to exist — a device that never shared makes no network call.
- * Returns false when there is nothing to restore.
+ * Called at boot when the token cache is gone. Signs the stored credentials
+ * back in and reports whether there was a session to restore.
+ *
+ * `accountCreated` is a cache of a Cognito fact, not the fact itself, so it
+ * is not the only thing that may vouch for the account: a lost mark used to
+ * leave the device silently signed out for everything except sharing, which
+ * is the one path that heals it. Everything else — leaving a list, removing
+ * a member, the whole sync cycle — then ran without a token and collected
+ * 401s while the outbox filled up.
+ *
+ * A device that never shared still makes no network call: without the mark
+ * and without other proof, there is nothing to sign in to.
+ *
+ * @param accountIsVouchedFor Other evidence that the account exists, asked
+ *   only when the mark is missing. The boot passes prior server contact.
  */
-export async function restoreShadowSession(): Promise<boolean> {
+export async function restoreShadowSession(
+  accountIsVouchedFor: () => Promise<boolean> = () => Promise.resolve(false),
+): Promise<boolean> {
   const credentials = await ensureShadowCredentials()
-  if (!credentials.accountCreated) return false
+  if (!credentials.accountCreated && !(await accountIsVouchedFor())) {
+    return false
+  }
 
-  await signIn({
-    username: credentials.username,
-    password: credentials.password,
-  })
+  try {
+    await signIn({
+      username: credentials.username,
+      password: credentials.password,
+    })
+  } catch (error: unknown) {
+    // Vouched for but unknown to Cognito: the evidence was stale, not a
+    // reason to keep retrying every boot. The device carries on locally.
+    if (isUserNotFound(error)) return false
+    throw error
+  }
+
+  // The sign-in just proved what the mark failed to record.
+  if (!credentials.accountCreated) {
+    await persist({ ...credentials, accountCreated: true })
+  }
   return true
 }

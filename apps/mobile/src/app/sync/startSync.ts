@@ -3,7 +3,7 @@
 import { App as CapacitorApp } from '@capacitor/app'
 import { Network } from '@capacitor/network'
 import { store, type RootState } from '../store'
-import { removeItem } from '../clientStorage'
+import { getItem, removeItem, setItem } from '../clientStorage'
 import { initialSyncCompleted } from '../appSlice'
 import { selectHasAccount } from '../../features/auth/domain/authSlice'
 import {
@@ -16,7 +16,7 @@ import {
 } from '../../features/recipes/domain/recipesSlice'
 import type { Aggregate } from './aggregate'
 import { syncEngine } from './syncEngine'
-import { SYNC_STORAGE_KEY } from './outbox'
+import { serverHasAnsweredBefore, SYNC_STORAGE_KEY } from './outbox'
 
 // Guards the boot/sign-in race: the engine runs once per identity.
 let started = false
@@ -101,6 +101,15 @@ export function startSync(): void {
   void CapacitorApp.addListener('appStateChange', (state) => {
     if (state.isActive) void syncEngine.requestSync()
   })
+}
+
+/**
+ * Whether the server has ever answered this device. Handed to the boot's
+ * session restore, which cannot ask the sync layer itself without knowing
+ * about its storage.
+ */
+export function serverHasAnswered(): Promise<boolean> {
+  return serverHasAnsweredBefore({ getItem, setItem })
 }
 
 /**
