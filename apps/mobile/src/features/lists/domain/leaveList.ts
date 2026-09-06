@@ -6,7 +6,7 @@ import type { AppDispatch, RootState } from '../../../app/store'
 import { selectDeviceId } from '../../../app/appSlice'
 import { selectCurrentUserId } from '../../auth/domain/authSlice'
 import { authFetch, type Fetcher } from '../../../app/authFetch'
-import { removeMember } from '../../sharing/memberCommands'
+import { CommandRefused, removeMember } from '../../sharing/memberCommands'
 import { listDropped, listRestored, selectListById } from './listsSlice'
 
 /**
@@ -14,10 +14,15 @@ import { listDropped, listRestored, selectListById } from './listsSlice'
  * Then the list is already not ours — a leftover from an identity this
  * device no longer has, or a membership the owner ended. Either way it has
  * no business staying on screen, so this is a success, not a failure.
+ *
+ * Read from the status the command carries, never from its message: the
+ * message names the path, and a list or member id may hold any three digits.
  */
 function alreadyNotAMember(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : ''
-  return message.includes('403') || message.includes('404')
+  return (
+    error instanceof CommandRefused &&
+    (error.status === 403 || error.status === 404)
+  )
 }
 
 /**

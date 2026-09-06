@@ -1,9 +1,10 @@
 // The one place that knows what an action means to sync — whether it leaves
-// the device (its role) and where it goes (the log it is `on` or `opens`) —
-// plus the reverse for anything coming back. Composed once from the
-// declarations of every synced slice; withSync, the engine and the receive
-// path only consume it. Nothing here inspects an action's name or payload
-// shape: every answer comes from the declaration at its reducer.
+// the device (its role), where it goes (the log it is `on` or `opens`) and
+// what it lets go of (`releases`) — plus the reverse for anything coming
+// back. Composed once from the declarations of every synced slice; withSync,
+// the engine and the receive path only consume it. Nothing here inspects an
+// action's name or payload shape: every answer comes from the declaration at
+// its reducer.
 
 import type {
   ActionDeclaration,
@@ -15,6 +16,7 @@ import {
   collectionPathFor,
   eventsPathFor,
   idFieldOf,
+  type Aggregate,
   type AggregateKind,
 } from './aggregate'
 import type { OutboxEntry } from './outbox'
@@ -52,6 +54,21 @@ export type SyncPolicy = {
   readonly domainActionOf: (
     wire: PayloadAction<unknown>,
   ) => PayloadAction<unknown>
+
+  /**
+   * What does this device let go of? Called by SyncEngine.offer for every
+   * dispatch; null for everything but the few actions declaring `releases`.
+   *
+   *   listDropped({ listId: 'abc' })    → { kind: 'list', id: 'abc' }
+   *   listRenamed({ listId: 'abc' })    → null (we keep it)
+   *
+   * The receive path needs the answer because no event carries it:
+   * `confirmed` is the fold of the log, so a drop folded into it lasts
+   * exactly until that log is folded again.
+   */
+  readonly releasedAggregateOf: (
+    action: PayloadAction<unknown>,
+  ) => Aggregate | null
 }
 
 /**
@@ -78,6 +95,16 @@ type AppendingDeclaration = Extract<
   ActionDeclaration,
   { readonly on: AggregateKind }
 >
+type ReleasingDeclaration = Extract<
+  ActionDeclaration,
+  { readonly releases: AggregateKind }
+>
+
+function releasesAggregate(
+  declaration: ActionDeclaration,
+): declaration is ReleasingDeclaration {
+  return 'releases' in declaration
+}
 
 function opensAggregate(
   declaration: ActionDeclaration,
@@ -141,6 +168,19 @@ export function composeSyncPolicy(
       const declaration = declarations.get(action.type)
       if (!declaration || !REACHES_SERVER[declaration.role]) return null
       return routeOf(declaration, action)
+    },
+    releasedAggregateOf: (action) => {
+      const declaration = declarations.get(action.type)
+      if (
+        !declaration ||
+        !releasesAggregate(declaration) ||
+        !isRecord(action.payload)
+      ) {
+        return null
+      }
+      // The compiler already made the field mandatory; this only narrows unknown.
+      const id = action.payload[idFieldOf(declaration.releases)]
+      return typeof id === 'string' ? { kind: declaration.releases, id } : null
     },
     domainActionOf: (wire) => {
       const declaration = declarations.get(wire.type)

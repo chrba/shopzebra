@@ -16,7 +16,7 @@ Stage 1 moves events reliably (outbox + retry out, cursor catch-up in); stage 2 
 
 Conflicts are **not** merged on the client. On append, the server assigns a strictly increasing, gapless **position per list** (aggregate); all clients fold the events in exactly that order. Convergence holds by construction, not by merge rules — no CRDTs, no field versions, no last-writer-wins clocks.
 
-The engine exploits the project's central uniformity: **Redux action = domain event = wire format.** A `{ type, payload, meta }` goes over the wire unchanged. There is no mapping layer — which is why a new event type costs **close to zero lines of sync code**: `synced: true` on the slice, plus declaring the reducer (`role: 'event'` with `on`/`opens`, or `localEvent | observation | hydration`, see `app/createSlice.ts`). Still no `if` in the sync path — the composed policy looks it up.
+The engine exploits the project's central uniformity: **Redux action = domain event = wire format.** A `{ type, payload, meta }` goes over the wire unchanged. There is no mapping layer — which is why a new event type costs **close to zero lines of sync code**: `synced: true` on the slice, plus declaring the reducer (`role: 'event'` with `on`/`opens`, or `localEvent | observation | hydration`, see `app/createSlice.ts`). A `localEvent` that means "this device lets go of an aggregate" adds `releases` to its declaration. Still no `if` in the sync path — the composed policy looks it up.
 
 ---
 
@@ -68,7 +68,7 @@ Outside this folder, but part of the mechanism:
 - **`app/store.ts`** — wires `withSync` around the combined feature reducers. The visible tree stays at top level (`state.lists` etc. — every selector, middleware and `getState()` caller reads it unchanged); `confirmed` and `pending` live under `state.sync`. `sync` is a reserved top-level key.
 - **`app/syncMiddleware.ts`** — a single effect: every dispatched action is offered to `syncEngine.offer()`. No per-feature handlers, no `if` chains.
 - **`app/eventIdMiddleware.ts`** — stamps `eventId` + `deviceId` **before** the reducer. Actions with `meta.remote` keep their identity (otherwise dedup and ack matching would break).
-- **`app/createSlice.ts`** — `synced: true` on a slice forces every one of its reducers to declare itself (`role`, and for events `on`/`opens` naming the aggregate — the compiler checks the payload carries its id). The slice returns these `declarations`; `app/sync/appSyncPolicy.ts` composes them into the one `SyncPolicy` (`reachesServer`, `toOutboxEntry`, `domainActionOf`) that `withSync`, the engine and the receive path consume.
+- **`app/createSlice.ts`** — `synced: true` on a slice forces every one of its reducers to declare itself (`role`, and for events `on`/`opens` naming the aggregate — the compiler checks the payload carries its id). The slice returns these `declarations`; `app/sync/appSyncPolicy.ts` composes them into the one `SyncPolicy` (`reachesServer`, `toOutboxEntry`, `domainActionOf`, `releasedAggregateOf`) that `withSync`, the engine and the receive path consume.
 - **Class-2 commands and their events** — invites, join, add/remove member are direct fetches in `features/sharing/memberCommands.ts`, because their answer is needed *before* anything can be shown; the events they cause (`lists/listMemberAdded`, `lists/listMemberRemoved`, and their `recipes/…` counterparts) are written by the server, arrive **only** through catch-up and never travel the outbox. The optimistic rows shown on the tap come from `localEvent` actions (`listMemberAddedLocally`, …), never from a faked server echo.
 - **`features/*/domain/*ClientStorageHandler.ts`** (lists, shopping) — persist the **confirmed** tree on every `eventsConfirmed`. Optimistic events are not persisted there; they survive restarts via the outbox queue + `pendingRestored`.
 
@@ -169,6 +169,8 @@ Three things here are built this way on purpose:
 - **Own events are fetched and folded like everyone else's.** Only that way do they enter `confirmed` at their *server* position — the source of convergence. There is no skip list: the reducer removes them from `pending` by `eventId` in the same step, so nothing double-applies. (`meta.remote: true` on the batched events still stops any echo through the middleware.)
 - **The cursor advances only during catch-up, never on ack.** Foreign events may sit between the own cursor and the position of the own confirmed event — if the ack set the cursor, they would never be fetched.
 - **No wipe-and-refold.** Local state stays on screen, only the delta behind the cursor folds in on top. Boot is local-first: hydration renders immediately, catch-up runs in the background (`initialSyncCompleted` drives the skeleton cards on fresh devices).
+- **Absence from a collection only counts when the collection answered.** The engine lets go of everything its collection does not name (`dropWhatIsNoLongerOurs`) — being removed from a list is the one membership change whose event never reaches the removed device. So a listing that *failed* must not be reported as an empty one, or a single 500 on `GET /lists` takes every list off the device: `listCollections()` leaves an unreadable collection out of its answer instead of calling it empty, and the engine asks per kind.
+- **Nothing is pulled for an aggregate this device let go of.** Leaving a list is not an event of that list, so `confirmed` — being the fold of the log — cannot carry it: fold the log again and `listCreated` puts the list back. The letting-go is therefore recorded beside the cursor (`released`, driven by the `releases` declaration) and the pull stays silent about it (`receive/silenceForReleased.ts`). The record is settled the moment the collection stops naming the aggregate, so a later invitation folds its log from the start again.
 
 ---
 
@@ -182,7 +184,9 @@ Durable sync state is split by ownership:
   "queue":              [ /* OutboxEntry[]: { path, wire } — unacked sends */ ],
   // last confirmed position per aggregate, keyed "<kind>:<id>" — two kinds
   // may hand out the same id and must never share a cursor
-  "cursorByAggregate":  { "list:abc": "0000000042", "recipe:bolo": "0000000007" }
+  "cursorByAggregate":  { "list:abc": "0000000042", "recipe:bolo": "0000000007" },
+  // aggregates this device let go of, until the collection stops naming them
+  "released":           [ { "kind": "list", "id": "def" } ]
 }
 // shopzebra_lists / shopzebra_shopping (storage handlers)
 //   → the CONFIRMED tree, written on every eventsConfirmed
@@ -192,7 +196,7 @@ The restart round-trip: hydration loads the confirmed blobs into both trees (hyd
 
 The `Outbox` class holds its state as an immutable value and serializes writes through a `lastWrite` promise chain — no write overtakes another. A corrupted blob parses to `EMPTY` instead of crashing.
 
-Actions dispatched **before** `start()` has loaded the blob land in the engine's `preStartBuffer` and are enqueued at start — nothing is lost between first render and engine start.
+Actions dispatched **before** `start()` has loaded the blob land in the engine's `preStartBuffer` (releases in `preStartReleases`) and are written at start — nothing is lost between first render and engine start.
 
 ---
 

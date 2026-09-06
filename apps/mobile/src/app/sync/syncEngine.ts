@@ -8,15 +8,37 @@ import type { PayloadAction } from '../createSlice'
 import { getItem, setItem } from '../clientStorage'
 import { Outbox, type OutboxEntry, type SyncStorage } from './outbox'
 import { cursorsGuardedByFoldedState } from './receive/guardedCursors'
-import { cursorKeyOf, type Aggregate } from './aggregate'
+import { silenceForReleasedAggregates } from './receive/silenceForReleased'
+import { ALL_KINDS, cursorKeyOf, type Aggregate } from './aggregate'
 import { drainOutbox } from './send/drainOutbox'
 import { catchUp } from './receive/catchUp'
-import { httpTransport, type Transport } from './transport'
+import {
+  httpTransport,
+  type CollectionListing,
+  type Transport,
+} from './transport'
 import { pendingDiscarded, pendingRestored } from './withSync'
 import { appSyncPolicy } from './appSyncPolicy'
 import type { SyncPolicy } from './syncPolicy'
 
 export type Dispatch = (action: PayloadAction<unknown>) => void
+
+/**
+ * Reads a round of collection listings as the one question the letting-go
+ * asks: does the server say this aggregate is not ours any more? Only a
+ * collection that answered can say so — silence from an unreadable one is
+ * not a "no".
+ */
+function answersOf(collections: readonly CollectionListing[]) {
+  const answered = new Set(collections.map((collection) => collection.kind))
+  const named = new Set(
+    collections.flatMap((collection) => collection.named.map(cursorKeyOf)),
+  )
+  return {
+    saysGone: (aggregate: Aggregate): boolean =>
+      answered.has(aggregate.kind) && !named.has(cursorKeyOf(aggregate)),
+  }
+}
 
 const RETRY_BASE_MS = 1_000
 const RETRY_MAX_MS = 30_000
@@ -24,6 +46,8 @@ const RETRY_MAX_MS = 30_000
 export class SyncEngine {
   // Holds entries offered before openLocalLog() finished loading the outbox.
   private preStartBuffer: OutboxEntry[] = []
+  // Same for aggregates let go of before the log was open.
+  private preStartReleases: Aggregate[] = []
   private outbox: Outbox | null = null
   private dispatch: Dispatch | null = null
 
@@ -60,12 +84,28 @@ export class SyncEngine {
    * whether it is queued. Buffers until openLocalLog() ran.
    */
   offer(action: PayloadAction<unknown>): void {
+    const released = this.policy.releasedAggregateOf(action)
+    if (released) this.noteRelease(released)
+
     const entry = this.policy.toOutboxEntry(action)
     if (!entry) return
     if (this.outbox) {
       void this.outbox.enqueue(entry).then(() => this.requestSync())
     } else {
       this.preStartBuffer.push(entry)
+    }
+  }
+
+  /**
+   * Remembers that this device let go of an aggregate, so no later pull
+   * folds its log again and puts it back on screen. Buffered like a queued
+   * entry when the log is not open yet.
+   */
+  private noteRelease(aggregate: Aggregate): void {
+    if (this.outbox) {
+      void this.outbox.release(aggregate)
+    } else {
+      this.preStartReleases.push(aggregate)
     }
   }
 
@@ -85,6 +125,10 @@ export class SyncEngine {
       await outbox.enqueue(entry)
     }
     this.preStartBuffer = []
+    for (const aggregate of this.preStartReleases) {
+      await outbox.release(aggregate)
+    }
+    this.preStartReleases = []
     this.outbox = outbox
     // Refill the reducer's pending queue from the persisted outbox —
     // without it, offline edits would be invisible after a restart.
@@ -136,6 +180,7 @@ export class SyncEngine {
     this.outbox = null
     this.dispatch = null
     this.preStartBuffer = []
+    this.preStartReleases = []
   }
 
   /**
@@ -181,16 +226,68 @@ export class SyncEngine {
     }
     const held = this.heldAggregates()
     const heldKeys = new Set(held.map(cursorKeyOf))
-    const visible = await catchUp({
+    // Holding it again means this device never let go after all — leaving
+    // was refused and the list came back.
+    await this.reclaimWhatIsHeldAgain(outbox, heldKeys)
+    const collections = await this.readCollections()
+    const named = collections.flatMap((collection) => collection.named)
+    await catchUp({
       cursors: cursorsGuardedByFoldedState(outbox, (aggregate) =>
         heldKeys.has(cursorKeyOf(aggregate)),
       ),
       dispatch,
-      fetchAggregates: this.transport.fetchAggregates,
-      fetchEventsSince: this.transport.fetchEventsSince,
+      fetchAggregates: () => Promise.resolve(named),
+      fetchEventsSince: silenceForReleasedAggregates(
+        this.transport.fetchEventsSince,
+        (aggregate) => outbox.hasReleased(aggregate),
+      ),
       domainActionOf: this.policy.domainActionOf,
     })
-    this.dropWhatIsNoLongerOurs(outbox, held, visible)
+    this.dropWhatIsNoLongerOurs(outbox, held, collections)
+    await this.settleReleasesTheServerAgreesWith(outbox, collections)
+  }
+
+  /**
+   * What each collection named, for the collections that could be read.
+   * A transport that does not distinguish a failed listing from an empty
+   * one is taken at its word — everything it returned is everything every
+   * collection named, which is what it meant before the distinction existed.
+   */
+  private async readCollections(): Promise<readonly CollectionListing[]> {
+    if (this.transport.listCollections) return this.transport.listCollections()
+    const named = await this.transport.fetchAggregates()
+    return ALL_KINDS.map((kind) => ({
+      kind,
+      named: named.filter((aggregate) => aggregate.kind === kind),
+    }))
+  }
+
+  /** A release only stands while the aggregate is gone from here. */
+  private async reclaimWhatIsHeldAgain(
+    outbox: Outbox,
+    heldKeys: ReadonlySet<string>,
+  ): Promise<void> {
+    for (const aggregate of outbox.releasedAggregates()) {
+      if (heldKeys.has(cursorKeyOf(aggregate))) {
+        await outbox.reclaim(aggregate)
+      }
+    }
+  }
+
+  /**
+   * Forgets a release once the collection stops naming the aggregate: the
+   * server has caught up, and from here on only a fresh invitation can
+   * bring it back — which must pull its log from the start. A collection
+   * that could not be read says nothing either way, so it settles nothing.
+   */
+  private async settleReleasesTheServerAgreesWith(
+    outbox: Outbox,
+    collections: readonly CollectionListing[],
+  ): Promise<void> {
+    const answered = answersOf(collections)
+    for (const aggregate of outbox.releasedAggregates()) {
+      if (answered.saysGone(aggregate)) await outbox.reclaim(aggregate)
+    }
   }
 
   /**
@@ -199,18 +296,22 @@ export class SyncEngine {
    * removed device — access ends with it — so absence from the collection
    * is the only signal there is.
    *
-   * Guarded by the cursor: an aggregate the server never confirmed was
+   * Absence only counts from a collection that answered: a listing that
+   * failed proves nothing, and reading it as "you are a member of none of
+   * these" would take every list off the device over one 500.
+   *
+   * Guarded by the cursor too: an aggregate the server never confirmed was
    * written here and has not been sent yet. Dropping those would delete a
    * guest's own lists on their first cycle.
    */
   private dropWhatIsNoLongerOurs(
     outbox: Outbox,
     held: readonly Aggregate[],
-    visible: readonly Aggregate[],
+    collections: readonly CollectionListing[],
   ): void {
-    const visibleKeys = new Set(visible.map(cursorKeyOf))
+    const answered = answersOf(collections)
     for (const aggregate of held) {
-      if (visibleKeys.has(cursorKeyOf(aggregate))) continue
+      if (!answered.saysGone(aggregate)) continue
       if (outbox.cursorFor(aggregate) === null) continue
       this.dropAggregate(aggregate)
     }

@@ -166,10 +166,13 @@ const recipesSlice = createSlice({
 
     /**
      * Local-only: this device no longer holds the recipe — left, removed
-     * by its owner, or deleted while I was away.
+     * by its owner, or deleted while I was away. `releases` keeps the pull
+     * from folding its log again and handing the recipe back (listsSlice's
+     * listDropped says why at length).
      */
     recipeDropped: {
       role: 'localEvent',
+      releases: 'recipe',
       reducer: (
         state: RecipesState,
         action: PayloadAction<{ readonly recipeId: string }>,
