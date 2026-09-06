@@ -48,6 +48,10 @@ async fn handle(ports: &Ports<'_>, http_request: Request) -> Result<Response<Bod
         Ok(aggregate) => aggregate,
         Err(api_error) => return api_error.to_response(),
     };
+    // Kept before the request takes ownership of the aggregate: the answer
+    // names the kind the caller addressed, so the recipe route stops
+    // talking about lists.
+    let aggregate_kind = aggregate.kind;
     let Some(member_id) = http_request
         .path_parameters()
         .first("memberId")
@@ -82,9 +86,14 @@ async fn handle(ports: &Ports<'_>, http_request: Request) -> Result<Response<Bod
         Err(RemoveMemberError::NotAllowed(violation)) => {
             ApiError::Forbidden(violation.to_string()).to_response()
         }
-        Err(RemoveMemberError::NotAMember) => {
-            ApiError::BadRequest("the target is not a member of this list".into()).to_response()
-        }
+        // 404, not 400: the request was fine, the membership it addresses
+        // simply is not there. A client asking to leave something it already
+        // left must be able to read that as "already gone".
+        Err(RemoveMemberError::NotAMember) => ApiError::NotFound(format!(
+            "the target is not a member of this {}",
+            aggregate_kind.wire_name()
+        ))
+        .to_response(),
         Err(RemoveMemberError::Store(store_error)) => {
             tracing::error!(error = %store_error, "remove member failed");
             ApiError::Internal.to_response()

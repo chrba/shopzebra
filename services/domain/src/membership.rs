@@ -37,6 +37,17 @@ pub fn check_can_invite(role: Option<MemberRole>) -> Result<(), MembershipViolat
     }
 }
 
+/// Deleting is owner-only (owner model, domain-model.md §2). It ends the
+/// thing for everybody, so it is a stronger right than removing yourself:
+/// a member who wants out leaves instead.
+pub fn check_can_delete(role: Option<MemberRole>) -> Result<(), MembershipViolation> {
+    match role {
+        Some(MemberRole::Owner) => Ok(()),
+        Some(MemberRole::Member) => Err(MembershipViolation::OwnerOnly),
+        None => Err(MembershipViolation::NotAMember),
+    }
+}
+
 /// The owner removes anyone; a member only themselves.
 pub fn check_can_remove(
     caller_role: Option<MemberRole>,
@@ -109,6 +120,13 @@ mod tests {
         assert!(check_can_invite(Some(MemberRole::Owner)).is_ok());
         assert_eq!(check_can_invite(Some(MemberRole::Member)), Err(MembershipViolation::OwnerOnly));
         assert_eq!(check_can_invite(None), Err(MembershipViolation::NotAMember));
+    }
+
+    #[test]
+    fn only_the_owner_deletes() {
+        assert!(check_can_delete(Some(MemberRole::Owner)).is_ok());
+        assert_eq!(check_can_delete(Some(MemberRole::Member)), Err(MembershipViolation::OwnerOnly));
+        assert_eq!(check_can_delete(None), Err(MembershipViolation::NotAMember));
     }
 
     #[test]

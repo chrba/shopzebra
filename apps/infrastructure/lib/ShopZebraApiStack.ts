@@ -112,6 +112,14 @@ export class ShopZebraApiStack extends cdk.Stack {
       ...rustFunctionResources,
     })
 
+    // One lambda for every kind: what is deleted comes from the route, the
+    // way create-invite and remove-member already work (sharing-model.md).
+    const deleteAggregateFunction = new RustFunction(this, 'DeleteAggregateFunction', {
+      functionName: 'shopzebra-delete-aggregate',
+      manifestPath: path.join(SERVICES_DIR, 'lambdas', 'delete-aggregate'),
+      ...rustFunctionResources,
+    })
+
     const createFriendInviteFunction = new RustFunction(this, 'CreateFriendInviteFunction', {
       functionName: 'shopzebra-create-friend-invite',
       manifestPath: path.join(SERVICES_DIR, 'lambdas', 'create-friend-invite'),
@@ -153,6 +161,10 @@ export class ShopZebraApiStack extends cdk.Stack {
     eventsTable.grantReadWriteData(joinListFunction)
     eventsTable.grantReadWriteData(removeMemberFunction)
     membershipTable.grantReadWriteData(addMemberFunction)
+    // Deleting appends the delete event and then ends every membership —
+    // both tables, both written.
+    eventsTable.grantReadWriteData(deleteAggregateFunction)
+    membershipTable.grantReadWriteData(deleteAggregateFunction)
     // The address book lives in the membership table under USER# keys.
     membershipTable.grantReadWriteData(createFriendInviteFunction)
     membershipTable.grantReadWriteData(acceptFriendInviteFunction)
@@ -190,6 +202,15 @@ export class ShopZebraApiStack extends cdk.Stack {
       path: '/lists',
       methods: [apigwv2.HttpMethod.POST],
       integration: new apigwv2_integrations.HttpLambdaIntegration('CreateListIntegration', createListFunction),
+      authorizer,
+    })
+
+    // Deleting is a class-2 command, not a class-1 append: it ends every
+    // membership, so the server writes the event.
+    httpApi.addRoutes({
+      path: '/lists/{listId}',
+      methods: [apigwv2.HttpMethod.DELETE],
+      integration: new apigwv2_integrations.HttpLambdaIntegration('DeleteListIntegration', deleteAggregateFunction),
       authorizer,
     })
 
@@ -257,6 +278,13 @@ export class ShopZebraApiStack extends cdk.Stack {
       path: '/recipes',
       methods: [apigwv2.HttpMethod.GET],
       integration: new apigwv2_integrations.HttpLambdaIntegration('GetRecipesIntegration', getListsFunction),
+      authorizer,
+    })
+
+    httpApi.addRoutes({
+      path: '/recipes/{recipeId}',
+      methods: [apigwv2.HttpMethod.DELETE],
+      integration: new apigwv2_integrations.HttpLambdaIntegration('DeleteRecipeIntegration', deleteAggregateFunction),
       authorizer,
     })
 

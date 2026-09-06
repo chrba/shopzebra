@@ -775,6 +775,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "delete-aggregate"
+version = "0.1.0"
+dependencies = [
+ "adapters",
+ "aws-config",
+ "aws-sdk-dynamodb",
+ "domain",
+ "lambda_http",
+ "lib",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "deranged"
 version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
