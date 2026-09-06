@@ -170,24 +170,6 @@ const listsSlice = createSlice({
       }),
     },
 
-    /**
-     * Local-only: leaving failed, so the list comes back. The counterpart
-     * of listDropped, which is dispatched before the server has answered so
-     * the tile disappears on the tap.
-     *
-     * Total, like every fold: a list that is already there stays as it is.
-     */
-    listRestored: {
-      role: 'localEvent',
-      reducer: (
-        state: ListsState,
-        action: PayloadAction<{ readonly list: ShoppingList }>,
-      ): ListsState =>
-        state.lists.some((list) => list.id === action.payload.list.id)
-          ? state
-          : { ...state, lists: [...state.lists, action.payload.list] },
-    },
-
     listDeleted: {
       role: 'event',
       on: 'list',
@@ -317,7 +299,6 @@ export const {
   listsLoaded,
   listCreated,
   listDropped,
-  listRestored,
   listRenamed,
   listDeleted,
   listMemberAdded,

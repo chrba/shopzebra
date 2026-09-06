@@ -66,27 +66,45 @@ describe('leaving a list', () => {
     expect(store.remaining()).toEqual([])
   })
 
-  // Optimism needs a way back: the membership still exists on the server,
-  // so the list must not stay gone.
-  test('puts the list back when the server refuses', async () => {
+  // Leaving is this device's decision; the server is only told. A refusal
+  // says something about the membership over there, never about what the
+  // user just decided over here.
+  test('keeps the list gone when the server refuses', async () => {
     const store = storeOf()
 
-    const failed = await store.leave(answering(500)).then(
-      () => false,
-      () => true,
-    )
+    await store.leave(answering(500))
 
-    expect(failed).toBe(true)
-    expect(store.remaining()).toEqual(['l1'])
+    expect(store.remaining()).toEqual([])
   })
 
-  // A 403 means the membership is already gone — leaving had happened
-  // before, so the list stays away rather than coming back.
+  // A 403 means the membership was already gone. Same outcome as every
+  // other answer — the status has nothing left to decide.
   test('keeps the list gone when the server says it was never ours', async () => {
     const store = storeOf()
 
     await store.leave(answering(403))
 
     expect(store.remaining()).toEqual([])
+  })
+
+  // Nothing the server does may reach the UI as "leaving failed", so the
+  // thunk must not reject — not on a refusal and not on a dead network.
+  test('never reports a failure the user could act on', async () => {
+    const exploding: Fetcher = () => Promise.reject(new Error('offline'))
+
+    const refused = await storeOf()
+      .leave(answering(500))
+      .then(
+        () => false,
+        () => true,
+      )
+    const offline = await storeOf()
+      .leave(exploding)
+      .then(
+        () => false,
+        () => true,
+      )
+
+    expect([refused, offline]).toEqual([false, false])
   })
 })
