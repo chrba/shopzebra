@@ -9,7 +9,10 @@ import {
   selectCurrentUserId,
   selectDisplayName,
 } from '../../auth/domain/authSlice'
-import { memberAvatarColor, memberInitial } from '../../lists/domain/memberAvatar'
+import {
+  memberAvatarColor,
+  memberInitial,
+} from '../../lists/domain/memberAvatar'
 import {
   MEMBER_NAME_FALLBACK,
   memberDisplayName,
@@ -180,18 +183,16 @@ export function RecipesPage() {
         open={pendingDelete !== undefined}
         title="Rezept löschen?"
         message={
-          <>
-            „{pendingDelete?.name}" wird für alle gelöscht, die es sehen.
-          </>
+          <>„{pendingDelete?.name}" wird für alle gelöscht, die es sehen.</>
         }
         confirmLabel="Löschen"
         onConfirm={() => {
-          if (pendingDeleteId) dispatch(recipeDeleted({ recipeId: pendingDeleteId }))
+          if (pendingDeleteId)
+            dispatch(recipeDeleted({ recipeId: pendingDeleteId }))
           setPendingDeleteId(null)
         }}
         onCancel={() => setPendingDeleteId(null)}
       />
-
     </div>
   )
 }

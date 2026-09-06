@@ -20,7 +20,9 @@ function respondingWith(status: number, body: unknown): Fetcher {
 
 /** Answers each collection endpoint with its own body, like the server does. */
 function servingCollections(
-  bodyByPath: Readonly<Record<string, { readonly status: number; readonly body: unknown }>>,
+  bodyByPath: Readonly<
+    Record<string, { readonly status: number; readonly body: unknown }>
+  >,
 ): Fetcher {
   return (path) => {
     const answer = bodyByPath[path] ?? { status: 404, body: {} }

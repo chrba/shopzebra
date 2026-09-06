@@ -21,11 +21,19 @@ function rootStateAfter(
   return { lists }
 }
 
-const createdList = listCreated({ listId: 'l1', name: 'Einkauf', ownerId: 'mama' })
+const createdList = listCreated({
+  listId: 'l1',
+  name: 'Einkauf',
+  ownerId: 'mama',
+})
 
 function withMembers(count: number) {
   const joins = Array.from({ length: count }, (_, index) =>
-    listMemberAdded({ listId: 'l1', memberId: `member-${index}`, name: `M${index}` }),
+    listMemberAdded({
+      listId: 'l1',
+      memberId: `member-${index}`,
+      name: `M${index}`,
+    }),
   )
   return [createdList, ...joins]
 }
@@ -42,8 +50,14 @@ describe('the member cap from the server', () => {
   })
 
   it('reports full exactly at the cap', () => {
-    const belowCap = rootStateAfter(...withMembers(4), memberLimitLoaded({ maxMembers: 6 }))
-    const atCap = rootStateAfter(...withMembers(5), memberLimitLoaded({ maxMembers: 6 }))
+    const belowCap = rootStateAfter(
+      ...withMembers(4),
+      memberLimitLoaded({ maxMembers: 6 }),
+    )
+    const atCap = rootStateAfter(
+      ...withMembers(5),
+      memberLimitLoaded({ maxMembers: 6 }),
+    )
 
     // owner + 5 joined = 6 members
     expect(selectListIsFull(belowCap, 'l1')).toBe(false)

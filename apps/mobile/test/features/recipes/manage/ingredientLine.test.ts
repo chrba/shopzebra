@@ -45,7 +45,11 @@ describe('writing an ingredient the way a cook would', () => {
   })
 
   it('what was typed comes back when the recipe is edited again', () => {
-    for (const line of ['500g Spaghetti', '2 Zwiebeln', 'Salz nach Geschmack']) {
+    for (const line of [
+      '500g Spaghetti',
+      '2 Zwiebeln',
+      'Salz nach Geschmack',
+    ]) {
       const parsed = parseIngredientLine(line)
       expect(parsed).not.toBeNull()
       expect(toIngredientLine(parsed!).toLowerCase()).toBe(line.toLowerCase())
@@ -59,6 +63,8 @@ describe('writing an ingredient the way a cook would', () => {
     expect(
       ingredientAmountOf({ name: 'Zwiebeln', quantity: '2', unit: '' }),
     ).toBe('2')
-    expect(ingredientAmountOf({ name: 'Salz', quantity: '', unit: '' })).toBe('')
+    expect(ingredientAmountOf({ name: 'Salz', quantity: '', unit: '' })).toBe(
+      '',
+    )
   })
 })

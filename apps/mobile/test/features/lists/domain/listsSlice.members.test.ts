@@ -19,7 +19,10 @@ const initialization = { type: '@@INIT' }
 function rootStateAfter(
   ...actions: readonly { readonly type: string }[]
 ): ListsRootState {
-  const lists = actions.reduce(listsReducer, listsReducer(undefined, initialization))
+  const lists = actions.reduce(
+    listsReducer,
+    listsReducer(undefined, initialization),
+  )
   return { lists }
 }
 
@@ -43,7 +46,11 @@ describe('listMemberAdded', () => {
   })
 
   it('folds the same member twice without duplicating', () => {
-    const added = listMemberAdded({ listId: 'l1', memberId: 'tom', name: 'Tom' })
+    const added = listMemberAdded({
+      listId: 'l1',
+      memberId: 'tom',
+      name: 'Tom',
+    })
     const state = rootStateAfter(createdByMama, added, added)
 
     expect(selectListMembers(state, 'l1')).toHaveLength(2)

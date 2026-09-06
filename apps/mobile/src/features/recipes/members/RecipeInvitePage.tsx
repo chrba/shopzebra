@@ -26,7 +26,10 @@ export function RecipeInvitePage({ recipeId, state }: RecipeInvitePageProps) {
         `Koch mit mir "${recipe?.name ?? ''}" bei ShopZebra: ${link}`
       }
       onBack={() =>
-        void navigate({ to: '/recipes/$recipeId/members', params: { recipeId } })
+        void navigate({
+          to: '/recipes/$recipeId/members',
+          params: { recipeId },
+        })
       }
     />
   )

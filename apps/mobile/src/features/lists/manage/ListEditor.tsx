@@ -21,13 +21,14 @@ const EMOJIS = [
   '\u2708',
 ] as const
 
-const COLORS: readonly { readonly name: AccentColor; readonly hex: string }[] = [
-  { name: 'green', hex: '#6BBF6B' },
-  { name: 'blue', hex: '#5BA8D5' },
-  { name: 'red', hex: '#E07B7B' },
-  { name: 'purple', hex: '#A07BCC' },
-  { name: 'yellow', hex: '#E8C44A' },
-]
+const COLORS: readonly { readonly name: AccentColor; readonly hex: string }[] =
+  [
+    { name: 'green', hex: '#6BBF6B' },
+    { name: 'blue', hex: '#5BA8D5' },
+    { name: 'red', hex: '#E07B7B' },
+    { name: 'purple', hex: '#A07BCC' },
+    { name: 'yellow', hex: '#E8C44A' },
+  ]
 
 const COLOR_BG_MAP: Record<AccentColor, string> = {
   green: 'bg-[rgba(107,191,107,0.12)]',
@@ -173,8 +174,8 @@ export function ListEditor({
             value={e}
             className={cn(
               'flex aspect-square h-auto w-full min-w-0 shrink items-center justify-center rounded-[clamp(10px,2.5vw,20px)] p-0 text-[clamp(1.25rem,5.5vw,2.5rem)] transition-all',
-              'bg-secondary border-2 border-transparent hover:bg-secondary',
-              'data-[state=on]:border-teal data-[state=on]:bg-[rgba(78,157,166,0.12)] data-[state=on]:border-2',
+              'bg-secondary hover:bg-secondary border-2 border-transparent',
+              'data-[state=on]:border-teal data-[state=on]:border-2 data-[state=on]:bg-[rgba(78,157,166,0.12)]',
             )}
           >
             {e}
@@ -221,7 +222,8 @@ export function ListEditor({
               )}
               style={{
                 backgroundColor: colorOption.hex,
-                borderColor: colorOption.name === color ? 'white' : 'transparent',
+                borderColor:
+                  colorOption.name === color ? 'white' : 'transparent',
                 borderWidth: '3px',
               }}
               aria-label={colorOption.name}

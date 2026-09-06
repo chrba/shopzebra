@@ -66,7 +66,11 @@ export function InvitePage({
 
   if (state.status === 'notOwner') {
     return (
-      <InviteNotice message={notOwnerMessage} actionLabel="Zurück" onAction={onBack} />
+      <InviteNotice
+        message={notOwnerMessage}
+        actionLabel="Zurück"
+        onAction={onBack}
+      />
     )
   }
 

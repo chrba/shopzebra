@@ -112,7 +112,9 @@ export function RecipeTile({
     <div
       role="link"
       tabIndex={0}
-      onClick={() => void navigate({ to: '/recipes/$recipeId', params: { recipeId } })}
+      onClick={() =>
+        void navigate({ to: '/recipes/$recipeId', params: { recipeId } })
+      }
       onKeyDown={(event) => {
         if (event.key === 'Enter')
           void navigate({ to: '/recipes/$recipeId', params: { recipeId } })

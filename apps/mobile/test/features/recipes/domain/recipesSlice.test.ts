@@ -102,10 +102,9 @@ describe('recipes', () => {
       }),
     ])
 
-    expect(selectRecipeMembers(state, 'bolo').map((member) => member.id)).toEqual([
-      'mama',
-      'tom',
-    ])
+    expect(
+      selectRecipeMembers(state, 'bolo').map((member) => member.id),
+    ).toEqual(['mama', 'tom'])
   })
 
   it('a deleted recipe is gone from the collection', () => {

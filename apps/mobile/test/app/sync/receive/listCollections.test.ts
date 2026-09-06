@@ -8,7 +8,9 @@ import { listCollections } from '@/app/sync/receive/fetchEvents'
 
 type Answer = { readonly status: number; readonly body: unknown }
 
-function servingCollections(answers: Readonly<Record<string, Answer>>): Fetcher {
+function servingCollections(
+  answers: Readonly<Record<string, Answer>>,
+): Fetcher {
   return (path) => {
     const answer = answers[path]
     if (!answer) throw new Error(`unexpected path ${path}`)
@@ -51,9 +53,9 @@ describe('listing the collections', () => {
       'list',
       'recipe',
     ])
-    expect(collections.every((collection) => collection.named.length === 0)).toBe(
-      true,
-    )
+    expect(
+      collections.every((collection) => collection.named.length === 0),
+    ).toBe(true)
   })
 
   // The difference the whole type exists for. "You are a member of none of

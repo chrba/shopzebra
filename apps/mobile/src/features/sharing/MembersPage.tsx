@@ -22,7 +22,13 @@ import { PageHeader } from '../../components/PageHeader'
 import { SwipeAction } from '../../components/SwipeAction'
 
 /** Coloured circle with the person's initial — the avatar of every row. */
-function AvatarCircle({ id, name }: { readonly id: string; readonly name: string }) {
+function AvatarCircle({
+  id,
+  name,
+}: {
+  readonly id: string
+  readonly name: string
+}) {
   return (
     <div
       className="flex size-11 shrink-0 items-center justify-center rounded-full text-[17px] font-bold text-white"
@@ -76,7 +82,12 @@ type FriendCandidateRowProps = {
 }
 
 /** A friend not yet on the list — one tap puts them on it. */
-function FriendCandidateRow({ name, friendId, disabled, onAdd }: FriendCandidateRowProps) {
+function FriendCandidateRow({
+  name,
+  friendId,
+  disabled,
+  onAdd,
+}: FriendCandidateRowProps) {
   return (
     <button
       className="bg-card flex items-center gap-3 rounded-2xl px-4 py-3.5 text-left active:opacity-70 disabled:opacity-40"
@@ -304,9 +315,7 @@ export function MembersPage({
           </div>
         )}
 
-        {isOwner && !isFull && (
-          <InviteCta onClick={onInvite} />
-        )}
+        {isOwner && !isFull && <InviteCta onClick={onInvite} />}
       </div>
 
       {toast.element}

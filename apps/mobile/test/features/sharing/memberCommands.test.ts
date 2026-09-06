@@ -106,7 +106,9 @@ describe('joinByToken', () => {
   it('rejects a response that does not say what was joined', async () => {
     const { fetcher } = recordingFetcher(200, { listId: 'l1' })
 
-    await expect(joinByToken('tok-1', meta, fetcher)).rejects.toThrow('malformed')
+    await expect(joinByToken('tok-1', meta, fetcher)).rejects.toThrow(
+      'malformed',
+    )
   })
 })
 
@@ -167,8 +169,9 @@ describe('fetchSharingProjection', () => {
   it('yields nothing when the field is absent instead of failing', async () => {
     const { fetcher } = recordingFetcher(200, { lists: ['l1'] })
 
-    await expect(
-      fetchSharingProjection('list', fetcher),
-    ).resolves.toEqual({ ownerNames: {}, maxMembers: null })
+    await expect(fetchSharingProjection('list', fetcher)).resolves.toEqual({
+      ownerNames: {},
+      maxMembers: null,
+    })
   })
 })

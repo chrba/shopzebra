@@ -254,7 +254,7 @@ export function SwipeAction({
           flex-1 + [&>*]:flex-1 ensures Card fills full grid-row height. */}
       <div
         ref={foregroundRef}
-        className="bg-background relative z-10 flex flex-1 flex-col select-none touch-pan-y [&>*]:flex-1"
+        className="bg-background relative z-10 flex flex-1 touch-pan-y flex-col select-none [&>*]:flex-1"
         style={{ willChange: 'transform' }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}

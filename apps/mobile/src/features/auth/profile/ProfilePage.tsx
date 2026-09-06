@@ -58,7 +58,10 @@ function CameraIcon() {
 /** Dimmed right-pointing arrow indicating a tappable row. */
 function ChevronRightIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="size-[18px] shrink-0 fill-[var(--text-dim,rgba(255,255,255,0.35))]">
+    <svg
+      viewBox="0 0 24 24"
+      className="size-[18px] shrink-0 fill-[var(--text-dim,rgba(255,255,255,0.35))]"
+    >
       <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
     </svg>
   )
@@ -126,16 +129,16 @@ export function ProfilePage() {
       {/* Personal data — the name exists from the first start, so this
           section is never empty. */}
       <div className="mx-5 mb-4">
-        <div className="text-muted-foreground mb-2 pl-1 text-xs font-semibold uppercase tracking-wider">
+        <div className="text-muted-foreground mb-2 pl-1 text-xs font-semibold tracking-wider uppercase">
           Persönliche Daten
         </div>
-        <div className="bg-card divide-border overflow-hidden rounded-2xl border divide-y">
+        <div className="bg-card divide-border divide-y overflow-hidden rounded-2xl border">
           {/* Name */}
           <button
             className="flex w-full items-center gap-3 px-4 py-3.5 text-left active:opacity-70"
             onClick={() => setEditingName(true)}
           >
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-[rgba(78,157,166,0.12)] text-teal">
+            <div className="text-teal flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-[rgba(78,157,166,0.12)]">
               <PersonIcon />
             </div>
             <div className="min-w-0 flex-1">
@@ -145,9 +148,11 @@ export function ProfilePage() {
                   value={nameInput}
                   onChange={(e) => setNameInput(e.target.value)}
                   onBlur={handleSaveName}
-                  onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') e.currentTarget.blur()
+                  }}
                   autoFocus
-                  className="h-auto rounded-xl border-input px-3.5 py-2.5 text-[15px] font-semibold focus:border-teal focus:ring-[rgba(78,157,166,0.3)]"
+                  className="border-input focus:border-teal h-auto rounded-xl px-3.5 py-2.5 text-[15px] font-semibold focus:ring-[rgba(78,157,166,0.3)]"
                 />
               ) : (
                 <>
@@ -169,23 +174,23 @@ export function ProfilePage() {
 
           {/* Email — a guest has none until M2 links one */}
           {linked !== null && (
-          <div className="flex items-center gap-3 px-4 py-3.5">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-white/[0.04] text-muted-foreground">
-              <EmailIcon />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-[15px] font-semibold">E-Mail</div>
-              <div className="text-muted-foreground truncate text-[13px] font-medium">
-                {email || 'Nicht verfügbar'}
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <div className="text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-white/[0.04]">
+                <EmailIcon />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[15px] font-semibold">E-Mail</div>
+                <div className="text-muted-foreground truncate text-[13px] font-medium">
+                  {email || 'Nicht verfügbar'}
+                </div>
               </div>
             </div>
-          </div>
           )}
 
           {/* Change password — only for email/password accounts */}
           {linked !== null && !isFederated && (
             <button className="flex w-full items-center gap-3 px-4 py-3.5 text-left active:opacity-70">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-white/[0.04] text-muted-foreground">
+              <div className="text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-white/[0.04]">
                 <LockIcon />
               </div>
               <div className="min-w-0 flex-1">
@@ -199,22 +204,22 @@ export function ProfilePage() {
 
       {/* Account — signing out a guest would throw away their only copy */}
       {linked !== null && (
-      <div className="mx-5 mb-4">
-        <div className="text-muted-foreground mb-2 pl-1 text-xs font-semibold uppercase tracking-wider">
-          Konto
+        <div className="mx-5 mb-4">
+          <div className="text-muted-foreground mb-2 pl-1 text-xs font-semibold tracking-wider uppercase">
+            Konto
+          </div>
+          <div className="bg-card overflow-hidden rounded-2xl border">
+            <button
+              className="flex w-full items-center gap-3 px-4 py-3.5 text-left active:opacity-70"
+              onClick={handleSignOut}
+            >
+              <div className="text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-white/[0.04]">
+                <LogoutIcon />
+              </div>
+              <div className="text-[15px] font-semibold">Abmelden</div>
+            </button>
+          </div>
         </div>
-        <div className="bg-card overflow-hidden rounded-2xl border">
-          <button
-            className="flex w-full items-center gap-3 px-4 py-3.5 text-left active:opacity-70"
-            onClick={handleSignOut}
-          >
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-white/[0.04] text-muted-foreground">
-              <LogoutIcon />
-            </div>
-            <div className="text-[15px] font-semibold">Abmelden</div>
-          </button>
-        </div>
-      </div>
       )}
 
       {/* Legal Footer */}
@@ -232,12 +237,12 @@ export function ProfilePage() {
 
       {/* Delete account */}
       {linked !== null && (
-      <button
-        className="mx-auto pt-3 text-[13px] font-medium text-destructive opacity-50 transition-opacity hover:opacity-80"
-        onClick={() => setDeleteDialogOpen(true)}
-      >
-        Konto löschen
-      </button>
+        <button
+          className="text-destructive mx-auto pt-3 text-[13px] font-medium opacity-50 transition-opacity hover:opacity-80"
+          onClick={() => setDeleteDialogOpen(true)}
+        >
+          Konto löschen
+        </button>
       )}
 
       {/* Version */}

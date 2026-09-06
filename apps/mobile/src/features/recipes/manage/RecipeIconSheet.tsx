@@ -76,7 +76,7 @@ export function RecipeIconSheet({ onPick, onClose }: RecipeIconSheetProps) {
                 className={cn(
                   'h-auto shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold',
                   category.name === activeCategory
-                    ? 'bg-[rgba(78,157,166,0.14)] text-teal'
+                    ? 'text-teal bg-[rgba(78,157,166,0.14)]'
                     : 'bg-secondary text-muted-foreground',
                 )}
               >

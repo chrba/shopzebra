@@ -74,8 +74,6 @@ const iconBgMap: Record<AccentColor, string> = {
 /** Beyond this the circles would outgrow the tile; the rest is a count. */
 const VISIBLE_AVATARS = 3
 
-
-
 /**
  * Single shopping list card in the overview grid — shows emoji, name, item count, members.
  * @param props.list View model with all data needed to render the card.

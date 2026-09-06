@@ -5,8 +5,16 @@ import {
   listDropped,
   selectAllLists,
 } from '@/features/lists/domain/listsSlice'
-import { preferencesReducer, listPreferencesSet, selectAllListPreferences } from '@/features/preferences/domain/preferencesSlice'
-import { shoppingReducer, itemAdded, selectListItems } from '@/features/shopping/domain/shoppingSlice'
+import {
+  preferencesReducer,
+  listPreferencesSet,
+  selectAllListPreferences,
+} from '@/features/preferences/domain/preferencesSlice'
+import {
+  shoppingReducer,
+  itemAdded,
+  selectListItems,
+} from '@/features/shopping/domain/shoppingSlice'
 import { appSyncPolicy } from '@/app/sync/appSyncPolicy'
 
 const fold = (actions: readonly { type: string }[]) =>
@@ -65,7 +73,10 @@ describe('dropping a list', () => {
       }),
     )
 
-    const preferences = preferencesReducer(withPrefs, listDropped({ listId: 'l1' }))
+    const preferences = preferencesReducer(
+      withPrefs,
+      listDropped({ listId: 'l1' }),
+    )
 
     expect(selectAllListPreferences({ preferences })['l1']).toBeUndefined()
   })

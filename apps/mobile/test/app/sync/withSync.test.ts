@@ -20,7 +20,10 @@ const initialCart: Cart = { quantityByItem: {}, theme: 'light' }
 
 function isQuantitySet(
   action: PayloadAction<unknown>,
-): action is PayloadAction<{ readonly itemId: string; readonly quantity: number }> {
+): action is PayloadAction<{
+  readonly itemId: string
+  readonly quantity: number
+}> {
   return action.type === 'cart/quantitySet'
 }
 
@@ -61,7 +64,11 @@ function quantitySet(
   }
 }
 
-function confirmed(quantity: number, eventId: string, position: string): ConfirmedEvent {
+function confirmed(
+  quantity: number,
+  eventId: string,
+  position: string,
+): ConfirmedEvent {
   return {
     type: 'cart/quantitySet',
     payload: { itemId: 'milk', quantity },
@@ -113,7 +120,10 @@ describe('withSync', () => {
 
   it('removes an own confirmed event from pending without changing the value', () => {
     const optimistic = reduce(freshState(), quantitySet(2, 'e1'))
-    const acked = reduce(optimistic, eventsConfirmed([confirmed(2, 'e1', '07')]))
+    const acked = reduce(
+      optimistic,
+      eventsConfirmed([confirmed(2, 'e1', '07')]),
+    )
     expect(acked.pending).toEqual([])
     expect(acked.confirmed.quantityByItem.milk).toBe(2)
     expect(acked.visible.quantityByItem.milk).toBe(2)
@@ -137,7 +147,10 @@ describe('withSync', () => {
   it('rebases: a foreign confirmation slides UNDER the own pending event', () => {
     const optimistic = reduce(freshState(), quantitySet(2, 'mine'))
     // Foreign event is confirmed first — own event is still pending.
-    const state = reduce(optimistic, eventsConfirmed([confirmed(5, 'theirs', '07')]))
+    const state = reduce(
+      optimistic,
+      eventsConfirmed([confirmed(5, 'theirs', '07')]),
+    )
     expect(state.confirmed.quantityByItem.milk).toBe(5)
     // Own pending intent stays on top until the server orders it.
     expect(state.visible.quantityByItem.milk).toBe(2)

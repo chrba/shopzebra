@@ -25,6 +25,8 @@ export function listsFromStorage(parsed: unknown): readonly ShoppingList[] {
     }
     // Spread rather than assign undefined: memberNames is optional, and
     // under exactOptionalPropertyTypes "absent" and "undefined" differ.
-    return [entry.memberNames ? { ...list, memberNames: entry.memberNames } : list]
+    return [
+      entry.memberNames ? { ...list, memberNames: entry.memberNames } : list,
+    ]
   })
 }

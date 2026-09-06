@@ -23,7 +23,10 @@ export async function fetchFriends(
 
   return friends.flatMap((entry: unknown): readonly Friend[] => {
     if (entry === null || typeof entry !== 'object') return []
-    const { id, name } = entry as { readonly id?: unknown; readonly name?: unknown }
+    const { id, name } = entry as {
+      readonly id?: unknown
+      readonly name?: unknown
+    }
     if (typeof id !== 'string') return []
     return [{ id, name: typeof name === 'string' ? name : null }]
   })

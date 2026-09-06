@@ -56,7 +56,11 @@ describe('listsSlice — Listen verwalten', () => {
 
   it('listCreated legt die Liste an — der Owner ist erstes Mitglied', () => {
     const state = rootStateAfter(
-      listCreated({ listId: 'groceries', name: 'Wocheneinkauf', ownerId: 'mama' }),
+      listCreated({
+        listId: 'groceries',
+        name: 'Wocheneinkauf',
+        ownerId: 'mama',
+      }),
     )
 
     expect(selectListCount(state)).toBe(1)
@@ -70,7 +74,11 @@ describe('listsSlice — Listen verwalten', () => {
 
   it('listCreated lässt bestehende Listen unberührt', () => {
     const state = rootStateAfter(
-      listCreated({ listId: 'groceries', name: 'Wocheneinkauf', ownerId: 'mama' }),
+      listCreated({
+        listId: 'groceries',
+        name: 'Wocheneinkauf',
+        ownerId: 'mama',
+      }),
       listCreated({ listId: 'drugstore', name: 'Drogerie', ownerId: 'papa' }),
     )
 
@@ -122,7 +130,11 @@ describe('listsSlice — Listen verwalten', () => {
 
   it('listsLoaded ersetzt den Listenbestand', () => {
     const state = rootStateAfter(
-      listCreated({ listId: 'groceries', name: 'Wocheneinkauf', ownerId: 'mama' }),
+      listCreated({
+        listId: 'groceries',
+        name: 'Wocheneinkauf',
+        ownerId: 'mama',
+      }),
       listsLoaded({ lists: [drugstore] }),
     )
 
@@ -135,7 +147,11 @@ describe('listsSlice — Reducer-Kontrakt', () => {
     // Referential stability is observable behavior in Redux:
     // it is what prevents unnecessary re-renders.
     const before = rootStateAfter(
-      listCreated({ listId: 'groceries', name: 'Wocheneinkauf', ownerId: 'mama' }),
+      listCreated({
+        listId: 'groceries',
+        name: 'Wocheneinkauf',
+        ownerId: 'mama',
+      }),
     ).lists
     const after = listsReducer(before, { type: 'somewhere/else' })
 
@@ -144,12 +160,18 @@ describe('listsSlice — Reducer-Kontrakt', () => {
 
   it('dieselbe Event-Folge ergibt denselben State (replay-pur)', () => {
     const eventSequence = [
-      listCreated({ listId: 'groceries', name: 'Wocheneinkauf', ownerId: 'mama' }),
+      listCreated({
+        listId: 'groceries',
+        name: 'Wocheneinkauf',
+        ownerId: 'mama',
+      }),
       listCreated({ listId: 'drugstore', name: 'Drogerie', ownerId: 'papa' }),
       listRenamed({ listId: 'groceries', name: 'Großeinkauf' }),
       listDeleted({ listId: 'drugstore' }),
     ]
 
-    expect(rootStateAfter(...eventSequence)).toEqual(rootStateAfter(...eventSequence))
+    expect(rootStateAfter(...eventSequence)).toEqual(
+      rootStateAfter(...eventSequence),
+    )
   })
 })

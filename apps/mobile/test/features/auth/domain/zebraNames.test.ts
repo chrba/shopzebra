@@ -1,8 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import {
-  ZEBRA_NAMES,
-  randomZebraName,
-} from '@/features/auth/domain/zebraNames'
+import { ZEBRA_NAMES, randomZebraName } from '@/features/auth/domain/zebraNames'
 
 describe('the zebra names', () => {
   // The size is the whole collision argument: with six people on one list

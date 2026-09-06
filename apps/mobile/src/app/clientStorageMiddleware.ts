@@ -28,10 +28,14 @@ const handlers: readonly ClientStorageHandler[] = [
   preferencesClientStorageHandler,
 ]
 
-export const clientStorageMiddleware: Middleware = (api) => (next) => (action) => {
-  const result = next(action)
-  for (const handler of handlers) {
-    handler(action as { readonly type: string; readonly payload?: unknown }, api.getState)
+export const clientStorageMiddleware: Middleware =
+  (api) => (next) => (action) => {
+    const result = next(action)
+    for (const handler of handlers) {
+      handler(
+        action as { readonly type: string; readonly payload?: unknown },
+        api.getState,
+      )
+    }
+    return result
   }
-  return result
-}

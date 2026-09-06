@@ -5,7 +5,10 @@ import { selectInitialSyncDone } from '../../../app/appSlice'
 import { listDeleted, selectAllLists } from '../domain/listsSlice'
 import { leaveList } from '../domain/leaveList'
 import { memberAvatarColor, memberInitial } from '../domain/memberAvatar'
-import { MEMBER_NAME_FALLBACK, memberDisplayName } from '../../sharing/memberDisplayName'
+import {
+  MEMBER_NAME_FALLBACK,
+  memberDisplayName,
+} from '../../sharing/memberDisplayName'
 import { selectFriendCount } from '../../friends/domain/friendsSlice'
 import {
   selectCurrentUserId,
@@ -83,8 +86,9 @@ function PartingDialog({
       message={
         isOwn ? (
           <>
-            &ldquo;{target?.name}&rdquo; wird für <strong>alle Mitglieder</strong>{' '}
-            gelöscht und kann nicht wiederhergestellt werden.
+            &ldquo;{target?.name}&rdquo; wird für{' '}
+            <strong>alle Mitglieder</strong> gelöscht und kann nicht
+            wiederhergestellt werden.
           </>
         ) : (
           <>
@@ -138,14 +142,14 @@ export function ListsPage() {
       members: list.memberIds
         .filter((memberId) => memberId !== currentUserId)
         .map((memberId) => ({
-        id: memberId,
-        initial: memberInitial(
-          memberDisplayName(
-            { id: memberId, name: list.memberNames?.[memberId] ?? null },
-            { id: currentUserId, name: displayName },
+          id: memberId,
+          initial: memberInitial(
+            memberDisplayName(
+              { id: memberId, name: list.memberNames?.[memberId] ?? null },
+              { id: currentUserId, name: displayName },
+            ),
           ),
-        ),
-        color: memberAvatarColor(memberId),
+          color: memberAvatarColor(memberId),
         })),
     }
   })

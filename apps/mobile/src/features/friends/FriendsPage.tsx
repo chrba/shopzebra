@@ -12,7 +12,13 @@ import { PageHeader } from '../../components/PageHeader'
 import { DangerConfirmDialog } from '../../components/DangerConfirmDialog'
 
 /** One friend of the address book: avatar and name, swipe reveals removal. */
-function FriendCard({ id, name }: { readonly id: string; readonly name: string }) {
+function FriendCard({
+  id,
+  name,
+}: {
+  readonly id: string
+  readonly name: string
+}) {
   return (
     <div className="bg-card flex items-center gap-3 rounded-2xl px-4 py-3">
       <div

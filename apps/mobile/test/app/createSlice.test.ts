@@ -58,7 +58,10 @@ describe('sync declarations', () => {
           on: 'list',
           reducer: (
             _state: { readonly seen: string },
-            action: PayloadAction<{ readonly listId: string; readonly name: string }>,
+            action: PayloadAction<{
+              readonly listId: string
+              readonly name: string
+            }>,
           ) => ({ seen: action.payload.name }),
         },
       },

@@ -56,7 +56,6 @@ export function AcceptFriendPage({ token }: AcceptFriendPageProps) {
 
   const handleAccept = () => void accept()
 
-
   if (state === 'failed') {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-8 text-center">

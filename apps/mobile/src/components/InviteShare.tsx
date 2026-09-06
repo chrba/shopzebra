@@ -68,7 +68,11 @@ type InviteShareProps = {
  * screen (list invites and friendship invites alike). The screens around it
  * differ only in header, texts and where the token comes from.
  */
-export function InviteShare({ link, invitationText, mailSubject }: InviteShareProps) {
+export function InviteShare({
+  link,
+  invitationText,
+  mailSubject,
+}: InviteShareProps) {
   const [copied, setCopied] = useState(false)
   const toast = useToast()
 
@@ -110,15 +114,25 @@ export function InviteShare({ link, invitationText, mailSubject }: InviteSharePr
         </div>
         <div className="flex flex-col gap-2.5">
           <ShareButton
-            icon={<span className="text-[#25D366]"><WhatsAppIcon /></span>}
+            icon={
+              <span className="text-[#25D366]">
+                <WhatsAppIcon />
+              </span>
+            }
             label="Per WhatsApp"
             sub="Direkt senden"
             onClick={() =>
-              window.open(`https://wa.me/?text=${encodeURIComponent(invitationText)}`)
+              window.open(
+                `https://wa.me/?text=${encodeURIComponent(invitationText)}`,
+              )
             }
           />
           <ShareButton
-            icon={<span className="text-teal"><MailIcon /></span>}
+            icon={
+              <span className="text-teal">
+                <MailIcon />
+              </span>
+            }
             label="Per E-Mail"
             sub="Einladungstext"
             onClick={() => {
