@@ -37,22 +37,6 @@ function pathOf(aggregate: Aggregate, suffix: string): string {
   return `${collectionPathFor(aggregate.kind)}/${aggregate.id}${suffix}`
 }
 
-/**
- * The server answered the invite request with something other than a token.
- * Carries the status so what came back survives into the log and into any
- * caller that wants to tell the answers apart. The invite screen currently
- * treats them alike, and inviteStateOf.ts says why.
- */
-export class InviteNotMinted extends Error {
-  readonly status: number
-
-  constructor(path: string, status: number) {
-    super(`POST ${path} → ${status}`)
-    this.name = 'InviteNotMinted'
-    this.status = status
-  }
-}
-
 /** Owner-only. Returns the aggregate's active token — the server reuses it. */
 export async function fetchInvite(
   aggregate: Aggregate,
@@ -60,7 +44,7 @@ export async function fetchInvite(
 ): Promise<Invite> {
   const path = pathOf(aggregate, '/invites')
   const response = await fetcher(path, { method: 'POST' })
-  if (!response.ok) throw new InviteNotMinted(path, response.status)
+  if (!response.ok) throw new Error(`POST ${path} → ${response.status}`)
 
   const body: unknown = await response.json()
   const { token, expiresAt } = body as {
