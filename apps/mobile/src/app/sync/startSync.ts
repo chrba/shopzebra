@@ -68,21 +68,31 @@ function droppedActionFor(aggregate: Aggregate) {
     : listDropped({ listId: aggregate.id })
 }
 
-/** Called from the root beforeLoad (app boot) and ensureIdentity. Idempotent. */
-export function startSync(): void {
-  if (started) return
+/**
+ * Called from the root beforeLoad (app boot) and ensureIdentity. Idempotent.
+ *
+ * Resolves once the first sync cycle is through — the queued events of this
+ * device have been pushed and the server's log has been pulled. The boot
+ * deliberately does not wait for that (local-first: the store is already
+ * rendered); the first share does, because it is about to talk to the
+ * server about an aggregate that may still be sitting in the outbox.
+ *
+ * Never rejects: an offline cycle is a warning, not a failure of sharing.
+ */
+export function startSync(): Promise<void> {
+  if (started) return Promise.resolve()
 
   // The binary rule: no account, no server
   // contact. Nothing is on its way in either, so the boot skeleton must
   // stop waiting — otherwise it hides the "new list" card forever.
   if (!selectHasAccount(store.getState())) {
     store.dispatch(initialSyncCompleted())
-    return
+    return Promise.resolve()
   }
 
   started = true
 
-  void syncEngine
+  const firstCycle = syncEngine
     .start((action) => store.dispatch(action), {
       heldAggregates: () => heldAggregates(store.getState()),
       dropAggregate: (aggregate) => store.dispatch(droppedActionFor(aggregate)),
@@ -92,15 +102,31 @@ export function startSync(): void {
       console.warn('sync: start failed', error)
     })
 
-  if (listenersRegistered) return
-  listenersRegistered = true
+  if (!listenersRegistered) {
+    listenersRegistered = true
 
-  void Network.addListener('networkStatusChange', (status) => {
-    if (status.connected) void syncEngine.requestSync()
-  })
-  void CapacitorApp.addListener('appStateChange', (state) => {
-    if (state.isActive) void syncEngine.requestSync()
-  })
+    void Network.addListener('networkStatusChange', (status) => {
+      if (status.connected) void syncEngine.requestSync()
+    })
+    void CapacitorApp.addListener('appStateChange', (state) => {
+      if (state.isActive) void syncEngine.requestSync()
+    })
+  }
+
+  return firstCycle
+}
+
+/**
+ * Resolves once what this device wrote has reached the server — or once the
+ * queue stops moving, so an offline caller gets an answer instead of
+ * hanging. Called before a command that speaks to the server about an
+ * aggregate written here; the invite screen is the one that needs it.
+ *
+ * Covers the device that already has an account, where startSync() has
+ * nothing left to await: a list created seconds ago may still be queued.
+ */
+export function pushQueuedEvents(): Promise<void> {
+  return syncEngine.pushQueuedEvents()
 }
 
 /**

@@ -211,6 +211,28 @@ export class SyncEngine {
     return run
   }
 
+  /**
+   * Resolves once what this device queued has reached the server — or once
+   * the queue stops moving (offline, or an entry the server refuses).
+   * Called before a command that speaks to the server about something
+   * written here: an invite for a list whose `listCreated` is still queued
+   * comes back 403, because the server has never heard of that list.
+   *
+   * requestSync() alone is no barrier — mid-cycle it hands back the running
+   * cycle, whose drain may already be past. So this waits for cycles until
+   * the queue is empty, and gives up when a cycle neither moved anything
+   * nor left a follow-up behind. It never starts a cycle of its own while
+   * one is running: that would keep re-arming the coalesced follow-up and
+   * spin forever on a device that is simply offline.
+   */
+  async pushQueuedEvents(): Promise<void> {
+    while (this.outbox && this.outbox.size() > 0) {
+      const queued = this.outbox.size()
+      await (this.cycleInFlight ?? this.requestSync())
+      if (this.outbox.size() >= queued && this.cycleInFlight === null) return
+    }
+  }
+
   // The sync choreography, in one place: push own events, roll rejected
   // ones back, then pull — the pull comes after the push so it returns the
   // acks of the just-delivered events along with everything foreign.
