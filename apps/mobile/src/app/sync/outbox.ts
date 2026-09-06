@@ -93,6 +93,22 @@ function parseOutboxState(raw: string | null): OutboxState {
   }
 }
 
+/**
+ * True when the server has ever answered this device. A cursor is only ever
+ * advanced by a catch-up, and a catch-up only happens with a token behind
+ * it — so a cursor proves an account exists, whatever the shadow
+ * credentials happen to claim about themselves.
+ *
+ * Called at boot, before the outbox is loaded, which is why it reads the
+ * blob rather than going through an instance.
+ */
+export async function serverHasAnsweredBefore(
+  storage: SyncStorage,
+): Promise<boolean> {
+  const state = parseOutboxState(await storage.getItem(SYNC_STORAGE_KEY))
+  return Object.keys(state.cursorByAggregate).length > 0
+}
+
 export class Outbox implements SendQueue, Cursors {
   // Mutable infrastructure state behind an immutable-value API.
   private state: OutboxState

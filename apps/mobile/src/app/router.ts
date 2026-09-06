@@ -93,7 +93,7 @@ import {
   restoreShadowSession,
 } from '../features/auth/domain/shadowAccount'
 import { appLoaded, selectIsAppLoaded } from './appSlice'
-import { openLocalLog, startSync } from './sync/startSync'
+import { openLocalLog, serverHasAnswered, startSync } from './sync/startSync'
 import { getItem, setItem } from './clientStorage'
 import type { ShoppingList } from '../features/lists/domain/listsDomain'
 import type { ListPreferences } from '../features/preferences/domain/preferencesDomain'
@@ -175,7 +175,7 @@ async function identityOfSession(): Promise<EstablishedIdentity | null> {
  */
 async function identityOfStoredCredentials(): Promise<EstablishedIdentity | null> {
   try {
-    if (!(await restoreShadowSession())) return null
+    if (!(await restoreShadowSession(serverHasAnswered))) return null
     return await identityOfSession()
   } catch (error: unknown) {
     // Offline at boot: stay local, the outbox holds everything.
