@@ -9,15 +9,36 @@ import { getItem, setItem } from '../clientStorage'
 import { Outbox, type OutboxEntry, type SyncStorage } from './outbox'
 import { cursorsGuardedByFoldedState } from './receive/guardedCursors'
 import { silenceForReleasedAggregates } from './receive/silenceForReleased'
-import { cursorKeyOf, type Aggregate } from './aggregate'
+import { ALL_KINDS, cursorKeyOf, type Aggregate } from './aggregate'
 import { drainOutbox } from './send/drainOutbox'
 import { catchUp } from './receive/catchUp'
-import { httpTransport, type Transport } from './transport'
+import {
+  httpTransport,
+  type CollectionListing,
+  type Transport,
+} from './transport'
 import { pendingDiscarded, pendingRestored } from './withSync'
 import { appSyncPolicy } from './appSyncPolicy'
 import type { SyncPolicy } from './syncPolicy'
 
 export type Dispatch = (action: PayloadAction<unknown>) => void
+
+/**
+ * Reads a round of collection listings as the one question the letting-go
+ * asks: does the server say this aggregate is not ours any more? Only a
+ * collection that answered can say so — silence from an unreadable one is
+ * not a "no".
+ */
+function answersOf(collections: readonly CollectionListing[]) {
+  const answered = new Set(collections.map((collection) => collection.kind))
+  const named = new Set(
+    collections.flatMap((collection) => collection.named.map(cursorKeyOf)),
+  )
+  return {
+    saysGone: (aggregate: Aggregate): boolean =>
+      answered.has(aggregate.kind) && !named.has(cursorKeyOf(aggregate)),
+  }
+}
 
 const RETRY_BASE_MS = 1_000
 const RETRY_MAX_MS = 30_000
@@ -208,20 +229,37 @@ export class SyncEngine {
     // Holding it again means this device never let go after all — leaving
     // was refused and the list came back.
     await this.reclaimWhatIsHeldAgain(outbox, heldKeys)
-    const visible = await catchUp({
+    const collections = await this.readCollections()
+    const named = collections.flatMap((collection) => collection.named)
+    await catchUp({
       cursors: cursorsGuardedByFoldedState(outbox, (aggregate) =>
         heldKeys.has(cursorKeyOf(aggregate)),
       ),
       dispatch,
-      fetchAggregates: this.transport.fetchAggregates,
+      fetchAggregates: () => Promise.resolve(named),
       fetchEventsSince: silenceForReleasedAggregates(
         this.transport.fetchEventsSince,
         (aggregate) => outbox.hasReleased(aggregate),
       ),
       domainActionOf: this.policy.domainActionOf,
     })
-    this.dropWhatIsNoLongerOurs(outbox, held, visible)
-    await this.settleReleasesTheServerAgreesWith(outbox, visible)
+    this.dropWhatIsNoLongerOurs(outbox, held, collections)
+    await this.settleReleasesTheServerAgreesWith(outbox, collections)
+  }
+
+  /**
+   * What each collection named, for the collections that could be read.
+   * A transport that does not distinguish a failed listing from an empty
+   * one is taken at its word — everything it returned is everything every
+   * collection named, which is what it meant before the distinction existed.
+   */
+  private async readCollections(): Promise<readonly CollectionListing[]> {
+    if (this.transport.listCollections) return this.transport.listCollections()
+    const named = await this.transport.fetchAggregates()
+    return ALL_KINDS.map((kind) => ({
+      kind,
+      named: named.filter((aggregate) => aggregate.kind === kind),
+    }))
   }
 
   /** A release only stands while the aggregate is gone from here. */
@@ -239,17 +277,16 @@ export class SyncEngine {
   /**
    * Forgets a release once the collection stops naming the aggregate: the
    * server has caught up, and from here on only a fresh invitation can
-   * bring it back — which must pull its log from the start.
+   * bring it back — which must pull its log from the start. A collection
+   * that could not be read says nothing either way, so it settles nothing.
    */
   private async settleReleasesTheServerAgreesWith(
     outbox: Outbox,
-    visible: readonly Aggregate[],
+    collections: readonly CollectionListing[],
   ): Promise<void> {
-    const stillNamed = new Set(visible.map(cursorKeyOf))
+    const answered = answersOf(collections)
     for (const aggregate of outbox.releasedAggregates()) {
-      if (!stillNamed.has(cursorKeyOf(aggregate))) {
-        await outbox.reclaim(aggregate)
-      }
+      if (answered.saysGone(aggregate)) await outbox.reclaim(aggregate)
     }
   }
 
@@ -259,18 +296,22 @@ export class SyncEngine {
    * removed device — access ends with it — so absence from the collection
    * is the only signal there is.
    *
-   * Guarded by the cursor: an aggregate the server never confirmed was
+   * Absence only counts from a collection that answered: a listing that
+   * failed proves nothing, and reading it as "you are a member of none of
+   * these" would take every list off the device over one 500.
+   *
+   * Guarded by the cursor too: an aggregate the server never confirmed was
    * written here and has not been sent yet. Dropping those would delete a
    * guest's own lists on their first cycle.
    */
   private dropWhatIsNoLongerOurs(
     outbox: Outbox,
     held: readonly Aggregate[],
-    visible: readonly Aggregate[],
+    collections: readonly CollectionListing[],
   ): void {
-    const visibleKeys = new Set(visible.map(cursorKeyOf))
+    const answered = answersOf(collections)
     for (const aggregate of held) {
-      if (visibleKeys.has(cursorKeyOf(aggregate))) continue
+      if (!answered.saysGone(aggregate)) continue
       if (outbox.cursorFor(aggregate) === null) continue
       this.dropAggregate(aggregate)
     }

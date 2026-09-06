@@ -75,6 +75,8 @@ class Backend {
   /** Pairs of aggregate and user the collection still names although the membership is gone. */
   private lagging: ReadonlySet<string> = new Set()
 
+  private listCollectionReadable = true
+
   append(aggregate: Aggregate, event: AppendableEvent): void {
     this.sequence += 1
     const key = cursorKeyOf(aggregate)
@@ -156,9 +158,24 @@ class Backend {
         return Promise.resolve<SendResult>({ outcome: 'confirmed' })
       },
       fetchAggregates: () => Promise.resolve(this.aggregatesOf(userId)),
+      listCollections: () =>
+        Promise.resolve(
+          this.listCollectionReadable
+            ? [{ kind: 'list' as const, named: this.aggregatesOf(userId) }]
+            : [],
+        ),
       fetchEventsSince: (aggregate, since) =>
         Promise.resolve(this.eventsSince(aggregate, since)),
     }
+  }
+
+  /** GET /lists stops answering — a 500, an expired token, a captive portal. */
+  breakTheListCollection(): void {
+    this.listCollectionReadable = false
+  }
+
+  mendTheListCollection(): void {
+    this.listCollectionReadable = true
   }
 }
 
@@ -541,7 +558,7 @@ describe('a member the owner removed', () => {
     expect(member.itemIds('l1')).toEqual(['milk'])
   })
 
-  test('the other members keep the list', async () => {
+  test('the other members keep the list when one leaves', async () => {
     const backend = new Backend()
     sharedWith(backend, 'me')
     const owner = deviceOf(backend, 'eiszebra', 'd-eiszebra')
@@ -556,5 +573,48 @@ describe('a member the owner removed', () => {
     expect(member.listIds()).toEqual([])
     expect(owner.listIds()).toEqual(['l1'])
     expect(owner.itemIds('l1')).toEqual(['milk'])
+  })
+})
+
+// --- When the collection cannot be read at all ---
+
+describe('a list collection that cannot be read', () => {
+  test('never costs the device the lists it holds', async () => {
+    const backend = new Backend()
+    sharedWith(backend, 'me')
+    const member = deviceOf(backend, 'me', 'd-me')
+    await member.start()
+    expect(member.listIds()).toEqual(['l1'])
+
+    backend.breakTheListCollection()
+    await member.sync()
+
+    expect(member.listIds()).toEqual(['l1'])
+    expect(member.itemIds('l1')).toEqual(['milk'])
+  })
+
+  // Silence settles nothing either. If a failed listing counted as "the
+  // server no longer names it", the leave would be forgotten and the very
+  // next healthy cycle — still inside the projection's lag — would fold the
+  // list back in.
+  test('does not settle a leave the server has not confirmed yet', async () => {
+    const backend = new Backend()
+    sharedWith(backend, 'me')
+    const member = deviceOf(backend, 'me', 'd-me')
+    await member.start()
+
+    await member.leave('l1', () => {
+      backend.letTheProjectionLag(groceries, 'me')
+      return removalAccepted(backend)('', {})
+    })
+    expect(member.listIds()).toEqual([])
+
+    backend.breakTheListCollection()
+    await member.sync()
+
+    backend.mendTheListCollection()
+    await member.sync()
+
+    expect(member.listIds()).toEqual([])
   })
 })

@@ -4,11 +4,17 @@
 import type { Aggregate } from './aggregate'
 import type { OutboxEntry } from './outbox'
 import { sendEntry, type SendResult } from './send/sendEntry'
-import { fetchAggregates, fetchEventsSince } from './receive/fetchEvents'
+import {
+  fetchAggregates,
+  fetchEventsSince,
+  listCollections,
+  type CollectionListing,
+} from './receive/fetchEvents'
 import type { WireEvent } from './wire'
 
 export type { SendResult } from './send/sendEntry'
 export type { WireEvent } from './wire'
+export type { CollectionListing } from './receive/fetchEvents'
 
 /** The engine's view of the server: send one entry, list aggregates, pull deltas. */
 export type Transport = {
@@ -16,6 +22,16 @@ export type Transport = {
   readonly sendEntry: (entry: OutboxEntry) => Promise<SendResult>
   /** Aggregates the caller may sync, of every kind (membership projection) — the catch-up fan-out. Throws on failure. */
   readonly fetchAggregates: () => Promise<readonly Aggregate[]>
+  /**
+   * The same answer, but per collection and only for the collections that
+   * could be read. The engine lets go of what a collection does not name,
+   * so it needs to tell "you are a member of none" from "I could not ask".
+   *
+   * Optional because a transport may not distinguish the two — a fake that
+   * always succeeds has nothing to add. Such a transport is taken at its
+   * word: everything it returned is everything every collection named.
+   */
+  readonly listCollections?: () => Promise<readonly CollectionListing[]>
   /** Events of one aggregate after `since` (whole log when null), in wire format. Throws on failure. */
   readonly fetchEventsSince: (
     aggregate: Aggregate,
@@ -27,5 +43,6 @@ export type Transport = {
 export const httpTransport: Transport = {
   sendEntry,
   fetchAggregates,
+  listCollections,
   fetchEventsSince,
 }

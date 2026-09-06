@@ -42,26 +42,54 @@ async function fetchAggregatesOfKind(
     .map((id) => ({ kind, id }))
 }
 
+/** One collection that could be read, and everything it named the caller a member of. */
+export type CollectionListing = {
+  readonly kind: AggregateKind
+  readonly named: readonly Aggregate[]
+}
+
 /**
- * Everything the caller may sync, across all kinds. Called at the start of
- * every catch-up. One unreachable collection is reported and skipped rather
- * than failing the whole cycle — the same isolation the per-aggregate pull
- * uses, so a broken recipes endpoint never stops lists from syncing.
+ * Every collection that could be read, with what it named. Called at the
+ * start of every catch-up. One unreachable collection is reported and
+ * skipped rather than failing the whole cycle — the same isolation the
+ * per-aggregate pull uses, so a broken recipes endpoint never stops lists
+ * from syncing.
+ *
+ * An unreadable collection is **missing** from the answer rather than named
+ * as empty, and that difference carries the weight: the engine lets go of
+ * everything its collection does not name, so reading a failed call as "you
+ * are a member of none of these" would cost the device every list it has on
+ * a single 500.
+ */
+export async function listCollections(
+  fetcher: Fetcher = authFetch,
+): Promise<readonly CollectionListing[]> {
+  const perKind = await Promise.all(
+    ALL_KINDS.map(async (kind) => {
+      try {
+        return { kind, named: await fetchAggregatesOfKind(kind, fetcher) }
+      } catch (error: unknown) {
+        console.warn(`sync: listing ${kind} aggregates failed`, error)
+        return null
+      }
+    }),
+  )
+  return perKind.filter(
+    (listing): listing is CollectionListing => listing !== null,
+  )
+}
+
+/**
+ * Everything the caller may sync, across all kinds — the flat view of
+ * listCollections, for the pull, which only needs to know what to fetch.
+ * Whether a kind could be read at all is a question only the letting-go
+ * asks, and it asks listCollections.
  */
 export async function fetchAggregates(
   fetcher: Fetcher = authFetch,
 ): Promise<readonly Aggregate[]> {
-  const perKind = await Promise.all(
-    ALL_KINDS.map(async (kind) => {
-      try {
-        return await fetchAggregatesOfKind(kind, fetcher)
-      } catch (error: unknown) {
-        console.warn(`sync: listing ${kind} aggregates failed`, error)
-        return []
-      }
-    }),
-  )
-  return perKind.flat()
+  const listings = await listCollections(fetcher)
+  return listings.flatMap((listing) => listing.named)
 }
 
 /**
