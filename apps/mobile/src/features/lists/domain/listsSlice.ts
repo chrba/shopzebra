@@ -152,9 +152,15 @@ const listsSlice = createSlice({
      * owner removed me, or it was deleted while I was away. The server's
      * own event about that never reaches me: whatever ended my membership
      * also ended my access to the log.
+     *
+     * `releases` is what makes it last. Folding this into `confirmed` is
+     * not enough: `confirmed` is the fold of the log, and the log knows
+     * nothing of my leaving, so the next pull would fold `listCreated` a
+     * second time and the list would be back.
      */
     listDropped: {
       role: 'localEvent',
+      releases: 'list',
       reducer: (
         state: ListsState,
         action: PayloadAction<{ readonly listId: string }>,

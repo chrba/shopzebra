@@ -1,10 +1,10 @@
 // The bridge between send and receive path — one persisted blob
-// (`shopzebra_sync`): FIFO send queue (write side) + cursor per aggregate
-// (read side). Deliberately ONE object so the two sides can never drift
-// apart across restarts.
+// (`shopzebra_sync`): FIFO send queue (write side), cursor per aggregate and
+// what this device let go of (read side). Deliberately ONE object so the two
+// sides can never drift apart across restarts.
 
 import type { PayloadAction } from '../createSlice'
-import { cursorKeyOf, type Aggregate } from './aggregate'
+import { cursorKeyOf, parseAggregate, type Aggregate } from './aggregate'
 
 /**
  * One queued send: target path + wire payload. Routing happens at enqueue
@@ -21,6 +21,24 @@ export interface SendQueue {
   head(): OutboxEntry | null
   /** Removes the head once its send is settled — accepted (2xx) or rejected (4xx). Resolves when the change is persisted. */
   removeHead(): Promise<void>
+}
+
+/**
+ * What this device deliberately let go of. Its own role interface, because
+ * it answers a different question than the cursor: not "how far did I fold"
+ * but "do I still want this at all". Nothing in the log answers it — leaving
+ * a list is not an event of that list — so it is kept here, beside the
+ * cursor, where the pull can see it and a restart still finds it.
+ */
+export interface Releases {
+  /** True while this device has let go and the server still names the aggregate. Asked once per aggregate per pull. */
+  hasReleased(aggregate: Aggregate): boolean
+  /** Every release not settled yet. Walked at both ends of a sync cycle. */
+  releasedAggregates(): readonly Aggregate[]
+  /** Records the letting-go. Called by SyncEngine.offer for actions declaring `releases`. Resolves when persisted. */
+  release(aggregate: Aggregate): Promise<void>
+  /** Settles one: the server stopped naming it, or this device holds it again. Resolves when persisted. */
+  reclaim(aggregate: Aggregate): Promise<void>
 }
 
 /** The receive path's view of the bridge (receive/catchUp.ts): one cursor per aggregate. */
@@ -45,6 +63,8 @@ type OutboxState = {
   readonly queue: readonly OutboxEntry[]
   /** Keyed by cursorKeyOf(aggregate) — kind and id, never id alone. */
   readonly cursorByAggregate: { readonly [cursorKey: string]: string }
+  /** Aggregates this device let go of, until the server agrees. */
+  readonly released: readonly Aggregate[]
 }
 
 export const SYNC_STORAGE_KEY = 'shopzebra_sync'
@@ -52,6 +72,7 @@ export const SYNC_STORAGE_KEY = 'shopzebra_sync'
 const EMPTY: OutboxState = {
   queue: [],
   cursorByAggregate: {},
+  released: [],
 }
 
 function isOutboxEntry(candidate: unknown): candidate is OutboxEntry {
@@ -87,13 +108,18 @@ function parseOutboxState(raw: string | null): OutboxState {
         typeof candidate.cursorByAggregate === 'object'
           ? candidate.cursorByAggregate
           : {},
+      released: Array.isArray(candidate.released)
+        ? candidate.released
+            .map(parseAggregate)
+            .filter((aggregate): aggregate is Aggregate => aggregate !== null)
+        : [],
     }
   } catch {
     return EMPTY
   }
 }
 
-export class Outbox implements SendQueue, Cursors {
+export class Outbox implements SendQueue, Cursors, Releases {
   // Mutable infrastructure state behind an immutable-value API.
   private state: OutboxState
   private lastWrite: Promise<void> = Promise.resolve()
@@ -162,6 +188,45 @@ export class Outbox implements SendQueue, Cursors {
         ...this.state.cursorByAggregate,
         [cursorKeyOf(aggregate)]: position,
       },
+    })
+  }
+
+  /** True while this device has let go of the aggregate. Called by the pull, per aggregate the server named. */
+  hasReleased(aggregate: Aggregate): boolean {
+    const key = cursorKeyOf(aggregate)
+    return this.state.released.some(
+      (released) => cursorKeyOf(released) === key,
+    )
+  }
+
+  /** Every unsettled release. Called at both ends of a sync cycle. */
+  releasedAggregates(): readonly Aggregate[] {
+    return this.state.released
+  }
+
+  /** Called when a `releases` action was dispatched. Idempotent. */
+  release(aggregate: Aggregate): Promise<void> {
+    if (this.hasReleased(aggregate)) return Promise.resolve()
+    return this.commit({
+      ...this.state,
+      released: [...this.state.released, aggregate],
+    })
+  }
+
+  /**
+   * Called once the release has served its purpose: the server stopped
+   * naming the aggregate, or this device holds it again because leaving
+   * failed. Forgetting it is what lets a later invitation bring the
+   * aggregate back.
+   */
+  reclaim(aggregate: Aggregate): Promise<void> {
+    if (!this.hasReleased(aggregate)) return Promise.resolve()
+    const key = cursorKeyOf(aggregate)
+    return this.commit({
+      ...this.state,
+      released: this.state.released.filter(
+        (released) => cursorKeyOf(released) !== key,
+      ),
     })
   }
 

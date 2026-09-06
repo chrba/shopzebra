@@ -8,6 +8,7 @@ import type { PayloadAction } from '../createSlice'
 import { getItem, setItem } from '../clientStorage'
 import { Outbox, type OutboxEntry, type SyncStorage } from './outbox'
 import { cursorsGuardedByFoldedState } from './receive/guardedCursors'
+import { silenceForReleasedAggregates } from './receive/silenceForReleased'
 import { cursorKeyOf, type Aggregate } from './aggregate'
 import { drainOutbox } from './send/drainOutbox'
 import { catchUp } from './receive/catchUp'
@@ -24,6 +25,8 @@ const RETRY_MAX_MS = 30_000
 export class SyncEngine {
   // Holds entries offered before openLocalLog() finished loading the outbox.
   private preStartBuffer: OutboxEntry[] = []
+  // Same for aggregates let go of before the log was open.
+  private preStartReleases: Aggregate[] = []
   private outbox: Outbox | null = null
   private dispatch: Dispatch | null = null
 
@@ -60,12 +63,28 @@ export class SyncEngine {
    * whether it is queued. Buffers until openLocalLog() ran.
    */
   offer(action: PayloadAction<unknown>): void {
+    const released = this.policy.releasedAggregateOf(action)
+    if (released) this.noteRelease(released)
+
     const entry = this.policy.toOutboxEntry(action)
     if (!entry) return
     if (this.outbox) {
       void this.outbox.enqueue(entry).then(() => this.requestSync())
     } else {
       this.preStartBuffer.push(entry)
+    }
+  }
+
+  /**
+   * Remembers that this device let go of an aggregate, so no later pull
+   * folds its log again and puts it back on screen. Buffered like a queued
+   * entry when the log is not open yet.
+   */
+  private noteRelease(aggregate: Aggregate): void {
+    if (this.outbox) {
+      void this.outbox.release(aggregate)
+    } else {
+      this.preStartReleases.push(aggregate)
     }
   }
 
@@ -85,6 +104,10 @@ export class SyncEngine {
       await outbox.enqueue(entry)
     }
     this.preStartBuffer = []
+    for (const aggregate of this.preStartReleases) {
+      await outbox.release(aggregate)
+    }
+    this.preStartReleases = []
     this.outbox = outbox
     // Refill the reducer's pending queue from the persisted outbox —
     // without it, offline edits would be invisible after a restart.
@@ -136,6 +159,7 @@ export class SyncEngine {
     this.outbox = null
     this.dispatch = null
     this.preStartBuffer = []
+    this.preStartReleases = []
   }
 
   /**
@@ -181,16 +205,52 @@ export class SyncEngine {
     }
     const held = this.heldAggregates()
     const heldKeys = new Set(held.map(cursorKeyOf))
+    // Holding it again means this device never let go after all — leaving
+    // was refused and the list came back.
+    await this.reclaimWhatIsHeldAgain(outbox, heldKeys)
     const visible = await catchUp({
       cursors: cursorsGuardedByFoldedState(outbox, (aggregate) =>
         heldKeys.has(cursorKeyOf(aggregate)),
       ),
       dispatch,
       fetchAggregates: this.transport.fetchAggregates,
-      fetchEventsSince: this.transport.fetchEventsSince,
+      fetchEventsSince: silenceForReleasedAggregates(
+        this.transport.fetchEventsSince,
+        (aggregate) => outbox.hasReleased(aggregate),
+      ),
       domainActionOf: this.policy.domainActionOf,
     })
     this.dropWhatIsNoLongerOurs(outbox, held, visible)
+    await this.settleReleasesTheServerAgreesWith(outbox, visible)
+  }
+
+  /** A release only stands while the aggregate is gone from here. */
+  private async reclaimWhatIsHeldAgain(
+    outbox: Outbox,
+    heldKeys: ReadonlySet<string>,
+  ): Promise<void> {
+    for (const aggregate of outbox.releasedAggregates()) {
+      if (heldKeys.has(cursorKeyOf(aggregate))) {
+        await outbox.reclaim(aggregate)
+      }
+    }
+  }
+
+  /**
+   * Forgets a release once the collection stops naming the aggregate: the
+   * server has caught up, and from here on only a fresh invitation can
+   * bring it back — which must pull its log from the start.
+   */
+  private async settleReleasesTheServerAgreesWith(
+    outbox: Outbox,
+    visible: readonly Aggregate[],
+  ): Promise<void> {
+    const stillNamed = new Set(visible.map(cursorKeyOf))
+    for (const aggregate of outbox.releasedAggregates()) {
+      if (!stillNamed.has(cursorKeyOf(aggregate))) {
+        await outbox.reclaim(aggregate)
+      }
+    }
   }
 
   /**
