@@ -25,15 +25,17 @@ describe('inviteStateOf', () => {
     })
   })
 
-  // A refusal is a verdict, not a connectivity problem: offering "check your
-  // connection and try again" would send the user in circles.
-  it('calls a refusal a refusal instead of blaming the connection', async () => {
+  // notOwner is decided from the store before this runs, so whoever reaches
+  // here believes they own the aggregate — a 403 means the server has not
+  // heard of it yet. That is a race another try fixes; "only the owner may
+  // invite" would strand the user on a dead end with a Zurück button.
+  it('offers another try when the server refuses, rather than a dead end', async () => {
     const state = await inviteStateOf(
       list1,
-      answering(403, { error: 'only the owner may do this' }),
+      answering(403, { error: 'caller is not a member of this aggregate' }),
     )
 
-    expect(state).toEqual({ status: 'notOwner' })
+    expect(state).toEqual({ status: 'unreachable' })
   })
 
   it('reports a request that never arrived as unreachable', async () => {

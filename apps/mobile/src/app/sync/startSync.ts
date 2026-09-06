@@ -117,6 +117,19 @@ export function startSync(): Promise<void> {
 }
 
 /**
+ * Resolves once what this device wrote has reached the server — or once the
+ * queue stops moving, so an offline caller gets an answer instead of
+ * hanging. Called before a command that speaks to the server about an
+ * aggregate written here; the invite screen is the one that needs it.
+ *
+ * Covers the device that already has an account, where startSync() has
+ * nothing left to await: a list created seconds ago may still be queued.
+ */
+export function pushQueuedEvents(): Promise<void> {
+  return syncEngine.pushQueuedEvents()
+}
+
+/**
  * Called from performSignOut. Stops the engine and drops its persisted
  * queue/cursor — the next user on this device inherits nothing.
  */

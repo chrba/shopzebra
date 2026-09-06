@@ -1,24 +1,24 @@
 // Why the invite screen has a link — or why it has none. One place for both
 // aggregate kinds: a list and a recipe are shared through the same endpoint,
-// so they fail in the same two ways and must say so in the same two words.
+// so they fail in the same ways and must say so in the same words.
 
 import { authFetch, type Fetcher } from '../../app/authFetch'
 import type { Aggregate } from '../../app/sync/aggregate'
 import type { InviteState } from './InvitePage'
-import { fetchInvite, InviteNotMinted } from './memberCommands'
-
-/** Only the owner mints invites, so a refusal stays refused. */
-const FORBIDDEN = 403
+import { fetchInvite } from './memberCommands'
 
 /**
  * Asks the server for the aggregate's active token and turns the answer into
- * the screen's state. Called by the invite route loaders, once the device has
- * an account, has pushed what it wrote and owns the aggregate.
+ * the screen's state. Called by the invite route loaders, once this device
+ * has an account, has pushed what it wrote and owns the aggregate.
  *
- * The two failures are told apart on purpose: a refusal is the server's
- * verdict on who may invite and no amount of retrying changes it, while a
- * request that never arrived is worth another try. Saying "check your
- * connection" to either one would be wrong for one of them.
+ * Every failure here is `unreachable`, a 403 included. `notOwner` is decided
+ * before this runs, from the owner in the store — so whoever gets this far
+ * believes they own the aggregate, and a 403 means the server disagrees.
+ * In practice that is `NotAMember` rather than `OwnerOnly`: the server has
+ * not heard of the aggregate yet. A race, not a verdict — another try is
+ * exactly what fixes it, while "only the owner may invite" would be a dead
+ * end with a Zurück button.
  */
 export async function inviteStateOf(
   aggregate: Aggregate,
@@ -28,8 +28,6 @@ export async function inviteStateOf(
     return { status: 'ready', invite: await fetchInvite(aggregate, fetcher) }
   } catch (error: unknown) {
     console.warn(`minting the ${aggregate.kind} invite failed`, error)
-    return error instanceof InviteNotMinted && error.status === FORBIDDEN
-      ? { status: 'notOwner' }
-      : { status: 'unreachable' }
+    return { status: 'unreachable' }
   }
 }

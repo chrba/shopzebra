@@ -116,7 +116,7 @@ export class Outbox implements SendQueue, Cursors {
     return this.state.queue[0] ?? null
   }
 
-  /** Queue length. Used by tests; production code reads head()/queuedEntries(). */
+  /** Queue length. Read by the engine's push barrier (pushQueuedEvents) to tell whether a cycle moved anything. */
   size(): number {
     return this.state.queue.length
   }

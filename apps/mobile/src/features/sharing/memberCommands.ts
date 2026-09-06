@@ -39,8 +39,9 @@ function pathOf(aggregate: Aggregate, suffix: string): string {
 
 /**
  * The server answered the invite request with something other than a token.
- * It carries the status because 403 is a verdict on the caller — only the
- * owner mints invites — while everything else is a request worth repeating.
+ * Carries the status so what came back survives into the log and into any
+ * caller that wants to tell the answers apart. The invite screen currently
+ * treats them alike, and inviteStateOf.ts says why.
  */
 export class InviteNotMinted extends Error {
   readonly status: number

@@ -91,7 +91,7 @@ import {
   restoreShadowSession,
 } from '../features/auth/domain/shadowAccount'
 import { appLoaded, selectIsAppLoaded } from './appSlice'
-import { openLocalLog, startSync } from './sync/startSync'
+import { openLocalLog, pushQueuedEvents, startSync } from './sync/startSync'
 import { getItem, setItem } from './clientStorage'
 import type { ShoppingList } from '../features/lists/domain/listsDomain'
 import type { ListPreferences } from '../features/preferences/domain/preferencesDomain'
@@ -209,6 +209,29 @@ async function restoreIdentity(): Promise<void> {
  */
 function canReachServer(): boolean {
   return selectHasAccount(store.getState())
+}
+
+/**
+ * Everything the invite screens need before they may ask for a token, in the
+ * order they need it: sharing is what makes an account necessary, so it is
+ * made here, silently, while the pending skeleton covers the wait (nobody is
+ * asked anything — the device has carried its name since the first start).
+ * Then what this device wrote goes out, because the invite is about to name
+ * a list the server has to know already.
+ *
+ * False when that failed — offline at the very first share, where Cognito
+ * cannot be reached. The screen says "unreachable" and offers another try,
+ * which beats dropping the user into the router's error boundary.
+ */
+async function preparedToShare(): Promise<boolean> {
+  try {
+    await store.dispatch(ensureIdentity())
+    await pushQueuedEvents()
+    return true
+  } catch (error: unknown) {
+    console.warn('preparing this device to share failed', error)
+    return false
+  }
 }
 
 // --- Background refreshes ---
@@ -443,10 +466,10 @@ const listInviteRoute = createRoute({
   path: '/lists/$listId/invite',
   pendingComponent: InvitePageSkeleton,
   loader: async ({ params }) => {
-    // Sharing is what makes an account necessary — so it is made here,
-    // silently, while the pending skeleton covers the wait. Nobody is asked
-    // anything: the device has carried its name since the first start.
-    await store.dispatch(ensureIdentity())
+    if (!(await preparedToShare())) {
+      const unreachable: InviteState = { status: 'unreachable' }
+      return { state: unreachable }
+    }
 
     const state = store.getState()
     const list = selectListById(state, params.listId)
@@ -503,8 +526,12 @@ const friendsInviteRoute = createRoute({
   path: '/friends/invite',
   pendingComponent: InvitePageSkeleton,
   loader: async () => {
-    await store.dispatch(ensureIdentity())
     try {
+      // Inside the try: offline at the first share, making the account is
+      // the step that fails, and the screen's own "no link" state says that
+      // better than the router's error boundary. A friendship link names no
+      // aggregate, so nothing has to be pushed first.
+      await store.dispatch(ensureIdentity())
       return { invite: await createFriendInvite() }
     } catch (error: unknown) {
       console.warn('minting the friend invite failed', error)
@@ -576,7 +603,10 @@ const recipeInviteRoute = createRoute({
   pendingComponent: InvitePageSkeleton,
   loader: async ({ params }) => {
     // Same as for a list: the account is made here, not asked for.
-    await store.dispatch(ensureIdentity())
+    if (!(await preparedToShare())) {
+      const unreachable: InviteState = { status: 'unreachable' }
+      return { state: unreachable }
+    }
 
     const state = store.getState()
     const recipe = selectRecipeById(state, params.recipeId)
